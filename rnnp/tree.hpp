@@ -50,6 +50,12 @@ namespace rnnp
       label_ = symbol_type();
       antecedent_.clear();
     }
+
+    void swap(Tree& x)
+    {
+      label_.swap(x.label_);
+      antecedent_.swap(x.antecedent_);
+    }
     
   public:
     bool leaf() const { return antecedent_.empty(); }
@@ -123,6 +129,15 @@ namespace rnnp
   bool operator>=(const Tree& x, const Tree& y)
   {
     return ! (x < y);
+  }
+};
+
+namespace std
+{
+  inline
+  void swap(rnnp::Tree& x, rnnp::Tree& y)
+  {
+    x.swap(y);
   }
 };
 

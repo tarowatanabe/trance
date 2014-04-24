@@ -40,15 +40,21 @@ namespace rnnp
     void assign(const utils::piece& x);
     bool assign(std::string::const_iterator& iter, std::string::const_iterator end);
     bool assign(utils::piece::const_iterator& iter, utils::piece::const_iterator end);
-
-    std::string string() const;
-
-
+    
     void clear()
     {
       lhs_ = symbol_type();
       rhs_.clear();
     }
+
+    void swap(Rule& x)
+    {
+      lhs_.swap(x.lhs_);
+      rhs_.swap(x.rhs_);
+    }
+    
+    std::string string() const;
+
   public:
     bool goal() const { return rhs_.empty(); }
     bool unary() const { return rhs_.size() == 1 && rhs_.front().non_terminal(); }
@@ -108,6 +114,15 @@ namespace rnnp
     return ! (x < y);
   }
 
+};
+
+namespace std
+{
+  inline
+  void swap(rnnp::Rule& x, rnnp::Rule& y)
+  {
+    x.swap(y);
+  }
 };
 
 #endif
