@@ -46,25 +46,25 @@ struct treebank_type
 {
   typedef std::vector<treebank_type> antecedents_type;
 
-  std::string cat;
-  antecedents_type antecedents;
-  bool removed;
+  std::string cat_;
+  antecedents_type antecedents_;
+  bool removed_;
   
-  treebank_type() : removed(false) {}
-  treebank_type(const std::string& __cat) : cat(__cat), removed(false) {}
+  treebank_type() : removed_(false) {}
+  treebank_type(const std::string& cat) : cat_(cat), removed_(false) {}
 
   void clear()
   {
-    cat.clear();
-    antecedents.clear();
-    removed = false;
+    cat_.clear();
+    antecedents_.clear();
+    removed_ = false;
   }
 };
 
 BOOST_FUSION_ADAPT_STRUCT(
 			  treebank_type,
-			  (std::string, cat)
-			  (std::vector<treebank_type>, antecedents)
+			  (std::string, cat_)
+			  (std::vector<treebank_type>, antecedents_)
 			  )
 
 template <typename Iterator>
@@ -97,25 +97,25 @@ typedef std::vector<std::string, std::allocator<std::string> > sentence_type;
 
 void transform_leaf(const treebank_type& treebank, sentence_type& sent) 
 {
-  if (treebank.antecedents.empty())
-    sent.push_back(treebank.cat);
+  if (treebank.antecedents_.empty())
+    sent.push_back(treebank.cat_);
   else
-    for (treebank_type::antecedents_type::const_iterator aiter = treebank.antecedents.begin(); aiter != treebank.antecedents.end(); ++ aiter)
+    for (treebank_type::antecedents_type::const_iterator aiter = treebank.antecedents_.begin(); aiter != treebank.antecedents_.end(); ++ aiter)
       transform_leaf(*aiter, sent);
 }
 
 void transform_normalize(treebank_type& treebank)
 {
   // no terminal...
-  if (treebank.antecedents.empty()) return;
+  if (treebank.antecedents_.empty()) return;
   
   // normalize treebank-category...
-  if (treebank.cat.size() == 1) {
-    switch (treebank.cat[0]) {
-    case '.' : treebank.cat = "PERIOD"; break;
-    case ',' : treebank.cat = "COMMA"; break;
-    case ':' : treebank.cat = "COLON"; break;
-    case ';' : treebank.cat = "SEMICOLON"; break;
+  if (treebank.cat_.size() == 1) {
+    switch (treebank.cat_[0]) {
+    case '.' : treebank.cat_ = "PERIOD"; break;
+    case ',' : treebank.cat_ = "COMMA"; break;
+    case ':' : treebank.cat_ = "COLON"; break;
+    case ';' : treebank.cat_ = "SEMICOLON"; break;
     }
   } else {
     namespace xpressive = boost::xpressive;
@@ -126,11 +126,11 @@ void transform_normalize(treebank_type& treebank)
     static pregex re = (xpressive::s1= -+(~xpressive::_s)) >> (xpressive::as_xpr('-') | xpressive::as_xpr('=')) >> +(~xpressive::_s);
     
     pmatch what;
-    if (xpressive::regex_match(utils::piece(treebank.cat), what, re))
-      treebank.cat = what[1];
+    if (xpressive::regex_match(utils::piece(treebank.cat_), what, re))
+      treebank.cat_ = what[1];
   }
   
-  for (treebank_type::antecedents_type::iterator aiter = treebank.antecedents.begin(); aiter != treebank.antecedents.end(); ++ aiter)
+  for (treebank_type::antecedents_type::iterator aiter = treebank.antecedents_.begin(); aiter != treebank.antecedents_.end(); ++ aiter)
     transform_normalize(*aiter);
 }
 
@@ -163,61 +163,61 @@ struct terminal_parser : boost::spirit::qi::grammar<Iterator, std::string()>
 
 void transform_unescape(treebank_type& treebank)
 {
-  if (treebank.antecedents.empty()) {
+  if (treebank.antecedents_.empty()) {
     // terminal...
     
     namespace qi = boost::spirit::qi;
     
     static terminal_parser<std::string::const_iterator> parser;
 
-    std::string::const_iterator iter = treebank.cat.begin();
-    std::string::const_iterator iter_end = treebank.cat.end();
+    std::string::const_iterator iter = treebank.cat_.begin();
+    std::string::const_iterator iter_end = treebank.cat_.end();
 
     std::string terminal;
     
     if (! qi::parse(iter, iter_end, parser, terminal) || iter != iter_end)
       throw std::runtime_error("terminal parsing failed?");
     
-    treebank.cat.swap(terminal);
+    treebank.cat_.swap(terminal);
     
   } else
-    for (treebank_type::antecedents_type::iterator aiter = treebank.antecedents.begin(); aiter != treebank.antecedents.end(); ++ aiter)
+    for (treebank_type::antecedents_type::iterator aiter = treebank.antecedents_.begin(); aiter != treebank.antecedents_.end(); ++ aiter)
       transform_unescape(*aiter);
 }
 
 void transform_remove_none(treebank_type& treebank)
 {
-  if (treebank.cat == "-NONE-") {
-    treebank.removed = true;
+  if (treebank.cat_ == "-NONE-") {
+    treebank.removed_ = true;
     return;
   }
   
-  if (treebank.antecedents.empty()) return;
+  if (treebank.antecedents_.empty()) return;
   
   treebank_type::antecedents_type antecedents;
   
-  for (treebank_type::antecedents_type::iterator aiter = treebank.antecedents.begin(); aiter != treebank.antecedents.end(); ++ aiter)
-    if (aiter->cat != "-NONE-") {
+  for (treebank_type::antecedents_type::iterator aiter = treebank.antecedents_.begin(); aiter != treebank.antecedents_.end(); ++ aiter)
+    if (aiter->cat_ != "-NONE-") {
       transform_remove_none(*aiter);
-      if (! aiter->removed)
+      if (! aiter->removed_)
 	antecedents.push_back(*aiter);
     }
   
-  treebank.removed = antecedents.empty();
-  treebank.antecedents.swap(antecedents);
+  treebank.removed_ = antecedents.empty();
+  treebank.antecedents_.swap(antecedents);
 }
 
 bool treebank_validate(const treebank_type& treebank)
 {
-  if (treebank.cat.empty() && treebank.antecedents.empty())
+  if (treebank.cat_.empty() && treebank.antecedents_.empty())
     return true;
   
-  if (treebank.antecedents.empty())
+  if (treebank.antecedents_.empty())
     return false;
   
-  treebank_type::antecedents_type::const_iterator aiter_end = treebank.antecedents.end();
-  for (treebank_type::antecedents_type::const_iterator aiter = treebank.antecedents.begin(); aiter != aiter_end; ++ aiter)
-    if (aiter->antecedents.empty())
+  treebank_type::antecedents_type::const_iterator aiter_end = treebank.antecedents_.end();
+  for (treebank_type::antecedents_type::const_iterator aiter = treebank.antecedents_.begin(); aiter != aiter_end; ++ aiter)
+    if (aiter->antecedents_.empty())
       return false;
   
   return true;
@@ -225,14 +225,14 @@ bool treebank_validate(const treebank_type& treebank)
 
 std::ostream& treebank_output(const treebank_type& treebank, std::ostream& os)
 {
-  if (treebank.antecedents.empty())
-    os << treebank.cat;
+  if (treebank.antecedents_.empty())
+    os << treebank.cat_;
   else {
     os << '(';
-    os << treebank.cat;
+    os << treebank.cat_;
     os << ' ';
     
-    for (treebank_type::antecedents_type::const_iterator aiter = treebank.antecedents.begin(); aiter != treebank.antecedents.end(); ++ aiter)
+    for (treebank_type::antecedents_type::const_iterator aiter = treebank.antecedents_.begin(); aiter != treebank.antecedents_.end(); ++ aiter)
       treebank_output(*aiter, os);
     os << ')';
   }
@@ -300,9 +300,9 @@ int main(int argc, char** argv)
       }
       
       if (! root_symbol.empty())
-	parsed.cat = root_symbol;
-      else if (parsed.cat.empty())
-	parsed.cat = "ROOT";
+	parsed.cat_ = root_symbol;
+      else if (parsed.cat_.empty())
+	parsed.cat_ = "ROOT";
 
       if (validate)
 	if (! treebank_validate(parsed))
@@ -329,7 +329,7 @@ int main(int argc, char** argv)
 	} else
 	  os << '\n';
       } else if (treebank_mode) {
-	if (parsed.antecedents.empty())
+	if (parsed.antecedents_.empty())
 	  os << "(())";
 	else
 	  treebank_output(parsed, os);

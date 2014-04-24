@@ -20,11 +20,13 @@ namespace rnnp
   class Rule
   {
   public:
-    typedef rnnp::Symbol symbol_type;
-    typedef rnnp::Symbol word_type;
+    typedef size_t    size_type;
+    typedef ptrdiff_t difference_type;
     
-    typedef word_type lhs_type;
-    typedef utils::small_vector<word_type, std::allocator<word_type> > rhs_type;
+    typedef rnnp::Symbol symbol_type;
+    
+    typedef symbol_type lhs_type;
+    typedef utils::small_vector<symbol_type, std::allocator<symbol_type> > rhs_type;
 
   public:
     Rule() {}
@@ -40,7 +42,13 @@ namespace rnnp
     bool assign(utils::piece::const_iterator& iter, utils::piece::const_iterator end);
 
     std::string string() const;
-    
+
+
+    void clear()
+    {
+      lhs_ = symbol_type();
+      rhs_.clear();
+    }
   public:
     bool goal() const { return rhs_.empty(); }
     bool unary() const { return rhs_.size() == 1 && rhs_.front().non_terminal(); }

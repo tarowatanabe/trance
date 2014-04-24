@@ -51,7 +51,8 @@ rule.hpp \
 semiring.hpp \
 sentence.hpp \
 state.hpp \
-symbol.hpp
+symbol.hpp \
+tree.hpp
 
 librnnp_la_SOURCES = \
 gradient.cpp \
@@ -62,7 +63,8 @@ operation.cpp \
 option.cpp \
 rule.cpp \
 sentence.cpp \
-symbol.cpp
+symbol.cpp \
+tree.cpp
 
 librnnp_la_LDFLAGS = \
 	$(PTHREAD_FLAGS) \
