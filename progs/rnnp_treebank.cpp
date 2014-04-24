@@ -75,18 +75,20 @@ struct penntreebank_grammar : boost::spirit::qi::grammar<Iterator, treebank_type
     namespace qi = boost::spirit::qi;
     namespace standard = boost::spirit::standard;
 
-    comment %= *qi::no_skip[!(*standard::blank >> qi::lit('(')) >> *(standard::char_ - qi::eol) >> qi::eol];
+    comment_last %= qi::no_skip[!(*standard::blank >> qi::lit('(')) >> *(standard::char_ - qi::eol) >> qi::eoi];
+    comment      %= qi::no_skip[*(!(*standard::blank >> qi::lit('(')) >> *(standard::char_ - qi::eol) >> qi::eol) >> -comment_last];
     
     cat %= qi::lexeme[+(standard::char_ - standard::space - '(' - ')')];
     treebank %= qi::hold['(' >> cat >> +treebank >> ')'] | cat;
     root %= (qi::omit[comment]
 	     >> (qi::hold['(' >> cat >> +treebank >> ')']
 		 | qi::hold['(' >> qi::attr("ROOT") >> +treebank >> ')']
-		 | qi::lit('(') >> qi::attr("") >> qi::lit('(') >> qi::lit(')') >> qi::lit(')'))
+		 | qi::hold[qi::lit('(') >> qi::attr("") >> qi::lit('(') >> qi::lit(')') >> qi::lit(')')])
 	     >> qi::omit[comment]);
   }
   
   boost::spirit::qi::rule<Iterator, std::string()> comment;
+  boost::spirit::qi::rule<Iterator, std::string()> comment_last;
 
   boost::spirit::qi::rule<Iterator, std::string(),   boost::spirit::standard::space_type> cat;
   boost::spirit::qi::rule<Iterator, treebank_type(), boost::spirit::standard::space_type> treebank;
@@ -287,7 +289,7 @@ int main(int argc, char** argv)
     is.unsetf(std::ios::skipws);
     iter_type iter(is);
     iter_type iter_end;
-    
+
     while (iter != iter_end) {
       parsed.clear();
       
@@ -298,7 +300,7 @@ int main(int argc, char** argv)
 	
 	throw std::runtime_error("parsing failed: " + buffer);
       }
-      
+
       if (! root_symbol.empty())
 	parsed.cat_ = root_symbol;
       else if (parsed.cat_.empty())
