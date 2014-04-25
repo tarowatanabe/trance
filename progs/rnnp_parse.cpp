@@ -392,8 +392,8 @@ void options(int argc, char** argv)
     ("kbest", po::value<int>(&kbest_size)->default_value(kbest_size), "kbest size")
     ("unary", po::value<int>(&unary_size)->default_value(unary_size), "unary size")
     
-    ("randomize", po::bool_switch(&randomize),           "randomize model parameters")
-    ("embedding", po::value<path_type>(&embedding_file), "embedding file");
+    ("randomize",      po::bool_switch(&randomize),           "randomize model parameters")
+    ("word-embedding", po::value<path_type>(&embedding_file), "word embedding file");
     
   po::options_description opts_command("command line options");
   opts_command.add_options()

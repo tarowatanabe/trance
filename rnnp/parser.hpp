@@ -134,7 +134,7 @@ namespace rnnp
 
       operation_axiom(theta, output_agenda(agenda_), action_none());
       
-      const size_type step_last = input.size() * 2 + input.size() * unary_size_;
+      const size_type step_last = input.size() * 2 + input.size() * unary_size_ + 1;
       for (size_type step = 0; step != step_last; ++ step) {
 	heap_type& heap = agenda_[step];
 	
@@ -259,7 +259,7 @@ namespace rnnp
     {
       // # of operations is 2n + # of unary rules
       agenda_.clear();
-      agenda_.resize(input.size() * 2 + input.size() * unary_size_ + 1);
+      agenda_.resize(input.size() * 2 + input.size() * unary_size_ + 2);
       
       state_allocator_.clear();
       state_allocator_.assign(state_type::size(theta.hidden_));
