@@ -61,7 +61,12 @@ namespace rnnp
     };
     
     typedef std::vector<state_type, std::allocator<state_type> > derivation_set_type;
-
+    
+  public:
+    Parser(size_type beam_size, size_type unary_size)
+      : beam_size_(beam_size), unary_size_(unary_size) {}
+    
+  public:
     struct output_agenda
     {
       output_agenda(agenda_type& agenda) : agenda_(agenda) {}
@@ -90,8 +95,6 @@ namespace rnnp
       }
     };
     
-  public:
-
     void operator()(const sentence_type& input,
 		    const grammar_type& grammar,
 		    const model_type& theta,
@@ -140,7 +143,7 @@ namespace rnnp
 	
 	std::make_heap(hiter_begin, hiter_end, heap_compare());
 	
-	for (/**/; hiter_begin != hiter && std::distance(hiter, hiter_end) != beam; -- hiter)
+	for (/**/; hiter_begin != hiter && std::distance(hiter, hiter_end) != beam_size_; -- hiter)
 	  std::pop_heap(hiter_begin, hiter, heap_compare());
 	
 	// deallocate unused states

@@ -17,6 +17,7 @@
 #include "utils/compress_stream.hpp"
 #include "utils/compact_map.hpp"
 #include "utils/unordered_set.hpp"
+#include "utils/bithack.hpp"
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
@@ -103,7 +104,7 @@ struct CollectRules
   CollectRules(grammar_type& grammar,
 	       unigram_type& unigram,
 	       bool left)
-    : grammar_(grammar), unigram_(unigram), left_(left) {}
+    : grammar_(grammar), unigram_(unigram), left_(left), unary_max_(0) {}
 
   void operator()(const tree_type& tree)
   {
@@ -118,20 +119,22 @@ struct CollectRules
       throw std::runtime_error("different goal: previous = " + static_cast<const std::string&>(grammar_.goal_)
 			       + " current = " + static_cast<const std::string&>(binarized_.label_));
     
-    extract(binarized_);
+    int unary = 0;
+    extract(binarized_, unary);
   }
   
-  void extract(const tree_type& tree)
+  void extract(const tree_type& tree, int& unary)
   {
     switch (tree.antecedent_.size()) {
     case 1: {
       rule_type rule(tree.label_, 1);
       rule.rhs_.front() = tree.antecedent_.front().label_;
-
+      
       if (rule.unary()) {
+	++ unary;
 	grammar_.unary_.insert(rule);
-
-	extract(tree.antecedent_.front());
+	
+	extract(tree.antecedent_.front(), unary);
       } else if (rule.preterminal()) {
 	grammar_.preterminal_.insert(rule);
 	
@@ -140,6 +143,8 @@ struct CollectRules
 	std::runtime_error("invalid rule: " + rule.string());
     } break;
     case 2: {
+      unary_max_ = utils::bithack::max(unary_max_, unary);
+      
       rule_type rule(tree.label_, 2);
       rule.rhs_.front() = tree.antecedent_.front().label_;
       rule.rhs_.back()  = tree.antecedent_.back().label_;
@@ -148,9 +153,12 @@ struct CollectRules
 	throw std::runtime_error("invalid rule: " + rule.string());
       
       grammar_.binary_.insert(rule);
+
+      int unary_left = 0;
+      int unary_right = 0;
       
-      extract(tree.antecedent_.front());
-      extract(tree.antecedent_.back());
+      extract(tree.antecedent_.front(), unary_left);
+      extract(tree.antecedent_.back(),  unary_right);
     } break;
     default:
       throw std::runtime_error("invalid binary tree");
@@ -162,6 +170,8 @@ struct CollectRules
   grammar_type& grammar_;
   unigram_type& unigram_;
   bool left_;
+
+  int unary_max_;
 };
 
 void collect_rules(const path_type& path,
@@ -177,6 +187,9 @@ void collect_rules(const path_type& path,
   
   while (is >> tree)
     collect(tree);
+
+  if (debug)
+    std::cerr << "maximum unary size: " << collect.unary_max_ << std::endl;
 }
 
 void cutoff_terminal(grammar_type& grammar,
