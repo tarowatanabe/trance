@@ -37,6 +37,7 @@ namespace rnnp
 
     typedef Model model_type;
     
+    typedef model_type::symbol_type    symbol_type;
     typedef model_type::word_type      word_type;
     typedef model_type::parameter_type parameter_type;
     typedef model_type::tensor_type    tensor_type;
@@ -45,6 +46,8 @@ namespace rnnp
     typedef Operation operation_type;
     
     typedef State state_type;
+
+    typedef Allocator<state_type> state_allocator_type;
     
   public:
     // heap...
@@ -127,7 +130,7 @@ namespace rnnp
       
       if (input.empty()) return;
       
-      initialize(input);
+      initialize(input, grammar, theta);
 
       operation_axiom(theta, output_agenda(agenda_), action_none());
       
@@ -165,7 +168,7 @@ namespace rnnp
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_shift(state, terminal, *riter, theta, output_agenda(agenda_), action_none());
+		operation_shift(state, input[state.next()], *riter, theta, output_agenda(agenda_), action_none());
 	    }
 	    
 	    // we perform unary
@@ -252,7 +255,7 @@ namespace rnnp
       }
     }
     
-    void initialize(const sentence_type& input)
+    void initialize(const sentence_type& input, const grammar_type& grammar, const model_type& theta)
     {
       // # of operations is 2n + # of unary rules
       agenda_.clear();
@@ -266,7 +269,7 @@ namespace rnnp
     void operation_shift(const state_type& state,
 			 const word_type& terminal,
 			 const rule_type& rule,
-			 const model_type& model,
+			 const model_type& theta,
 			 Output output,
 			 Action action)
     {
@@ -296,7 +299,7 @@ namespace rnnp
 					+ (theta.Wsh_.block(offset_grammar, offset1, theta.hidden_, theta.hidden_)
 					   * state.layer(theta.hidden_))
 					+ (theta.Wsh_.block(offset_grammar, offset2, theta.hidden_, theta.embedding_)
-					   * model.terminal_.col(model.terminal(terminal)))
+					   * theta.terminal_.col(theta.terminal(terminal)))
 					).array().unaryExpr(model_type::activation());
       
       const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
@@ -311,7 +314,7 @@ namespace rnnp
     template <typename Output, typename Action>
     void operation_reduce(const state_type& state,
 			  const rule_type& rule,
-			  const model_type& model,
+			  const model_type& theta,
 			  Output output,
 			  Action action)
     {
@@ -359,7 +362,7 @@ namespace rnnp
     template <typename Output, typename Action>
     void operation_unary(const state_type& state,
 			 const rule_type& rule,
-			 const model_type& model,
+			 const model_type& theta,
 			 Output output,
 			 Action action)
     {
@@ -483,7 +486,7 @@ namespace rnnp
       state_new.reduced()    = state_type();
 
       state_new.score() = 0;
-      state_new.layer(theta.hidden_) = theta.Ba().array().unaryExpr(model_type::activation());
+      state_new.layer(theta.hidden_) = theta.Ba_.array().unaryExpr(model_type::activation());
       
       output(state_new);
       

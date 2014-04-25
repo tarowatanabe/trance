@@ -52,6 +52,10 @@ namespace rnnp
     Grammar(const path_type& path) { read(path); }
     
   public:
+    size_type binary_size() const;
+    size_type unary_size() const;
+    size_type preterminal_size() const;
+    
     void open(const path_type& path) { read(path); }
     void read(const path_type& path);
     void write(const path_type& path) const;

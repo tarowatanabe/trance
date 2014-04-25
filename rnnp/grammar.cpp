@@ -147,4 +147,38 @@ namespace rnnp
 	os << *riter << '\n';
     } 
   }  
+
+  Grammar::size_type Grammar::binary_size() const
+  {
+    size_type size = 0;
+    
+    rule_set_binary_type::const_iterator biter_end = binary_.end();
+    for (rule_set_binary_type::const_iterator biter = binary_.begin(); biter != biter_end; ++ biter)
+      size += biter->second.size();
+    
+    return size;
+  }
+
+  Grammar::size_type Grammar::unary_size() const
+  {
+    size_type size = 0;
+    
+    rule_set_unary_type::const_iterator uiter_end = unary_.end();
+    for (rule_set_unary_type::const_iterator uiter = unary_.begin(); uiter != uiter_end; ++ uiter)
+      size += uiter->second.size();
+
+    return size;
+  }
+
+  Grammar::size_type Grammar::preterminal_size() const
+  {
+    size_type size = 0;
+    
+    rule_set_preterminal_type::const_iterator piter_end = preterminal_.end();
+    for (rule_set_preterminal_type::const_iterator piter = preterminal_.begin(); piter != piter_end; ++ piter)
+      size += piter->second.size();
+
+    return size;
+  }
+  
 };

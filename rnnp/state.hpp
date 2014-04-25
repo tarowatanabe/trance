@@ -111,13 +111,13 @@ namespace rnnp
     inline       span_type& span()       { return *reinterpret_cast<span_type*>(buffer_ + offset_span); }
 
     inline const state_type& stack() const { return *reinterpret_cast<const state_type*>(buffer_ + offset_stack); }
-    inline       state_type& stack() const { return *reinterpret_cast<state_type*>(buffer_ + offset_stack); }
+    inline       state_type& stack()       { return *reinterpret_cast<state_type*>(buffer_ + offset_stack); }
 
     inline const state_type& derivation() const { return *reinterpret_cast<const state_type*>(buffer_ + offset_derivation); }
-    inline       state_type& derivation() const { return *reinterpret_cast<state_type*>(buffer_ + offset_derivation); }
+    inline       state_type& derivation()       { return *reinterpret_cast<state_type*>(buffer_ + offset_derivation); }
 
     inline const state_type& reduced() const { return *reinterpret_cast<const state_type*>(buffer_ + offset_reduced); }
-    inline       state_type& reduced() const { return *reinterpret_cast<state_type*>(buffer_ + offset_reduced); }
+    inline       state_type& reduced()       { return *reinterpret_cast<state_type*>(buffer_ + offset_reduced); }
         
     inline const score_type& score() const { return *reinterpret_cast<const score_type*>(buffer_ + offset_score); }
     inline       score_type& score()       { return *reinterpret_cast<score_type*>(buffer_ + offset_score); }
