@@ -209,6 +209,19 @@ void transform_remove_none(treebank_type& treebank)
   treebank.antecedents_.swap(antecedents);
 }
 
+void transform_cycle(treebank_type& treebank)
+{
+  // no terminal...
+  if (treebank.antecedents_.empty()) return;
+  
+  for (treebank_type::antecedents_type::iterator aiter = treebank.antecedents_.begin(); aiter != treebank.antecedents_.end(); ++ aiter)
+    transform_cycle(*aiter);
+
+  // unary rule + the same category...
+  if (treebank.antecedents_.size() == 1 && treebank.antecedents_.front().antecedents_.size() == 1 && treebank.cat_ == treebank.antecedents_.front().cat_)
+    treebank.antecedents_ = treebank.antecedents_.front().antecedents_;
+}
+
 bool treebank_validate(const treebank_type& treebank)
 {
   if (treebank.cat_.empty() && treebank.antecedents_.empty())
@@ -249,6 +262,7 @@ path_type output_file = "-";
 std::string root_symbol;
 bool normalize = false;
 bool remove_none = false;
+bool remove_cycle = false;
 bool unescape_terminal = false;
 
 bool leaf_mode = false;
@@ -316,6 +330,9 @@ int main(int argc, char** argv)
       if (normalize)
 	transform_normalize(parsed);
       
+      if (remove_cycle)
+	transform_cycle(parsed);
+
       if (unescape_terminal)
 	transform_unescape(parsed);
       
@@ -361,6 +378,7 @@ void options(int argc, char** argv)
     ("unescape",       po::bool_switch(&unescape_terminal),  "unescape terminal symbols, such as -LRB-, \\* etc.")
     ("normalize",      po::bool_switch(&normalize),          "normalize category, such as [,] [.] etc.")
     ("remove-none",    po::bool_switch(&remove_none),        "remove -NONE-")
+    ("remove-cycle",   po::bool_switch(&remove_cycle),       "remove cycle unary rules")
     
     ("leaf",      po::bool_switch(&leaf_mode),     "output leaf nodes")
     ("treebank",  po::bool_switch(&treebank_mode), "output treebank")
