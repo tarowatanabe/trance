@@ -23,7 +23,7 @@ namespace rnnp
     const bool result = assign(iter, end);
     
     if (! result || iter != end)
-      throw std::runtime_error("rule parsing failed");
+      throw std::runtime_error("rule parsing failed: " + x);
   }
   
   template <typename Iterator>
@@ -39,12 +39,12 @@ namespace rnnp
     qi::rule<Iterator, std::string(), standard::space_type> terminal;
     
     label    %= qi::lexeme[standard::char_('[') >> +(standard::char_ - standard::space - ']') >> standard::char_(']')];
-    terminal %= qi::lexeme[+(standard::char_ - standard::space) - ("|||" >> (standard::space | qi::eoi))];
+    terminal %= qi::lexeme[+(standard::char_ - standard::space)];
     
     std::string lhs;
     phrase_type rhs;
     
-    const bool result = qi::phrase_parse(iter, end, label >> -("->" >> (terminal % ' ')), standard::space, lhs, rhs);
+    const bool result = qi::phrase_parse(iter, end, label >> -(qi::omit["->"] >> +terminal), standard::space, lhs, rhs);
     
     if (result) {
       rule.lhs_ = lhs;

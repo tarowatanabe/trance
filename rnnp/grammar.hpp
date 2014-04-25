@@ -46,6 +46,10 @@ namespace rnnp
     typedef utils::unordered_map<word_type, rule_set_type,
 				 boost::hash<word_type>, std::equal_to<word_type>,
 				 std::allocator<std::pair<const word_type, rule_set_type> > >::type rule_set_preterminal_type;
+
+  public:
+    Grammar() {}
+    Grammar(const path_type& path) { read(path); }
     
   public:
     void open(const path_type& path) { read(path); }
@@ -65,8 +69,38 @@ namespace rnnp
       pos_.clear();
     }
 
-    // given goal_, binary_, unary_ and preterminal_, compute terminal_/non_terminal_/pos_
-    void initialize();
+    const rule_set_type& binary(const symbol_type& left, const symbol_type& right) const
+    {
+      rule_set_binary_type::const_iterator biter = binary_.find(std::make_pair(left, right));
+      if (biter == binary_.end()) {
+	static const rule_set_type empty_;
+	return empty_;
+      } else
+	return biter->second;
+    }
+    
+    const rule_set_type& unary(const symbol_type& symbol) const
+    {
+      rule_set_unary_type::const_iterator uiter = unary_.find(symbol);
+      if (uiter == unary_.end()) {
+	static const rule_set_type empty_;
+	return empty_;
+      } else
+	return uiter->second;
+    }
+
+    const rule_set_type& preterminal(const word_type& terminal) const
+    {
+      rule_set_preterminal_type::const_iterator piter = preterminal_.find(terminal);
+      if (piter == preterminal_.end())
+	piter = preterminal_.find(symbol_type::UNK);
+	
+      if (piter == preterminal_.end()) {
+	static const rule_set_type empty_;
+	return empty_;
+      } else
+	return piter->second;
+    }
     
   public:
     // goal

@@ -158,31 +158,20 @@ namespace rnnp
 	  else {
 	    // we perform shift..
 	    if (state.next() < input.size()) {
-	      const word_type terminal = input[state.next()];
+	      const grammar_type::rule_set_type& rules = grammar.preterminal(input[state.next()]);
 	      
-	      grammar_type::rule_set_preterminal_type::const_iterator piter = grammar.preterminal_.find(terminal);
-	      
-	      if (piter == grammar.preterminal_.end()) {
-		piter = grammar.preterminal_.find(symbol_type::UNK);
-		
-		if (piter == grammar.preterminal_.end())
-		  throw std::runtime_error("no fallback preterminal?");
-	      }
-	      
-	      grammar_type::rule_set_type::const_iterator riter_end = piter->second.end();
-	      for (grammar_type::rule_set_type::const_iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
+	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
 		operation_shift(state, terminal, *riter, theta, output_agenda(agenda_), action_none());
 	    }
 	    
 	    // we perform unary
 	    if (state.operation().closure() < unary_size_) {
-	      grammar_type::rule_set_unary_type::const_iterator uiter = grammar.unary_.find(state.label());
+	      const grammar_type::rule_set_type& rules = grammar.unary(state.label());
 	      
-	      if (uiter != grammar.unary_.end()) {
-		grammar_type::rule_set_type::const_iterator riter_end = uiter->second.end();
-		for (grammar_type::rule_set_type::const_iterator riter = uiter->second.begin(); riter != riter_end; ++ riter)
-		  operation_unary(state, *riter, theta, output_agenda(agenda_), action_none());
-	      }
+	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
+		operation_unary(state, *riter, theta, output_agenda(agenda_), action_none());
 	    }
 	    
 	    // final...
@@ -194,14 +183,10 @@ namespace rnnp
 	    
 	    // we will perform reduce
 	    if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
-	      const symbol_type& left  = state.stack().label();
-	      const symbol_type& right = state.label();
+	      const grammar_type::rule_set_type& rules = grammar.binary(state.stack().label(), state.label());
 	      
-	      grammar_type::rule_set_binary_type::const_iterator biter = grammar.binary_.find(std::make_pair(left, right)));
-	    
-	    if (biter != grammar.binary_.end()) {
-	      grammar_type::rule_set_type::const_iterator riter_end = biter->second.end();
-	      for (grammar_type::rule_set_type::const_iterator riter = biter->second.begin(); riter != riter_end; ++ riter)
+	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
 		operation_reduce(state, *riter, theta, output_agenda(agenda_), action_none());
 	    }
 	  }

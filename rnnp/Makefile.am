@@ -87,11 +87,19 @@ librnnp_la_LIBADD = \
 	$(BOOST_IOSTREAMS_LIBS) 
 
 noinst_PROGRAMS = \
+grammar_main \
 graphviz_main \
+rule_main \
 tree_main
+
+grammar_main_SOURCES  = grammar_main.cpp 
+grammar_main_LDADD    = librnnp.la
 
 graphviz_main_SOURCES  = graphviz_main.cpp 
 graphviz_main_LDADD    = librnnp.la
+
+rule_main_SOURCES  = rule_main.cpp 
+rule_main_LDADD    = librnnp.la
 
 tree_main_SOURCES  = tree_main.cpp 
 tree_main_LDADD    = librnnp.la

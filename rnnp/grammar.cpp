@@ -6,6 +6,8 @@
 #include "utils/compress_stream.hpp"
 #include "utils/getline.hpp"
 
+#include <boost/algorithm/string/trim.hpp>
+
 namespace rnnp
 {
   void Grammar::read(const path_type& path)
@@ -27,6 +29,10 @@ namespace rnnp
     utils::compress_istream is(path, 1024 * 1024);
     
     while (utils::getline(is, line)) {
+      boost::algorithm::trim(line);
+      
+      if (line.empty()) continue;
+      
       rule.assign(line);
       
       if (rule.goal()) {
@@ -140,11 +146,5 @@ namespace rnnp
       for (rule_set_type::const_iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
 	os << *riter << '\n';
     } 
-  }
-
-  void Grammar::initialize()
-  {
-    
-  }
-  
+  }  
 };
