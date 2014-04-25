@@ -318,7 +318,7 @@ int main(int argc, char** argv)
       
       if (unescape_terminal)
 	transform_unescape(parsed);
-
+      
       if (leaf_mode) {
 	sent.clear();
 	
@@ -327,17 +327,15 @@ int main(int argc, char** argv)
 	if (! sent.empty()) {
 	  std::copy(sent.begin(), sent.end() - 1, std::ostream_iterator<std::string>(os, " "));
 	  os << sent.back();
-	  os << '\n';
-	} else
-	  os << '\n';
+	}
       } else if (treebank_mode) {
 	if (parsed.antecedents_.empty())
 	  os << "(())";
 	else
 	  treebank_output(parsed, os);
-	os << '\n';
       } 
-
+      
+      os << '\n';
       if (flush_output)
 	os << std::flush;
     }

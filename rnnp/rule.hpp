@@ -32,6 +32,7 @@ namespace rnnp
     Rule() {}
     Rule(const lhs_type& lhs) : lhs_(lhs), rhs_() {}
     Rule(const lhs_type& lhs, const rhs_type& rhs) : lhs_(lhs), rhs_(rhs) {}
+    Rule(const lhs_type& lhs, const size_type& size) : lhs_(lhs), rhs_(size) {}
     template <typename Iterator>
     Rule(const lhs_type& lhs, Iterator first, Iterator last) : lhs_(lhs), rhs_(first, last) {}
     Rule(const utils::piece& x) { assign(x); }

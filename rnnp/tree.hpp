@@ -57,9 +57,12 @@ namespace rnnp
       antecedent_.swap(x.antecedent_);
     }
     
+    std::string string() const;
+
   public:
     bool leaf() const { return antecedent_.empty(); }
     bool terminal() const { return antecedent_.empty(); }
+    bool empty() const { return label_.empty() && antecedent_.empty(); }
     
   public:
     inline const_iterator begin() const { return antecedent_.begin(); }

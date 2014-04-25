@@ -13,8 +13,11 @@ LIBUTILS = $(top_builddir)/utils/libutils.la
 LIBCODEC = $(top_builddir)/codec/libcodec.la
 
 bin_PROGRAMS = \
+	rnnp_grammar \
 	rnnp_treebank
 
+rnnp_grammar_SOURCES = rnnp_grammar.cpp
+rnnp_grammar_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
 rnnp_treebank_SOURCES = rnnp_treebank.cpp
 rnnp_treebank_LDADD   = $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)

@@ -64,6 +64,9 @@ namespace rnnp
       non_terminal_.clear();
       pos_.clear();
     }
+
+    // given goal_, binary_, unary_ and preterminal_, compute terminal_/non_terminal_/pos_
+    void initialize();
     
   public:
     // goal

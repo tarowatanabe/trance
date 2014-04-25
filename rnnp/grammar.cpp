@@ -141,5 +141,10 @@ namespace rnnp
 	os << *riter << '\n';
     } 
   }
+
+  void Grammar::initialize()
+  {
+    
+  }
   
 };

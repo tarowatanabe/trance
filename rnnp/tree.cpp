@@ -110,8 +110,10 @@ namespace rnnp
   {
     namespace karma = boost::spirit::karma;
     namespace standard = boost::spirit::standard;
-    
-    if (tree.leaf())
+
+    if (tree.empty())
+      return karma::generate(iter, "(())");
+    else if (tree.leaf())
       return karma::generate(iter, standard::string, tree.label_);
     else {
       if (! karma::generate(iter, '(' << standard::string << ' ', tree.label_.strip()))
@@ -144,6 +146,15 @@ namespace rnnp
   bool Tree::assign(utils::piece::const_iterator& iter, utils::piece::const_iterator end)
   {
     return tree_parser(iter, end, *this);
+  }
+
+  std::string Tree::string() const
+  {
+    std::string out;
+    
+    tree_generator(std::back_inserter(out), *this);
+
+    return out;
   }
   
   std::ostream& operator<<(std::ostream& os, const Tree& tree)
