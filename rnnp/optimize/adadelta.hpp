@@ -36,31 +36,29 @@ namespace rnnp
 	model_type& G = const_cast<model_type&>(G_);
 	model_type& X = const_cast<model_type&>(X_);
       
-	if (option.learn_embedding()) {
-	  update_embedding(theta.source_, G.source_, X.source_, gradient.source_, scale);
-	  update_embedding(theta.target_, G.target_, X.target_, gradient.target_, scale);
-	  
-	  update_embedding(theta.head_source_, G.head_source_, X.head_source_, gradient.head_source_, scale);
-	  update_embedding(theta.head_target_, G.head_target_, X.head_target_, gradient.head_target_, scale);
-	}
+	if (option.learn_embedding())
+	  update_embedding(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale);
 	
-	if (option.learn_classification()) {
-	  update_weights(theta.Wf_, G.Wf_, X.Wf_, gradient.Wf_, scale);
-	
+	if (option.learn_classification())
 	  update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, lambda_ != 0.0);
-	}
 	
 	if (option.learn_hidden()) {
 	  update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, lambda_ != 0.0);
 	  update(theta.Bsh_, G.Bsh_, X.Bsh_, gradient.Bsh_, scale, false);
 	
-	  update(theta.Wrs_, G.Wrs_, X.Wrs_, gradient.Wrs_, scale, lambda_ != 0.0);
-	  update(theta.Brs_, G.Brs_, X.Brs_, gradient.Brs_, scale, false);
+	  update(theta.Wre_, G.Wre_, X.Wre_, gradient.Wre_, scale, lambda_ != 0.0);
+	  update(theta.Bre_, G.Bre_, X.Bre_, gradient.Bre_, scale, false);
 	
-	  update(theta.Wri_, G.Wri_, X.Wri_, gradient.Wri_, scale, lambda_ != 0.0);
-	  update(theta.Bri_, G.Bri_, X.Bri_, gradient.Bri_, scale, false);
-	
+	  update(theta.Wu_, G.Wu_, X.Wu_, gradient.Wu_, scale, lambda_ != 0.0);
+	  update(theta.Bu_, G.Bu_, X.Bu_, gradient.Bu_, scale, false);
+
+	  update(theta.Wf_, G.Wf_, X.Wf_, gradient.Wf_, scale, lambda_ != 0.0);
+	  update(theta.Bf_, G.Bf_, X.Bf_, gradient.Bf_, scale, false);
+	  
+	  update(theta.Wi_, G.Wi_, X.Wi_, gradient.Wi_, scale, lambda_ != 0.0);
 	  update(theta.Bi_, G.Bi_, X.Bi_, gradient.Bi_, scale, false);
+	
+	  update(theta.Ba_, G.Ba_, X.Ba_, gradient.Ba_, scale, false);
 	}
       }
 
@@ -105,33 +103,6 @@ namespace rnnp
 	const double lambda_;
 	const double eta0_;
       };
-    
-      template <typename Vector, typename GVector, typename XVector, typename Grads>
-      void update_weights(Vector& theta,
-			  GVector& Gs,
-			  XVector& Xs,
-			  const Grads& grads,
-			  const double scale) const
-      {
-	typename Grads::const_iterator fiter_end = grads.end();
-	for (typename Grads::const_iterator fiter = grads.begin(); fiter != fiter_end; ++ fiter) 
-	  if (fiter->second != 0) {
-	    typename Vector::value_type& x = theta[fiter->first];
-	    typename GVector::value_type& G = Gs[fiter->first];
-	    typename XVector::value_type& X = Xs[fiter->first];
-	    const typename Grads::mapped_type& g = fiter->second;
-	  
-	    G = G * 0.95 + g * g * scale * scale;
-	  
-	    const double rate = std::sqrt(eta0_ + X) / std::sqrt(eta0_ + G);
-	    const double x1 = x - rate * scale * g;
-	    const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
-	  
-	    X = X * 0.95 + (x2 - x) * (x2 - x);
-	  
-	    x = x2;
-	  }
-      }
 
       template <typename Theta, typename GVar, typename XVar, typename Embedding>
       void update_embedding(Eigen::MatrixBase<Theta>& theta,
@@ -159,8 +130,74 @@ namespace rnnp
 	    }
 	}
       }
-    
-    
+      
+      template <typename Theta, typename GVar, typename XVar, typename Grad>
+      void update(Eigen::MatrixBase<Theta>& theta,
+		  Eigen::MatrixBase<GVar>& G,
+		  Eigen::MatrixBase<XVar>& X,
+		  const Grad& grad,
+		  const double scale,
+		  const bool regularize=true) const
+      {
+	if (regularize) {
+	  typename Grad::const_iterator giter_end = grad.end();
+	  for (typename Grad::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
+	    const size_type rows = grad->second.rows();
+	    const size_type cols = grad->second.cols();
+	    const size_type offset = rows * giter->first.non_terminal_id();
+	    
+	    const tensor_type& g = giter->second;
+
+	    for (tensor_type::Index col = 0; col != g.cols(); ++ col) 
+	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
+		if (g(row, col) != 0) {
+		  G.block(offset, 0, rows, cols)(row, col) =
+		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + g(row, col) * g(row, col) * scale * scale;
+
+		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
+		  
+		  const double rate = (std::sqrt(eta0_ + X.block(offset, 0, rows, cols)(row, col))
+				       / std::sqrt(eta0_ + G.block(offset, 0, rows, cols)(row, col)));
+		  
+		  const double x1 = x - rate * scale * g(row, col);
+		  const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
+		  
+		  X.block(offset, 0, rows, cols)(row, col)
+		    = X.block(offset, 0, rows, cols)(row, col) * 0.95 + (x2 - x) * (x2 - x);
+		  
+		  x = x2;
+		}
+	  }
+	} else {
+	  typename Grad::const_iterator giter_end = grad.end();
+	  for (typename Grad::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
+	    const size_type rows = grad->second.rows();
+	    const size_type cols = grad->second.cols();
+	    const size_type offset = rows * giter->first.non_terminal_id();
+	    
+	    const tensor_type& g = giter->second;
+
+	    for (tensor_type::Index col = 0; col != g.cols(); ++ col) 
+	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
+		if (g(row, col) != 0) {
+		  G.block(offset, 0, rows, cols)(row, col) =
+		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + g(row, col) * g(row, col) * scale * scale;
+
+		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
+		  
+		  const double rate = (std::sqrt(eta0_ + X.block(offset, 0, rows, cols)(row, col))
+				       / std::sqrt(eta0_ + G.block(offset, 0, rows, cols)(row, col)));
+		  const double x1 = x - rate * scale * g(row, col);
+		  
+		  X.block(offset, 0, rows, cols)(row, col)
+		    = X.block(offset, 0, rows, cols)(row, col) * 0.95 + (x1 - x) * (x1 - x);
+		  
+		  x = x1;
+		}
+	  }
+	}
+      }
+      
       template <typename Theta, typename GVar, typename XVar, typename Grad>
       void update(Eigen::MatrixBase<Theta>& theta,
 		  Eigen::MatrixBase<GVar>& G,

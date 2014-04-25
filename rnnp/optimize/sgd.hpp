@@ -27,35 +27,32 @@ namespace rnnp
 	
 	const double scale = 1.0 / gradient.count_;
 	
-	if (option.learn_embedding()) {
-	  update_embedding(theta.source_, gradient.source_, scale);
-	  update_embedding(theta.target_, gradient.target_, scale);
-	  
-	  update_embedding(theta.head_source_, gradient.head_source_, scale);
-	  update_embedding(theta.head_target_, gradient.head_target_, scale);
-	}
+	if (option.learn_embedding())
+	  update_embedding(theta.terminal_, gradient.terminal_, scale);
 	
-	if (option.learn_classification()) {
-	  update_weights(theta.Wf_, gradient.Wf_, scale);
-	  
+	if (option.learn_classification())
 	  update(theta.Wc_, gradient.Wc_, scale, lambda_ != 0.0);
-	}
-	  
+	
 	if (option.learn_hidden()) {
 	  update(theta.Wsh_, gradient.Wsh_, scale, lambda_ != 0.0);
 	  update(theta.Bsh_, gradient.Bsh_, scale, false);
-	
-	  update(theta.Wrs_, gradient.Wrs_, scale, lambda_ != 0.0);
-	  update(theta.Brs_, gradient.Brs_, scale, false);
-	
-	  update(theta.Wri_, gradient.Wri_, scale, lambda_ != 0.0);
-	  update(theta.Bri_, gradient.Bri_, scale, false);
-	
+	  
+	  update(theta.Wre_, gradient.Wre_, scale, lambda_ != 0.0);
+	  update(theta.Bre_, gradient.Bre_, scale, false);
+	  
+	  update(theta.Wu_, gradient.Wu_, scale, lambda_ != 0.0);
+	  update(theta.Bu_, gradient.Bu_, scale, false);
+	  
+	  update(theta.Wf_, gradient.Wf_, scale, lambda_ != 0.0);
+	  update(theta.Bf_, gradient.Bf_, scale, false);
+	  
+	  update(theta.Wi_, gradient.Wi_, scale, lambda_ != 0.0);
 	  update(theta.Bi_, gradient.Bi_, scale, false);
+	  
+	  update(theta.Ba_, gradient.Ba_, scale, false);
 	}
       }
-
-
+      
       template <typename Theta, typename Embedding>
       void update_embedding(Eigen::MatrixBase<Theta>& theta,
 			    const Embedding& embedding,
@@ -65,19 +62,22 @@ namespace rnnp
 	for (typename Embedding::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter)
 	  theta.col(eiter->first.id()) -= (eta0_ * scale) * eiter->second;
       }
-    
-      template <typename Vector, typename Grads>
-      void update_weights(Vector& theta,
-			  const Grads& grads,
-			  const double scale) const
+      
+      template <typename Theta, typename Grad>
+      void update(Eigen::MatrixBase<Theta>& theta,
+		  const Grad& grad,
+		  const double scale,
+		  const bool regularize=true) const
       {
-	typename Grads::const_iterator fiter_end = grads.end();
-	for (typename Grads::const_iterator fiter = grads.begin(); fiter != fiter_end; ++ fiter) 
-	  if (fiter->second != 0)
-	    theta[fiter->first] -= eta0_ * scale * fiter->second;
+	if (regularize)
+	  theta *= 1.0 - eta0_ * lambda_;
+	
+	typename Grad::const_iterator giter_end = grad.end();
+	for (typename Grad::const_iterator giter = grad.begin(); giter != giter_end; ++ giter)
+	  theta.block(giter->second.rows() * giter->first.non_terminal_id(), 0, giter->second.rows(), giter->second.cols())
+	    -= (eta0_ * scale) * giter->second;
       }
-
-    
+      
       template <typename Theta, typename Grad>
       void update(Eigen::MatrixBase<Theta>& theta,
 		  const Eigen::MatrixBase<Grad>& g,
