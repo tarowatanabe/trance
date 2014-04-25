@@ -110,7 +110,7 @@ namespace rnnp
     if (tree.leaf())
       return karma::generate(iter, standard::string, tree.label_);
     else {
-      if (! karma::generate(iter, '(' << standard::string << ' ', tree.label_))
+      if (! karma::generate(iter, '(' << standard::string << ' ', tree.label_.strip()))
 	return false;
       
       for (Tree::const_iterator aiter = tree.begin(); aiter != tree.end(); ++ aiter)

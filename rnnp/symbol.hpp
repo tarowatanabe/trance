@@ -123,11 +123,14 @@ namespace rnnp
     bool binarized() const;
     
     // non-terminal is [syntactic-label]. This will strip the squared brackets
-    piece_type non_terminal_strip() const
+    piece_type strip() const
     {
-      const piece_type stripped(symbol());
-      
-      return stripped.substr(1, stripped.size() - 2);
+      if (non_terminal()) {
+	const piece_type stripped(symbol());
+	
+	return stripped.substr(1, stripped.size() - 2);
+      } else
+	return symbol();
     }
 
   public:

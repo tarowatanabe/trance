@@ -41,7 +41,6 @@ grammar.hpp \
 learn_option.hpp \
 loss.hpp \
 model.hpp \
-node.hpp \
 objective.hpp \
 operation.hpp \
 optimize.hpp \
@@ -50,6 +49,7 @@ parser.hpp \
 rule.hpp \
 semiring.hpp \
 sentence.hpp \
+span.hpp \
 state.hpp \
 symbol.hpp \
 tree.hpp
@@ -63,6 +63,7 @@ operation.cpp \
 option.cpp \
 rule.cpp \
 sentence.cpp \
+span.cpp \
 symbol.cpp \
 tree.cpp
 

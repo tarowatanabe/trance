@@ -145,7 +145,7 @@ namespace rnnp
   {
     if (! non_terminal()) return false;
     
-    return non_terminal_strip().find('^') != piece_type::npos();
+    return strip().find('^') != piece_type::npos();
   }
 
 };
