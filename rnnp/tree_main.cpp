@@ -13,11 +13,11 @@ int main(int argc, char** argv)
   rnnp::Tree debinarized;
   
   while (std::cin >> tree) {
-    std::cout << "tree: " << tree << std::endl;
+    std::cout << tree << std::endl;
     
     rnnp::binarize_left(tree, binarized_left);
     
-    std::cout << "binarized-left: " << binarized_left << std::endl;
+    std::cout << binarized_left << std::endl;
     
     rnnp::debinarize(binarized_left, debinarized);
 
@@ -26,7 +26,7 @@ int main(int argc, char** argv)
 
     rnnp::binarize_right(tree, binarized_right);
     
-    std::cout << "binarized-right: " << binarized_right << std::endl;
+    std::cout << binarized_right << std::endl;
     
     rnnp::debinarize(binarized_right, debinarized);
 

@@ -80,6 +80,7 @@ namespace rnnp
   
   namespace impl
   {
+    inline
     size_t hash_value(Tree const& x, size_t seed)
     {
       for (Tree::const_iterator aiter = x.begin(); aiter != x.end(); ++ aiter)

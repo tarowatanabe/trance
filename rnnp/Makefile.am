@@ -42,6 +42,7 @@ debinarize.hpp \
 derivation.hpp \
 gradient.hpp \
 grammar.hpp \
+graphviz.hpp \
 learn_option.hpp \
 loss.hpp \
 model.hpp \
@@ -61,6 +62,7 @@ tree.hpp
 librnnp_la_SOURCES = \
 gradient.cpp \
 grammar.cpp \
+graphviz.cpp \
 learn_option.cpp \
 model.cpp \
 operation.cpp \
@@ -85,7 +87,11 @@ librnnp_la_LIBADD = \
 	$(BOOST_IOSTREAMS_LIBS) 
 
 noinst_PROGRAMS = \
+graphviz_main \
 tree_main
+
+graphviz_main_SOURCES  = graphviz_main.cpp 
+graphviz_main_LDADD    = librnnp.la
 
 tree_main_SOURCES  = tree_main.cpp 
 tree_main_LDADD    = librnnp.la
