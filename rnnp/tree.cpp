@@ -39,12 +39,16 @@ namespace rnnp
       void transform(rnnp::Tree& tree) const
       {
 	// pre-order traversal...
-	
-	tree.label_ = label_;
-	tree.antecedent_ = rnnp::Tree::antecedent_type(antecedent_.size());
 
-	for (size_t i = 0; i != tree.antecedent_.size(); ++ i)
-	  antecedent_[i].transform(tree.antecedent_[i]);
+	if (antecedent_.empty()) // terminal
+	  tree.label_ = label_;
+	else {
+	  tree.label_ = '[' + label_ + ']'; // non-terminal
+	  tree.antecedent_ = rnnp::Tree::antecedent_type(antecedent_.size());
+	  
+	  for (size_t i = 0; i != tree.antecedent_.size(); ++ i)
+	    antecedent_[i].transform(tree.antecedent_[i]);
+	}
       }
     };
 

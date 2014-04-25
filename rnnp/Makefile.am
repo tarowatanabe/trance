@@ -35,6 +35,10 @@ semiring/traits.hpp
 
 librnnpinclude_HEADERS = \
 allocator.hpp \
+binarize.hpp \
+binarize_left.hpp \
+binarize_right.hpp \
+debinarize.hpp \
 derivation.hpp \
 gradient.hpp \
 grammar.hpp \
@@ -79,3 +83,9 @@ librnnp_la_LIBADD = \
 	$(BOOST_THREAD_LIBS) \
 	$(BOOST_FILESYSTEM_LIBS) \
 	$(BOOST_IOSTREAMS_LIBS) 
+
+noinst_PROGRAMS = \
+tree_main
+
+tree_main_SOURCES  = tree_main.cpp 
+tree_main_LDADD    = librnnp.la

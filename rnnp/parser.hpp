@@ -343,7 +343,7 @@ namespace rnnp
       
       state_new.operation() = operation_type::REDUCE;
       state_new.label() = rule.lhs_;
-      state_new.span()  = span_type(state_reduces.span().first_, state.span().last_);
+      state_new.span()  = span_type(state_reduced.span().first_, state.span().last_);
       
       state_new.stack()      = state_stack;
       state_new.derivation() = state;
