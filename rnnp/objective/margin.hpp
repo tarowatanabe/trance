@@ -25,7 +25,7 @@ namespace rnnp
 	initialize(candidates, oracles);
 	
 	const double loss = margin(theta, candidates, oracles, option, g);
-	
+
 	if (! backward_.empty())
 	  propagate(theta, option, g);
 	
@@ -83,7 +83,7 @@ namespace rnnp
 	      g.Wsh(state.label()).block(0, offset1, theta.hidden_, theta.hidden_)
 		+= backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
 	      g.Wsh(state.label()).block(0, offset2, theta.hidden_, theta.embedding_)
-		+= backward.delta_ * theta.terminal_.col(head_id);
+		+= backward.delta_ * theta.terminal_.col(head_id).transpose();
 	      g.Bsh(state.label())
 		+= backward.delta_;
 	      

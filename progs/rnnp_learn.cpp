@@ -59,7 +59,7 @@ typedef std::vector<option_type, std::allocator<option_type> > option_set_type;
 
 typedef utils::chunk_vector<tree_type, 4096 / sizeof(tree_type), std::allocator<tree_type> > tree_set_type;
 
-path_type input_file;
+path_type input_file = "-";
 path_type output_file;
 
 path_type grammar_file;
@@ -624,11 +624,12 @@ void options(int argc, char** argv)
  
   po::options_description opts_config("configuration options");
   opts_config.add_options()
-    ("input",     po::value<path_type>(&input_file),     "input file")
-    ("output",    po::value<path_type>(&output_file),    "output file")
-
-    ("model",           po::value<path_type>(&model_file),     "model file")
-    ("word-embedding",  po::value<path_type>(&embedding_file), "word embedding file")
+    ("input",     po::value<path_type>(&input_file)->default_value(input_file), "input file")
+    ("output",    po::value<path_type>(&output_file),                           "output file")
+    
+    ("grammar",        po::value<path_type>(&grammar_file),   "grammar file")
+    ("model",          po::value<path_type>(&model_file),     "model file")
+    ("word-embedding", po::value<path_type>(&embedding_file), "word embedding file")
     
     ("hidden",    po::value<int>(&hidden_size)->default_value(hidden_size),       "hidden dimension")
     ("embedding", po::value<int>(&embedding_size)->default_value(embedding_size), "embedding dimension")

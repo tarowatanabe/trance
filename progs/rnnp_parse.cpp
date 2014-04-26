@@ -382,8 +382,8 @@ void options(int argc, char** argv)
     ("input",     po::value<path_type>(&input_file)->default_value(input_file),   "input file")
     ("output",    po::value<path_type>(&output_file)->default_value(output_file), "output file")
     
-    ("grammar",    po::value<path_type>(&grammar_file),                      "grammar file")
-    ("model",      po::value<path_type>(&model_file),                        "model file")
+    ("grammar",    po::value<path_type>(&grammar_file), "grammar file")
+    ("model",      po::value<path_type>(&model_file),   "model file")
     
     ("hidden",    po::value<int>(&hidden_size)->default_value(hidden_size),       "hidden dimension")
     ("embedding", po::value<int>(&embedding_size)->default_value(embedding_size), "embedding dimension")
