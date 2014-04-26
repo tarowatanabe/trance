@@ -687,7 +687,7 @@ namespace rnnp
   {
     if (x.rows() == y.rows() && x.cols() == y.cols())
       x += y;
-    if (x.rows() == y.rows()) {
+    else if (x.rows() == y.rows()) {
       if (x.cols() > y.cols())
 	x.block(0, 0, y.rows(), y.cols()) += y;
       else {
@@ -731,7 +731,7 @@ namespace rnnp
   {
     if (x.rows() == y.rows() && x.cols() == y.cols())
       x -= y;
-    if (x.rows() == y.rows()) {
+    else if (x.rows() == y.rows()) {
       if (x.cols() > y.cols())
 	x.block(0, 0, y.rows(), y.cols()) -= y;
       else {
