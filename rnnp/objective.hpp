@@ -10,8 +10,8 @@
 
 #include <rnnp/unigram.hpp>
 #include <rnnp/derivation.hpp>
-#include <rnnp/decoder.hpp>
-#include <rnnp/bitext.hpp>
+#include <rnnp/parser.hpp>
+#include <rnnp/tree.hpp>
 #include <rnnp/model.hpp>
 #include <rnnp/gradient.hpp>
 #include <rnnp/learn_option.hpp>
@@ -41,14 +41,12 @@ namespace rnnp
 
     typedef LearnOption option_type;
 
-    typedef Decoder    decoder_type;
+    typedef Parser     parser_type;
     typedef Derivation derivation_type;    
 
-    typedef decoder_type::operation_type      operation_type;
-    typedef decoder_type::state_type          state_type;
-    typedef decoder_type::node_type           node_type;
-    typedef decoder_type::phrase_span_type    phrase_span_type;
-    typedef decoder_type::sentence_type       sentence_type;
+    typedef parser_type::operation_type      operation_type;
+    typedef parser_type::state_type          state_type;
+    typedef parser_type::sentence_type       sentence_type;
 
     typedef Loss loss_type;
     
@@ -64,23 +62,23 @@ namespace rnnp
 				 boost::hash<state_type>, std::equal_to<state_type>,
 				 std::allocator<std::pair<const state_type, backward_type> > >::type backward_set_type;
     
-    typedef utils::compact_set<node_type, 
-			       utils::unassigned<node_type>, utils::unassigned<node_type>,
-			       boost::hash<node_type>, std::equal_to<node_type>,
-			       std::allocator<node_type> > node_set_type;
-    typedef std::vector<node_set_type, std::allocator<node_set_type> > node_map_type;
+    typedef utils::compact_set<state_type, 
+			       utils::unassigned<state_type>, utils::unassigned<state_type>,
+			       boost::hash<state_type>, std::equal_to<state_type>,
+			       std::allocator<state_type> > state_set_type;
+    typedef std::vector<state_set_type, std::allocator<state_set_type> > state_map_type;
 
-    void initialize(const bitext_type& bitext)
+    void initialize(const input_type& input)
     {
       backward_.clear();
       
-      nodes_.clear();
-      nodes_.resize(bitext.source_.size() * 2 + 1);
+      states_.clear();
+      states_.resize(bitext.source_.size() * 2 + 1);
     }
     
     derivation_type   derivation_;
     backward_set_type backward_;
-    node_map_type     nodes_;
+    state_map_type    states_;
 
     tensor_type layers_;
     tensor_type deltas_;

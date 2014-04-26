@@ -226,7 +226,7 @@ struct Mapper : public MapReduce
       
 	derivation_set_type::const_iterator diter_end = derivations.end();
 	for (derivation_set_type::const_iterator diter = derivations.begin(); diter != diter_end; ++ diter) {
-	  derivation.assign(input, *diter);
+	  derivation.assign(*diter);
 	  
 	  os << reduced.id_ << " ||| " << derivation.tree_;
 	  

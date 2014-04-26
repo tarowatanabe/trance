@@ -6,8 +6,6 @@
 #ifndef __RNNP__DERIVATION__HPP__
 #define __RNNP__DERIVATION__HPP__ 1
 
-#include <vector>
-
 #include <rnnp/sentence.hpp>
 #include <rnnp/span.hpp>
 #include <rnnp/symbol.hpp>
@@ -38,39 +36,39 @@ namespace rnnp
     
   public:
     Derivation() {}
-    Derivation(const sentence_type& input, const state_type& state) { assign(input, state); }
+    Derivation(const state_type& state) { assign(state); }
     
   public:
 
-    void assign(const sentence_type& input, state_type state)
+    void assign(state_type state)
     {
-      assign(input, state, binarized_);
+      assign(state, binarized_);
       debinarize(binarized_, tree_);
     }
 
-    void assign(const sentence_type& input, state_type state, tree_type& tree)
+    void assign(state_type state, tree_type& tree)
     {
       switch (state.operation().operation()) {
       case operation_type::AXIOM:
 	break;
       case operation_type::FINAL:
       case operation_type::IDLE:
-	assign(input, state.derivation(), tree);
+	assign(state.derivation(), tree);
 	break;
       case operation_type::UNARY:
 	tree.label_ = state.label();
 	tree.antecedent_.resize(1);
-	assign(input, state.derivation(), tree.antecedent_.front());
+	assign(state.derivation(), tree.antecedent_.front());
 	break;
       case operation_type::SHIFT:
 	tree.label_ = state.label();
-	tree.antecedent_ = tree_type::antecedent_type(1, tree_type(input[state.next() - 1]));
+	tree.antecedent_ = tree_type::antecedent_type(1, state.head());
 	break;
       case operation_type::REDUCE:
 	tree.label_ = state.label();
 	tree.antecedent_.resize(2);
-	assign(input, state.reduced(), tree.antecedent_.front());
-	assign(input, state.derivation(), tree.antecedent_.back());
+	assign(state.reduced(), tree.antecedent_.front());
+	assign(state.derivation(), tree.antecedent_.back());
 	break;
       }
     }

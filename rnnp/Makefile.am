@@ -50,6 +50,7 @@ objective.hpp \
 operation.hpp \
 optimize.hpp \
 option.hpp \
+oracle.hpp \
 parser.hpp \
 rule.hpp \
 semiring.hpp \

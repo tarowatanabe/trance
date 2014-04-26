@@ -57,8 +57,11 @@ namespace rnnp
     // state information
     // index_type step_;
     // index_type next_;
+    // index_type unary_;
+
     // operation_type operation_;
     // symbol_type label_;
+    // symbol_tyep head_;
     // span_type   span_;
     
     // stack and derivation
@@ -75,10 +78,13 @@ namespace rnnp
   public:
     static const size_type offset_step       = 0;
     static const size_type offset_next       = offset_step + sizeof(index_type);
-    static const size_type offset_operation  = offset_next + sizeof(index_type);
+    static const size_type offset_unary      = offset_next + sizeof(index_type);
+
+    static const size_type offset_operation  = offset_unary + sizeof(index_type);
 
     static const size_type offset_label      = offset_operation + sizeof(operation_type);
-    static const size_type offset_span       = offset_label + sizeof(symbol_type);
+    static const size_type offset_head       = offset_label + sizeof(symbol_type);
+    static const size_type offset_span       = offset_head + sizeof(symbol_type);
     
     static const size_type offset_stack      = (offset_span + sizeof(span_type) + 15) & (~15);
     static const size_type offset_derivation = offset_stack + sizeof(pointer);
@@ -101,11 +107,17 @@ namespace rnnp
     inline const index_type& next() const { return *reinterpret_cast<const index_type*>(buffer_ + offset_next); }
     inline       index_type& next()       { return *reinterpret_cast<index_type*>(buffer_ + offset_next); }
 
+    inline const index_type& unary() const { return *reinterpret_cast<const index_type*>(buffer_ + offset_unary); }
+    inline       index_type& unary()       { return *reinterpret_cast<index_type*>(buffer_ + offset_unary); }
+    
     inline const operation_type& operation() const { return *reinterpret_cast<const operation_type*>(buffer_ + offset_operation); }
     inline       operation_type& operation()       { return *reinterpret_cast<operation_type*>(buffer_ + offset_operation); }
 
     inline const symbol_type& label() const { return *reinterpret_cast<const symbol_type*>(buffer_ + offset_label); }
     inline       symbol_type& label()       { return *reinterpret_cast<symbol_type*>(buffer_ + offset_label); }
+
+    inline const symbol_type& head() const { return *reinterpret_cast<const symbol_type*>(buffer_ + offset_head); }
+    inline       symbol_type& head()       { return *reinterpret_cast<symbol_type*>(buffer_ + offset_head); }
     
     inline const span_type& span() const { return *reinterpret_cast<const span_type*>(buffer_ + offset_span); }
     inline       span_type& span()       { return *reinterpret_cast<span_type*>(buffer_ + offset_span); }

@@ -113,12 +113,14 @@ void transform_normalize(treebank_type& treebank)
   
   // normalize treebank-category...
   if (treebank.cat_.size() == 1) {
+#if 0
     switch (treebank.cat_[0]) {
     case '.' : treebank.cat_ = "PERIOD"; break;
     case ',' : treebank.cat_ = "COMMA"; break;
     case ':' : treebank.cat_ = "COLON"; break;
     case ';' : treebank.cat_ = "SEMICOLON"; break;
     }
+#endif
   } else {
     namespace xpressive = boost::xpressive;
     
@@ -218,8 +220,16 @@ void transform_cycle(treebank_type& treebank)
     transform_cycle(*aiter);
 
   // unary rule + the same category...
-  if (treebank.antecedents_.size() == 1 && treebank.antecedents_.front().antecedents_.size() == 1 && treebank.cat_ == treebank.antecedents_.front().cat_)
-    treebank.antecedents_ = treebank.antecedents_.front().antecedents_;
+  // TODO: buggy.. why?
+  if (treebank.antecedents_.size() == 1
+      && treebank.antecedents_.front().antecedents_.size() == 1
+      && treebank.cat_ == treebank.antecedents_.front().cat_) {
+    treebank_type::antecedents_type antecedents;
+    
+    antecedents.swap(treebank.antecedents_.front().antecedents_);
+    
+    treebank.antecedents_.swap(antecedents);
+  }
 }
 
 bool treebank_validate(const treebank_type& treebank)

@@ -135,7 +135,7 @@ namespace rnnp
     const bool result = assign(iter, end);
     
     if (! result || iter != end)
-      throw std::runtime_error("tree parsing failed");
+      throw std::runtime_error("tree parsing failed:" + std::string(x.begin(), std::min(x.begin() + 64, x.end())));
   }
   
   bool Tree::assign(std::string::const_iterator& iter, std::string::const_iterator end)

@@ -110,7 +110,7 @@ namespace rnnp
       symbol_type::const_iterator iter_end = word.end();
       
       maps[scan_pos] = true;
-      maps[flag_pos] = qi::parse(iter, iter_end, '[' >> +(standard::char_ - ',' - ']') >> -(',' >> qi::int_) >> ']') && iter == iter_end;
+      maps[flag_pos] = qi::parse(iter, iter_end, '[' >> +(standard::char_ - ']') >> ']') && iter == iter_end;
     }
     
     return maps[flag_pos];

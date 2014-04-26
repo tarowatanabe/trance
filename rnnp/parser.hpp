@@ -89,14 +89,6 @@ namespace rnnp
 	
       }
     };
-
-    struct action_none
-    {
-      void operator()(const state_type& state) const
-      {
-	
-      }
-    };
     
     void operator()(const sentence_type& input,
 		    const grammar_type& grammar,
@@ -131,15 +123,17 @@ namespace rnnp
       if (input.empty()) return;
       
       initialize(input, grammar, theta);
-
-      operation_axiom(theta, output_agenda(agenda_), action_none());
       
-      const size_type step_last = input.size() * 2 + input.size() * unary_size_ + 1;
+      operation_axiom(theta, output_agenda(agenda_));
+      
+      const size_type unary_max = input.size() * unary_size_;
+      const size_type step_last = input.size() * 2 + unary_max;
+      
       for (size_type step = 0; step != step_last; ++ step) {
 	heap_type& heap = agenda_[step];
 	
 	if (heap.empty()) continue;
-	
+
 	heap_type::iterator hiter_begin = heap.begin();
 	heap_type::iterator hiter       = heap.end();
 	heap_type::iterator hiter_end   = heap.end();
@@ -158,9 +152,9 @@ namespace rnnp
 	
 	for (heap_type::iterator iter = hiter; iter != hiter_end; ++ iter) {
 	  const state_type& state = *iter;
-	  
+
 	  if (state.operation().finished())
-	    operation_idle(state, grammar.goal_, theta, output_agenda(agenda_), action_none());
+	    operation_idle(state, grammar.goal_, theta, output_agenda(agenda_));
 	  else {
 	    // we perform shift..
 	    if (state.next() < input.size()) {
@@ -168,16 +162,16 @@ namespace rnnp
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_shift(state, input[state.next()], *riter, theta, output_agenda(agenda_), action_none());
+		operation_shift(state, input[state.next()], riter->lhs_, theta, output_agenda(agenda_));
 	    }
 	    
 	    // we perform unary
-	    if (state.operation().closure() < unary_size_) {
+	    if (state.unary() < unary_max && state.operation().closure() < unary_size_) {
 	      const grammar_type::rule_set_type& rules = grammar.unary(state.label());
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_unary(state, *riter, theta, output_agenda(agenda_), action_none());
+		operation_unary(state, riter->lhs_, theta, output_agenda(agenda_));
 	    }
 	    
 	    // final...
@@ -185,7 +179,7 @@ namespace rnnp
 		&& state.stack().label() == symbol_type::EPSILON
 		&& state.label() == grammar.goal_
 		&& state.next() == input.size())
-	      operation_final(state, grammar.goal_, theta, output_agenda(agenda_), action_none());
+	      operation_final(state, grammar.goal_, theta, output_agenda(agenda_));
 	    
 	    // we will perform reduce
 	    if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
@@ -193,7 +187,7 @@ namespace rnnp
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_reduce(state, *riter, theta, output_agenda(agenda_), action_none());
+		operation_reduce(state, riter->lhs_, theta, output_agenda(agenda_));
 	    }
 	  }
 	}
@@ -214,13 +208,15 @@ namespace rnnp
 	for (/**/; hiter_begin != hiter && std::distance(hiter, hiter_end) != kbest; -- hiter) {
 	  std::pop_heap(hiter_begin, hiter, heap_compare());
 	  
+#if 1
 	  if (! (hiter - 1)->operation().finished()) {
 	    std::cerr << "non-final operation? " << std::endl;
+	    std::cerr << "input size: " << input.size() << " input: " << input << std::endl;
 	    
 	    state_type stack = *(hiter - 1);
 	    while (stack) {
-	      std::cerr << "\tstack op: " << stack.operation()
-			<< " step: " << stack.step()
+	      std::cerr << "\tstack step: " << stack.step()
+			<< " op: " << stack.operation()
 			<< " next: " << stack.next()
 			<< " label: " << stack.label()
 			<< " span: " << stack.span() << std::endl;
@@ -230,8 +226,8 @@ namespace rnnp
 	    
 	    state_type curr = *(hiter - 1);
 	    while (curr) {
-	      std::cerr << "\tderivation op: " << curr.operation()
-			<< " step: " << curr.step()
+	      std::cerr << "\tderivation step: " << curr.step()
+			<< " op: " << curr.operation()
 			<< " next: " << curr.next()
 			<< " label: " << curr.label() 
 			<< " span: " << curr.span() << std::endl;
@@ -239,6 +235,7 @@ namespace rnnp
 	      curr = curr.derivation();
 	    }
 	  }
+#endif
 	  
 	  derivations.push_back(*(hiter - 1));
 	}
@@ -257,49 +254,47 @@ namespace rnnp
     
     void initialize(const sentence_type& input, const grammar_type& grammar, const model_type& theta)
     {
-      // # of operations is 2n + # of unary rules
+      // # of operations is 2n + # of unary rules + final
       agenda_.clear();
-      agenda_.resize(input.size() * 2 + input.size() * unary_size_ + 2);
+      agenda_.resize(input.size() * 2 + input.size() * unary_size_ + 1);
       
       state_allocator_.clear();
       state_allocator_.assign(state_type::size(theta.hidden_));
     }
 
-    template <typename Output, typename Action>
+    template <typename Output>
     void operation_shift(const state_type& state,
-			 const word_type& terminal,
-			 const rule_type& rule,
+			 const word_type& head,
+			 const symbol_type& label,
 			 const model_type& theta,
-			 Output output,
-			 Action action)
+			 Output output)
     {
-      if (! rule.preterminal())
-	throw std::runtime_error("invalid preterminal rule: " + rule.string());
-
       const size_type offset1 = 0;
       const size_type offset2 = theta.hidden_;
 
       state_type state_new = state_allocator_.allocate();
       
-      state_new.step() = state.step() + 1;
-      state_new.next() = state.next() + 1;
+      state_new.step()  = state.step() + 1;
+      state_new.next()  = state.next() + 1;
+      state_new.unary() = state.unary();
       
       state_new.operation() = operation_type::SHIFT;
-      state_new.label() = rule.lhs_;
-      state_new.span()  = span_type(state.next(), state.next() + 1);
+      state_new.label()     = label;
+      state_new.head()      = head;
+      state_new.span()      = span_type(state.next(), state.next() + 1);
       
       state_new.stack()      = state;
       state_new.derivation() = state;
       state_new.reduced()    = state_type();
       
-      const size_type offset_grammar        = theta.offset_grammar(rule.lhs_);
-      const size_type offset_classification = theta.offset_classification(rule.lhs_);
+      const size_type offset_grammar        = theta.offset_grammar(label);
+      const size_type offset_classification = theta.offset_classification(label);
       
       state_new.layer(theta.hidden_) = (theta.Bsh_.block(offset_grammar, 0, theta.hidden_, 1)
 					+ (theta.Wsh_.block(offset_grammar, offset1, theta.hidden_, theta.hidden_)
 					   * state.layer(theta.hidden_))
 					+ (theta.Wsh_.block(offset_grammar, offset2, theta.hidden_, theta.embedding_)
-					   * theta.terminal_.col(theta.terminal(terminal)))
+					   * theta.terminal_.col(theta.terminal(head)))
 					).array().unaryExpr(model_type::activation());
       
       const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
@@ -307,20 +302,14 @@ namespace rnnp
       state_new.score() = state.score() + score;
       
       output(state_new);
-      
-      action(state_new);
     }
     
-    template <typename Output, typename Action>
+    template <typename Output>
     void operation_reduce(const state_type& state,
-			  const rule_type& rule,
+			  const symbol_type& label,
 			  const model_type& theta,
-			  Output output,
-			  Action action)
+			  Output output)
     {
-      if (! rule.binary())
-	throw std::runtime_error("invalid binary rule: " + rule.string());
-	    
       const size_type offset1 = 0;
       const size_type offset2 = theta.hidden_;
       
@@ -329,19 +318,21 @@ namespace rnnp
 
       state_type state_new = state_allocator_.allocate();
       
-      state_new.step() = state.step() + 1;
-      state_new.next() = state.next();
+      state_new.step()  = state.step() + 1;
+      state_new.next()  = state.next();
+      state_new.unary() = state.unary();
       
       state_new.operation() = operation_type::REDUCE;
-      state_new.label() = rule.lhs_;
-      state_new.span()  = span_type(state_reduced.span().first_, state.span().last_);
+      state_new.label()     = label;
+      state_new.head()      = symbol_type::EPSILON;
+      state_new.span()      = span_type(state_reduced.span().first_, state.span().last_);
       
       state_new.stack()      = state_stack;
       state_new.derivation() = state;
       state_new.reduced()    = state_reduced;
       
-      const size_type offset_grammar        = theta.offset_grammar(rule.lhs_);
-      const size_type offset_classification = theta.offset_classification(rule.lhs_);
+      const size_type offset_grammar        = theta.offset_grammar(label);
+      const size_type offset_classification = theta.offset_classification(label);
       
       state_new.layer(theta.hidden_) = (theta.Bre_.block(offset_grammar, 0, theta.hidden_, 1)
 					+ (theta.Wre_.block(offset_grammar, offset1, theta.hidden_, theta.hidden_)
@@ -355,35 +346,31 @@ namespace rnnp
       state_new.score() = state.score() + score;
       
       output(state_new);
-      
-      action(state_new);
     }
     
-    template <typename Output, typename Action>
+    template <typename Output>
     void operation_unary(const state_type& state,
-			 const rule_type& rule,
+			 const symbol_type& label,
 			 const model_type& theta,
-			 Output output,
-			 Action action)
+			 Output output)
     {
-      if (! rule.unary())
-	throw std::runtime_error("invalid unary rule: " + rule.string());
-      
       state_type state_new = state_allocator_.allocate();
       
-      state_new.step() = state.step() + 1;
-      state_new.next() = state.next();
+      state_new.step()  = state.step() + 1;
+      state_new.next()  = state.next();
+      state_new.unary() = state.unary() + 1;
       
       state_new.operation() = operation_type(operation_type::UNARY, state.operation().closure() + 1);
-      state_new.label() = rule.lhs_;
-      state_new.span()  = state.span();
+      state_new.label()     = label;
+      state_new.head()      = symbol_type::EPSILON;
+      state_new.span()      = state.span();
       
       state_new.stack()      = state.stack();
       state_new.derivation() = state;
       state_new.reduced()    = state_type();
       
-      const size_type offset_grammar        = theta.offset_grammar(rule.lhs_);
-      const size_type offset_classification = theta.offset_classification(rule.lhs_);
+      const size_type offset_grammar        = theta.offset_grammar(label);
+      const size_type offset_classification = theta.offset_classification(label);
       
       state_new.layer(theta.hidden_) = (theta.Bu_.block(offset_grammar, 0, theta.hidden_, 1)
 					+ (theta.Wu_.block(offset_grammar, 0, theta.hidden_, theta.hidden_)
@@ -395,25 +382,24 @@ namespace rnnp
       state_new.score() = state.score() + score;
       
       output(state_new);
-      
-      action(state_new);
     }
     
-    template <typename Output, typename Action>
+    template <typename Output>
     void operation_final(const state_type& state,
 			 const symbol_type& goal,
 			 const model_type& theta,
-			 Output output,
-			 Action action)
+			 Output output)
     {
       state_type state_new = state_allocator_.allocate();
       
-      state_new.step() = state.step() + 1;
-      state_new.next() = state.next();
+      state_new.step()  = state.step() + 1;
+      state_new.next()  = state.next();
+      state_new.unary() = state.unary();
       
       state_new.operation() = operation_type::FINAL;
-      state_new.label() = goal;
-      state_new.span()  = state.span();
+      state_new.label()     = goal;
+      state_new.head()      = symbol_type::EPSILON;
+      state_new.span()      = state.span();
       
       state_new.stack()      = state.stack();
       state_new.derivation() = state;
@@ -429,25 +415,24 @@ namespace rnnp
       state_new.score() = state.score() + score;
       
       output(state_new);
-      
-      action(state_new);
     }
 
-    template <typename Output, typename Action>
+    template <typename Output>
     void operation_idle(const state_type& state,
 			const symbol_type& goal,
 			const model_type& theta,
-			Output output,
-			Action action)
+			Output output)
     {
       state_type state_new = state_allocator_.allocate();
       
-      state_new.step() = state.step() + 1;
-      state_new.next() = state.next();
+      state_new.step()  = state.step() + 1;
+      state_new.next()  = state.next();
+      state_new.unary() = state.unary();
       
       state_new.operation() = operation_type::IDLE;
-      state_new.label() = goal;
-      state_new.span()  = state.span();
+      state_new.label()     = goal;
+      state_new.head()      = symbol_type::EPSILON;
+      state_new.span()      = state.span();
       
       state_new.stack()      = state.stack();
       state_new.derivation() = state;
@@ -463,23 +448,22 @@ namespace rnnp
       state_new.score() = state.score() + score;
       
       output(state_new);
-      
-      action(state_new);
     }
 
-    template <typename Output, typename Action>
+    template <typename Output>
     void operation_axiom(const model_type& theta,
-			 Output output,
-			 Action action)
+			 Output output)
     {
       state_type state_new = state_allocator_.allocate();
       
-      state_new.step() = 0;
-      state_new.next() = 0;
+      state_new.step()  = 0;
+      state_new.next()  = 0;
+      state_new.unary() = 0;
       
       state_new.operation() = operation_type::AXIOM;
-      state_new.label() = symbol_type::EPSILON;
-      state_new.span()  = span_type(-1, 0);
+      state_new.label()     = symbol_type::EPSILON;
+      state_new.head()      = symbol_type::EPSILON;
+      state_new.span()      = span_type(-1, 0);
       
       state_new.stack()      = state_type();
       state_new.derivation() = state_type();
@@ -489,10 +473,7 @@ namespace rnnp
       state_new.layer(theta.hidden_) = theta.Ba_.array().unaryExpr(model_type::activation());
       
       output(state_new);
-      
-      action(state_new);
     }
-        
 
   public:
     size_type beam_size_;
