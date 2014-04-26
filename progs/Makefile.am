@@ -15,6 +15,7 @@ LIBCODEC = $(top_builddir)/codec/libcodec.la
 bin_PROGRAMS = \
 	rnnp_grammar \
 	rnnp_parse \
+	rnnp_oracle \
 	rnnp_oracle_sequence \
 	rnnp_treebank
 
@@ -23,6 +24,9 @@ rnnp_grammar_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
 rnnp_parse_SOURCES = rnnp_parse.cpp
 rnnp_parse_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
+
+rnnp_oracle_SOURCES = rnnp_oracle.cpp
+rnnp_oracle_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
 rnnp_oracle_sequence_SOURCES = rnnp_oracle_sequence.cpp
 rnnp_oracle_sequence_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
