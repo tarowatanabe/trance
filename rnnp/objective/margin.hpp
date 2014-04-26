@@ -148,10 +148,12 @@ namespace rnnp
 		+= (state.derivation().layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
 		    * (theta.Wre_.block(offset_grammar, offset1, theta.hidden_, theta.hidden_).transpose()
 		       * backward.delta_).array());
+#if 0
 	      ant2.delta_.array()
 		+= (state.reduced().layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
 		    * (theta.Wre_.block(offset_grammar, offset2, theta.hidden_, theta.hidden_).transpose()
 		       * backward.delta_).array());
+#endif
 	      
 	      // register state
 	      states_[state.derivation().step()].insert(state.derivation());
