@@ -19,7 +19,6 @@ namespace rnnp
       objective_(MARGIN_DERIVATION),
       iteration_(10),
       batch_(4),
-      sample_(100),
       lambda_(0),
       eta0_(0.01),
       shrinking_(false),
@@ -34,7 +33,6 @@ namespace rnnp
       objective_(MARGIN_DERIVATION),
       iteration_(10),
       batch_(4),
-      sample_(100),
       lambda_(0),
       eta0_(0.01),
       shrinking_(false),
@@ -106,8 +104,6 @@ namespace rnnp
 	iteration_ = utils::lexical_cast<int>(oiter->second);
       else if (utils::ipiece(oiter->first) == "batch" || utils::ipiece(oiter->first) == "batch-size")
 	batch_ = utils::lexical_cast<int>(oiter->second);
-      else if (utils::ipiece(oiter->first) == "sample" || utils::ipiece(oiter->first) == "sample-size")
-	sample_ = utils::lexical_cast<int>(oiter->second);
       else if (utils::ipiece(oiter->first) == "lambda")
 	lambda_ = utils::lexical_cast<double>(oiter->second);
       else if (utils::ipiece(oiter->first) == "eta0" || utils::ipiece(oiter->first) == "eta")
@@ -124,8 +120,6 @@ namespace rnnp
       throw std::runtime_error("zero or negative iterations?");
     if (batch_ <= 0)
       throw std::runtime_error("zero or negative mini batch size?");
-    if (sample_ <= 0)
-      throw std::runtime_error("zero or negative sample size?");
     if (lambda_ < 0.0)
       throw std::runtime_error("negative lambda?");
     if (eta0_ <= 0.0)
@@ -194,8 +188,6 @@ namespace rnnp
     
     opt.push_back(std::make_pair("batch", utils::lexical_cast<std::string>(option.batch_)));
     
-    opt.push_back(std::make_pair("sample", utils::lexical_cast<std::string>(option.sample_)));
-
     if (option.lambda_ > 0)
       opt.push_back(std::make_pair("lambda", utils::lexical_cast<std::string>(option.lambda_)));
     

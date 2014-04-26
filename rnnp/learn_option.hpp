@@ -70,7 +70,6 @@ namespace rnnp
     
     int    iteration_;
     int    batch_;
-    int    sample_;
     double lambda_;
     double eta0_;
     bool   shrinking_;

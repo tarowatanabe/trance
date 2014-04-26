@@ -57,6 +57,8 @@ namespace rnnp
 	    if (! backward.delta_.rows())
 	      backward.delta_ = tensor_type::Zero(theta.hidden_, 1);
 	    
+	    //std::cerr << "step: " << step << " loss: " << backward.loss_ << std::endl;
+	    
 	    switch (state.operation().operation()) {
 	    case operation_type::AXIOM: {
 	      // initial bias
@@ -135,7 +137,7 @@ namespace rnnp
 	      backward_type& ant2 = backward_[state.reduced()];
 
 	      ant1.loss_ += backward.loss_;
-	      ant2.loss_ += backward.loss_;
+	      //ant2.loss_ += backward.loss_;
 	      
 	      if (! ant1.delta_.rows())
 		ant1.delta_ = tensor_type::Zero(theta.hidden_, 1);
@@ -171,7 +173,7 @@ namespace rnnp
 		+= backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
 	      g.Bu(state.label())
 		+= backward.delta_;
-	      	      
+	      
 	      // propagate to ancedent
 	      backward_type& ant = backward_[state.derivation()];
 	      

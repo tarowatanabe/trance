@@ -32,8 +32,6 @@ namespace rnnp
 	double error_max = 0.0;
 	size_type step_max = size_type(-1);
 	
-	sentence_type cand;
-	
 	// check the state with max-violation
 	for (size_type step = 0; step != oracles.agenda_.size(); ++ step) 
 	  if (! candidates.agenda_[step].empty() && ! oracles.agenda_[step].empty()) {
@@ -79,7 +77,7 @@ namespace rnnp
 	    
 	    const weight_type prob_candidate = semiring::traits<weight_type>::exp(score_candidate) / Z_candidate;
 	    const weight_type prob_oracle    = semiring::traits<weight_type>::exp(score_oracle) / Z_oracle;
-	    
+
 	    const double loss_factor = prob_candidate * prob_oracle;
 	    
 	    backward_type& backward_candidate = backward_[state_candidate];
