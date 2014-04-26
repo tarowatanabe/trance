@@ -153,7 +153,7 @@ namespace rnnp
     {
       tensor_type& tensor = Wre_[label];
       if (! tensor.rows())
-	tensor = tensor_type::Zero(hidden_, hidden_ + embedding_);
+	tensor = tensor_type::Zero(hidden_, hidden_ + hidden_);
       return tensor;
     }
 
@@ -169,7 +169,7 @@ namespace rnnp
     {
       tensor_type& tensor = Wu_[label];
       if (! tensor.rows())
-	tensor = tensor_type::Zero(hidden_, hidden_ + embedding_);
+	tensor = tensor_type::Zero(hidden_, hidden_);
       return tensor;
     }
 

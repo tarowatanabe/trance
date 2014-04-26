@@ -3,27 +3,26 @@
 //  Copyright(C) 2014 Taro Watanabe <taro.watanabe@nict.go.jp>
 //
 
-#ifndef __TMT__OBJECTIVE__VIOLATION_EARLY__HPP__
-#define __TMT__OBJECTIVE__VIOLATION_EARLY__HPP__ 1
+#ifndef __RNNP__OBJECTIVE__VIOLATION_EARLY__HPP__
+#define __RNNP__OBJECTIVE__VIOLATION_EARLY__HPP__ 1
 
 // this is a max violation..
 
-#include <tmt/objective/margin.hpp>
+#include <rnnp/objective/margin.hpp>
 
-#include <tmt/semiring/logprob.hpp>
+#include <rnnp/semiring/logprob.hpp>
 
-namespace tmt
+namespace rnnp
 {
   namespace objective
   {
     struct ViolationEarly : public objective::Margin
     {
-      typedef tmt::semiring::Logprob<double> weight_type;
+      typedef rnnp::semiring::Logprob<double> weight_type;
       
-      double margin(const bitext_type& bitext,
-		    const model_type& theta,
-		    const decoder_type& candidates,
-		    const decoder_type& oracles,
+      double margin(const model_type& theta,
+		    const parser_type& candidates,
+		    const parser_oracle_type& oracles,
 		    const option_type& option,
 		    gradient_type& g)
       {
@@ -36,13 +35,13 @@ namespace tmt
 	// check the state with early-violation
 	for (size_type step = 0; step != oracles.agenda_.size(); ++ step) 
 	  if (! candidates.agenda_[step].empty() && ! oracles.agenda_[step].empty()) {
-	    const double beam_candidate = candidates.agenda_[step].front().state().score();
-	    const double beam_oracle    = oracles.agenda_[step].back().state().score();
+	    const double beam_candidate = candidates.agenda_[step].front().score();
+	    const double beam_oracle    = oracles.agenda_[step].back().score();
 	    
 	    if (beam_oracle >= beam_candidate) continue;
 	    
-	    const double score_candidate = candidates.agenda_[step].back().state().score();
-	    const double score_oracle    = oracles.agenda_[step].back().state().score();
+	    const double score_candidate = candidates.agenda_[step].back().score();
+	    const double score_oracle    = oracles.agenda_[step].back().score();
 	    
 	    const double error = std::max(1.0 - (score_oracle - score_candidate), 0.0);
 	    
@@ -62,20 +61,20 @@ namespace tmt
 	weight_type Z_oracle;
 	
 	for (size_type c = 0; c != kbest_candidate_size; ++ c)
-	  Z_candidate += tmt::semiring::traits<weight_type>::exp(candidates.agenda_[step_early][c].state().score());
+	  Z_candidate += rnnp::semiring::traits<weight_type>::exp(candidates.agenda_[step_early][c].score());
 	
 	for (size_type o = 0; o != kbest_oracle_size; ++ o)
-	  Z_oracle += tmt::semiring::traits<weight_type>::exp(oracles.agenda_[step_early][o].state().score());
+	  Z_oracle += rnnp::semiring::traits<weight_type>::exp(oracles.agenda_[step_early][o].score());
 	
 	double loss = 0;
 	
 	for (size_type c = 0; c != kbest_candidate_size; ++ c)
 	  for (size_type o = 0; o != kbest_oracle_size; ++ o) {
-	    const node_type& node_candidate = candidates.agenda_[step_early][c];
-	    const node_type& node_oracle    = oracles.agenda_[step_early][o];
+	    const state_type& state_candidate = candidates.agenda_[step_early][c];
+	    const state_type& state_oracle    = oracles.agenda_[step_early][o];
 	    
-	    const double& score_candidate = node_candidate.state().score();
-	    const double& score_oracle    = node_oracle.state().score();
+	    const double& score_candidate = state_candidate.score();
+	    const double& score_oracle    = state_oracle.score();
 	    
 	    const bool suffered = score_candidate > score_oracle;
 	    const double error = std::max(1.0 - (score_oracle - score_candidate), 0.0);
@@ -87,8 +86,8 @@ namespace tmt
 	    
 	    const double loss_factor = prob_candidate * prob_oracle;
 	    
-	    backward_type& backward_candidate = backward_[node_candidate.state()];
-	    backward_type& backward_oracle    = backward_[node_oracle.state()];
+	    backward_type& backward_candidate = backward_[state_candidate];
+	    backward_type& backward_oracle    = backward_[state_oracle];
 	    
 	    backward_candidate.loss_ += loss_factor;
 	    backward_oracle.loss_    -= loss_factor;
@@ -97,10 +96,10 @@ namespace tmt
 	  }
 	
 	for (size_type c = 0; c != kbest_candidate_size; ++ c)
-	  nodes_[candidates.agenda_[step_early][c].state().step()].insert(candidates.agenda_[step_early][c]);
+	  states_[candidates.agenda_[step_early][c].step()].insert(candidates.agenda_[step_early][c]);
 	
 	for (size_type o = 0; o != kbest_oracle_size; ++ o)
-	  nodes_[oracles.agenda_[step_early][o].state().step()].insert(oracles.agenda_[step_early][o]);
+	  states_[oracles.agenda_[step_early][o].step()].insert(oracles.agenda_[step_early][o]);
 	
 	return loss;
       }

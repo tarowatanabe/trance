@@ -34,7 +34,7 @@ namespace rnnp
       if (line.empty()) continue;
       
       rule.assign(line);
-      
+
       if (rule.goal()) {
 	if (! goal_.empty())
 	  throw std::runtime_error("we do not support multiple goal");

@@ -57,12 +57,12 @@ namespace rnnp
 	}
       }
 
-      template <typename Theta, typename GVar, typename Grad>
+      template <typename Theta, typename GVar>
       struct update_visitor_regularize
       {
 	update_visitor_regularize(Eigen::MatrixBase<Theta>& theta,
 				  Eigen::MatrixBase<GVar>& G,
-				  const Eigen::MatrixBase<Grad>& g,
+				  const tensor_type& g,
 				  const double& scale,
 				  const double& lambda,
 				  const double& eta0)
@@ -85,9 +85,9 @@ namespace rnnp
 	  theta_(i, j) = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
 	}
       
-	Eigen::MatrixBase<Theta>&      theta_;
-	Eigen::MatrixBase<GVar>&       G_;
-	const Eigen::MatrixBase<Grad>& g_;
+	Eigen::MatrixBase<Theta>& theta_;
+	Eigen::MatrixBase<GVar>&  G_;
+	const tensor_type&        g_;
       
 	const double scale_;
 	const double lambda_;
@@ -150,8 +150,8 @@ namespace rnnp
 	if (regularize) {
 	  typename Grad::const_iterator giter_end = grad.end();
 	  for (typename Grad::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
-	    const size_type rows = grad->second.rows();
-	    const size_type cols = grad->second.cols();
+	    const size_type rows = giter->second.rows();
+	    const size_type cols = giter->second.cols();
 	    const size_type offset = rows * giter->first.non_terminal_id();
 	    
 	    const tensor_type& g = giter->second;
@@ -172,8 +172,8 @@ namespace rnnp
 	} else {
 	  typename Grad::const_iterator giter_end = grad.end();
 	  for (typename Grad::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
-	    const size_type rows = grad->second.rows();
-	    const size_type cols = grad->second.cols();
+	    const size_type rows = giter->second.rows();
+	    const size_type cols = giter->second.cols();
 	    const size_type offset = rows * giter->first.non_terminal_id();
 	    
 	    G.block(offset, 0, rows, cols).array()
@@ -184,15 +184,15 @@ namespace rnnp
 	}
       }
       
-      template <typename Theta, typename GVar, typename Grad>
+      template <typename Theta, typename GVar>
       void update(Eigen::MatrixBase<Theta>& theta,
 		  Eigen::MatrixBase<GVar>& G,
-		  const Eigen::MatrixBase<Grad>& g,
+		  const tensor_type& g,
 		  const double scale,
 		  const bool regularize=true) const
       {
 	if (regularize) {
-	  update_visitor_regularize<Theta, GVar, Grad> visitor(theta, G, g, scale, lambda_, eta0_);
+	  update_visitor_regularize<Theta, GVar> visitor(theta, G, g, scale, lambda_, eta0_);
 	
 	  theta.visit(visitor);
 	} else {

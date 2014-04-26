@@ -78,9 +78,9 @@ namespace rnnp
 	    -= (eta0_ * scale) * giter->second;
       }
       
-      template <typename Theta, typename Grad>
+      template <typename Theta>
       void update(Eigen::MatrixBase<Theta>& theta,
-		  const Eigen::MatrixBase<Grad>& g,
+		  const tensor_type& g,
 		  const double scale,
 		  const bool regularize=true) const
       {

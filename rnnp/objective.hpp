@@ -8,9 +8,9 @@
 
 #include <vector>
 
-#include <rnnp/unigram.hpp>
 #include <rnnp/derivation.hpp>
 #include <rnnp/parser.hpp>
+#include <rnnp/parser_oracle.hpp>
 #include <rnnp/tree.hpp>
 #include <rnnp/model.hpp>
 #include <rnnp/gradient.hpp>
@@ -28,12 +28,9 @@ namespace rnnp
     typedef size_t    size_type;
     typedef ptrdiff_t difference_type;
 
-    typedef Bitext bitext_type;
-
-    typedef Unigram  unigram_type;    
     typedef Model    model_type;
     typedef Gradient gradient_type;
-
+    
     typedef model_type::word_type      word_type;
     typedef model_type::parameter_type parameter_type;
     typedef model_type::tensor_type    tensor_type;
@@ -41,8 +38,9 @@ namespace rnnp
 
     typedef LearnOption option_type;
 
-    typedef Parser     parser_type;
-    typedef Derivation derivation_type;    
+    typedef Parser       parser_type;
+    typedef ParserOracle parser_oracle_type;
+    typedef Derivation   derivation_type;    
 
     typedef parser_type::operation_type      operation_type;
     typedef parser_type::state_type          state_type;
@@ -67,21 +65,19 @@ namespace rnnp
 			       boost::hash<state_type>, std::equal_to<state_type>,
 			       std::allocator<state_type> > state_set_type;
     typedef std::vector<state_set_type, std::allocator<state_set_type> > state_map_type;
-
-    void initialize(const input_type& input)
+    
+    void initialize(const parser_type& candidates,
+		    const parser_oracle_type& oracles)
     {
       backward_.clear();
       
       states_.clear();
-      states_.resize(bitext.source_.size() * 2 + 1);
+      states_.resize(std::max(candidates.agenda_.size(), oracles.agenda_.size()));
     }
     
     derivation_type   derivation_;
     backward_set_type backward_;
     state_map_type    states_;
-
-    tensor_type layers_;
-    tensor_type deltas_;
   };
   
 };

@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 
     if (! model_file.empty()) {
       if (! boost::filesystem::exists(model_file))
-	throw std::runtime_error("no model file?");
+	throw std::runtime_error("no model file? " + model_file.string());
       
       theta.read(model_file);
     } else {

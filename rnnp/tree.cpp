@@ -9,6 +9,8 @@
 
 #include <boost/fusion/include/adapt_struct.hpp>
 
+#include <boost/algorithm/string/trim.hpp>
+
 #include <iterator>
 
 #include "tree.hpp"
@@ -77,7 +79,8 @@ namespace rnnp
 	treebank %= qi::hold['(' >> label >> +treebank >> ')'] | label;
 	root %= (qi::hold['(' >> label >> +treebank >> ')']
 		 | qi::hold['(' >> qi::attr("ROOT") >> +treebank >> ')']
-		 | qi::lit('(') >> qi::attr("") >> qi::lit('(') >> qi::lit(')') >> qi::lit(')'));
+		 | qi::hold[qi::lit('(') >> qi::attr("") >> qi::lit('(') >> qi::lit(')') >> qi::lit(')')]
+		 | qi::attr(""));
       }
       
       boost::spirit::qi::rule<Iterator, std::string(),   boost::spirit::standard::space_type> label;

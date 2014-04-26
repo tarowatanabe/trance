@@ -76,12 +76,6 @@ int main(int argc, char** argv)
   try {
     options(argc, argv);
     
-    if (int(binarize_left) + binarize_right > 1)
-      throw std::runtime_error("either one of --binarize-{left,right}");
-    
-    if (int(binarize_left) + binarize_right == 0)
-      binarize_left = true;
-
     threads = utils::bithack::max(1, threads);
   
     if (beam_size <= 0)
@@ -94,6 +88,12 @@ int main(int argc, char** argv)
     if (grammar_file  != "-" && ! boost::filesystem::exists(grammar_file))
       throw std::runtime_error("no grammar file? " + grammar_file.string());
     
+    if (int(binarize_left) + binarize_right > 1)
+      throw std::runtime_error("either one of --binarize-{left,right}");
+    
+    if (int(binarize_left) + binarize_right == 0)
+      binarize_left = true;
+
     grammar_type grammar(grammar_file);
     
     if (debug)

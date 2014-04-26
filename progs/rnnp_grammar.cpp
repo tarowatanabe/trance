@@ -186,7 +186,8 @@ void collect_rules(const path_type& path,
   utils::compress_istream is(path, 1024 * 1024);
   
   while (is >> tree)
-    collect(tree);
+    if (! tree.empty())
+      collect(tree);
 
   if (debug)
     std::cerr << "maximum unary size: " << collect.unary_max_ << std::endl;
