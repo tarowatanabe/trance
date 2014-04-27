@@ -38,6 +38,8 @@ namespace rnnp
 	    const double score_candidate = candidates.agenda_[step].back().score();
 	    const double score_oracle    = oracles.agenda_[step].back().score();
 	    
+	    if (score_oracle >= score_candidate) continue;
+	    
 	    const double error = std::max(1.0 - (score_oracle - score_candidate), 0.0);
 	    
 	    if (error > error_max) {
