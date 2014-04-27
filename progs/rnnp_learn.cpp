@@ -11,6 +11,7 @@
 #include <rnnp/parser_oracle.hpp>
 #include <rnnp/loss.hpp>
 #include <rnnp/learn_option.hpp>
+#include <rnnp/derivation.hpp>
 
 #include <rnnp/objective/margin_derivation.hpp>
 #include <rnnp/objective/margin_early.hpp>
@@ -151,6 +152,9 @@ int main(int argc, char** argv)
       std::cerr << "binary: " << grammar.binary_size()
 		<< " unary: " << grammar.unary_size()
 		<< " preterminal: " << grammar.preterminal_size()
+		<< " terminals: " << grammar.terminal_.size()
+		<< " non-terminals: " << grammar.non_terminal_.size()
+		<< " POS: " << grammar.pos_.size()
 		<< std::endl;
 
     model_type theta(hidden_size, embedding_size, grammar);
@@ -166,6 +170,17 @@ int main(int argc, char** argv)
       
       if (! embedding_file.empty())
 	theta.read_embedding(embedding_file);
+    }
+    
+    if (debug) {
+      const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
+      const size_t non_terminals = (theta.vocab_non_terminal_.size()
+				    - std::count(theta.vocab_non_terminal_.begin(), theta.vocab_non_terminal_.end(),
+						 model_type::symbol_type()));
+      
+      std::cerr << "terminals: " << terminals
+		<< " non-terminals: " << non_terminals
+		<< std::endl;
     }
     
     option_set_type::const_iterator oiter_end = optimizations.end();
@@ -259,6 +274,8 @@ struct Task
 
     rnnp::Parser::derivation_set_type candidates;
     rnnp::Parser::derivation_set_type oracles;
+
+    rnnp::Derivation derivation;
     
     size_type batch = 0;
     gradient_type* grad = 0;
@@ -307,6 +324,15 @@ struct Task
 	    
 	    parsed_ += (! candidates.empty());
 	    ++ instances_;
+
+	    if (debug >= 3) {
+	      if (! candidates.empty()) {
+		derivation.assign(candidates.front());
+		
+		std::cerr << "shard: " << shard_ << " parse: " << derivation.tree_ << std::endl;
+	      } else
+		std::cerr << "shard: " << shard_ << " no parse" << std::endl;
+	    }
 	    
 	    const size_type count_curr = grad->count_;
 	    
@@ -629,7 +655,6 @@ void options(int argc, char** argv)
     
     ("grammar",        po::value<path_type>(&grammar_file),   "grammar file")
     ("model",          po::value<path_type>(&model_file),     "model file")
-    ("word-embedding", po::value<path_type>(&embedding_file), "word embedding file")
     
     ("hidden",    po::value<int>(&hidden_size)->default_value(hidden_size),       "hidden dimension")
     ("embedding", po::value<int>(&embedding_size)->default_value(embedding_size), "embedding dimension")
@@ -641,7 +666,8 @@ void options(int argc, char** argv)
     ("binarize-left",  po::bool_switch(&binarize_left),  "left recursive (or left heavy) binarization (default)")
     ("binarize-right", po::bool_switch(&binarize_right), "right recursive (or right heavy) binarization")
     
-    ("randomize", po::bool_switch(&randomize),                                  "randomize model parameters")
+    ("randomize",      po::bool_switch(&randomize),           "randomize model parameters")
+    ("word-embedding", po::value<path_type>(&embedding_file), "word embedding file")
     
     ("learn", po::value<opt_set_type>(&optimize_options)->composing(), "learning option(s)")
     

@@ -50,7 +50,7 @@ path_type model_file;
 int hidden_size = 128;
 int embedding_size = 32;
 
-int beam_size = 100;
+int beam_size = 50;
 int kbest_size = 1;
 int unary_size = 3;
 
@@ -91,6 +91,9 @@ int main(int argc, char** argv)
       std::cerr << "binary: " << grammar.binary_size()
 		<< " unary: " << grammar.unary_size()
 		<< " preterminal: " << grammar.preterminal_size()
+		<< " terminals: " << grammar.terminal_.size()
+		<< " non-terminals: " << grammar.non_terminal_.size()
+		<< " POS: " << grammar.pos_.size()
 		<< std::endl;
     
     model_type theta(hidden_size, embedding_size, grammar);
@@ -110,6 +113,17 @@ int main(int argc, char** argv)
       
       if (! embedding_file.empty())
 	theta.read_embedding(embedding_file);
+    }
+
+    if (debug) {
+      const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
+      const size_t non_terminals = (theta.vocab_non_terminal_.size()
+				    - std::count(theta.vocab_non_terminal_.begin(), theta.vocab_non_terminal_.end(),
+						 model_type::symbol_type()));
+      
+      std::cerr << "terminals: " << terminals
+		<< " non-terminals: " << non_terminals
+		<< std::endl;
     }
     
     parse(grammar, theta, input_file, output_file);
