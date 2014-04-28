@@ -47,7 +47,7 @@ path_type output_file = "-";
 
 path_type grammar_file;
 path_type model_file;
-int hidden_size = 64;
+int hidden_size = 128;
 int embedding_size = 32;
 
 int beam_size = 50;
