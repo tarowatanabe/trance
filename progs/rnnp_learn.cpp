@@ -122,7 +122,7 @@ int main(int argc, char** argv)
       throw std::runtime_error("either one of --binarize-{left,right}");
     
     if (int(binarize_left) + binarize_right == 0)
-      binarize_left = true;
+      binarize_right = true;
 
     if (int(mix_none_mode) + mix_average_mode + mix_select_mode > 1)
       throw std::runtime_error("you can specify only one of mix-{none,average,select}");
@@ -663,8 +663,8 @@ void options(int argc, char** argv)
     ("kbest",     po::value<int>(&kbest_size)->default_value(kbest_size),         "kbest size")
     ("unary",     po::value<int>(&unary_size)->default_value(unary_size),         "unary size")
     
-    ("binarize-left",  po::bool_switch(&binarize_left),  "left recursive (or left heavy) binarization (default)")
-    ("binarize-right", po::bool_switch(&binarize_right), "right recursive (or right heavy) binarization")
+    ("binarize-left",  po::bool_switch(&binarize_left),  "left recursive (or left heavy) binarization")
+    ("binarize-right", po::bool_switch(&binarize_right), "right recursive (or right heavy) binarization (default)")
     
     ("randomize",      po::bool_switch(&randomize),           "randomize model parameters")
     ("word-embedding", po::value<path_type>(&embedding_file), "word embedding file")
