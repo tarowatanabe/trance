@@ -484,11 +484,11 @@ namespace rnnp
       const word_type word = boost::fusion::get<0>(parsed);
       
       if (word.id() >= terminal_.cols())
-	terminal_.conservativeResize(Eigen::NoChange, word.id() + 1);
+	terminal_.conservativeResize(embedding_, word.id() + 1);
       if (word.id() >= vocab_terminal_.size())
 	vocab_terminal_.resize(word.id() + 1, false);
       
-      terminal_.col(word.id()).block(0, 0, embedding_, 1)
+      terminal_.col(word.id())
 	= Eigen::Map<const tensor_type>(&(*boost::fusion::get<1>(parsed).begin()), embedding_, 1);
       
       vocab_terminal_[word.id()] = true;
