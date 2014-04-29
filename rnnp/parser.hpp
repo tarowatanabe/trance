@@ -191,7 +191,7 @@ namespace rnnp
       // compute the final kbest derivations
       if (! agenda_[step_last].empty())
 	throw std::runtime_error("why non-final item exists in the last beam..?");
-
+      
       heap_type& heap_goal = agenda_goal_[step_last];
       
       if (! heap_goal.empty()) {

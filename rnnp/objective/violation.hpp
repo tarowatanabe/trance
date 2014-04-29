@@ -62,7 +62,7 @@ namespace rnnp
 	if (! suffered || error <= 0.0) return 0.0;
 	
 	const weight_type prob_candidate = semiring::traits<weight_type>::exp(score_candidate) / Z_candidate;
-	const weight_type prob_oracle    = semiring::traits<weight_type>::exp(score_oracle) / Z_oracle;
+	const weight_type prob_oracle    = semiring::traits<weight_type>::exp(score_oracle)    / Z_oracle;
 	
 	const double loss_factor = prob_candidate * prob_oracle;
 	
@@ -96,12 +96,12 @@ namespace rnnp
 	for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
 	  Z_candidate += rnnp::semiring::traits<weight_type>::exp(candidates.agenda_[step][c].score());
 	for (size_type c = 0; c != candidates.agenda_goal_[step].size(); ++ c)
-	  Z_candidate += rnnp::semiring::traits<weight_type>::exp(candidates.agenda_[step][c].score());
+	  Z_candidate += rnnp::semiring::traits<weight_type>::exp(candidates.agenda_goal_[step][c].score());
 	
 	for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o)
 	  Z_oracle += rnnp::semiring::traits<weight_type>::exp(oracles.agenda_[step][o].score());
 	for (size_type o = 0; o != oracles.agenda_goal_[step].size(); ++ o)
-	  Z_oracle += rnnp::semiring::traits<weight_type>::exp(oracles.agenda_[step][o].score());
+	  Z_oracle += rnnp::semiring::traits<weight_type>::exp(oracles.agenda_goal_[step][o].score());
 	
 	double loss = 0;
 	
