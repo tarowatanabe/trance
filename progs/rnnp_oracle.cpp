@@ -45,6 +45,8 @@ typedef boost::filesystem::path path_type;
 path_type input_file = "-";
 path_type output_file = "-";
 
+bool simple_mode = false;
+
 path_type grammar_file;
 path_type model_file;
 int hidden_size = 128;
@@ -84,7 +86,10 @@ int main(int argc, char** argv)
       throw std::runtime_error("invalid kbest size: " + utils::lexical_cast<std::string>(kbest_size));
     if (unary_size < 0)
       throw std::runtime_error("invalid unary size: " + utils::lexical_cast<std::string>(unary_size));
-
+    
+    if (simple_mode && kbest_size > 1)
+      throw std::runtime_error("--simple assumes --kbest 1");
+    
     if (grammar_file  != "-" && ! boost::filesystem::exists(grammar_file))
       throw std::runtime_error("no grammar file? " + grammar_file.string());
     
@@ -227,22 +232,30 @@ struct Mapper : public MapReduce
       boost::iostreams::filtering_ostream os;
       os.push(boost::iostreams::back_inserter(buf));
       
-      if (! derivations.empty()) {
-	namespace karma = boost::spirit::karma;
-	namespace standard = boost::spirit::standard;
-	
-	karma::real_generator<double, real_precision> double10;
-      
-	derivation_set_type::const_iterator diter_end = derivations.end();
-	for (derivation_set_type::const_iterator diter = derivations.begin(); diter != diter_end; ++ diter) {
-	  derivation.assign(*diter);
+      if (simple_mode) {
+	if (! derivations.empty()) {
+	  derivation.assign(derivations.front());
+	  os << derivation.tree_ << '\n';
+	} else
+	  os << "(())" << '\n';
+      } else {
+	if (! derivations.empty()) {
+	  namespace karma = boost::spirit::karma;
+	  namespace standard = boost::spirit::standard;
 	  
-	  os << reduced.id_ << " ||| " << derivation.tree_;
+	  karma::real_generator<double, real_precision> double10;
 	  
-	  karma::generate(std::ostream_iterator<char>(os), " ||| " << double10 << '\n', diter->score());
-	}
-      } else
-	os << reduced.id_ << " ||| ||| 0" << '\n';
+	  derivation_set_type::const_iterator diter_end = derivations.end();
+	  for (derivation_set_type::const_iterator diter = derivations.begin(); diter != diter_end; ++ diter) {
+	    derivation.assign(*diter);
+	    
+	    os << reduced.id_ << " ||| " << derivation.tree_;
+	    
+	    karma::generate(std::ostream_iterator<char>(os), " ||| " << double10 << '\n', diter->score());
+	  }
+	} else
+	  os << reduced.id_ << " ||| ||| 0" << '\n';
+      }
       
       os.reset();
       
@@ -390,6 +403,8 @@ void options(int argc, char** argv)
   opts_config.add_options()
     ("input",     po::value<path_type>(&input_file)->default_value(input_file),   "input file")
     ("output",    po::value<path_type>(&output_file)->default_value(output_file), "output file")
+    
+    ("simple",    po::bool_switch(&simple_mode), "output parse tree only")
     
     ("grammar",    po::value<path_type>(&grammar_file),                      "grammar file")
     ("model",      po::value<path_type>(&model_file),                        "model file")
