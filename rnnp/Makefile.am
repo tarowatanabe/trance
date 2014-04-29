@@ -17,6 +17,7 @@ objective/margin_derivation.hpp \
 objective/margin_early.hpp \
 objective/margin_late.hpp \
 objective/margin_max.hpp \
+objective/violation.hpp \
 objective/violation_early.hpp \
 objective/violation_late.hpp \
 objective/violation_max.hpp 

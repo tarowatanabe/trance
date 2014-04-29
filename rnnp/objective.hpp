@@ -42,9 +42,11 @@ namespace rnnp
     typedef ParserOracle parser_oracle_type;
     typedef Derivation   derivation_type;    
 
-    typedef parser_type::operation_type      operation_type;
-    typedef parser_type::state_type          state_type;
-    typedef parser_type::sentence_type       sentence_type;
+    typedef parser_type::sentence_type  sentence_type;
+    typedef parser_type::operation_type operation_type;
+    typedef parser_type::state_type     state_type;
+    typedef parser_type::heap_type      heap_type;
+    typedef parser_type::agenda_type    agenda_type;
 
     typedef Loss loss_type;
     

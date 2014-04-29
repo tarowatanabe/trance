@@ -70,18 +70,7 @@ namespace rnnp
       : beam_size_(beam_size), unary_size_(unary_size) {}
     
   public:
-    struct output_agenda
-    {
-      output_agenda(agenda_type& agenda) : agenda_(agenda) {}
-
-      void operator()(const state_type& state)
-      {
-	agenda_[state.step()].push_back(state);
-      }
-      
-      agenda_type& agenda_;
-    };
-
+    
     struct best_action_none
     {
       void operator()(const size_type& step, const state_type& state) const
@@ -124,104 +113,91 @@ namespace rnnp
       
       initialize(input, grammar, theta);
       
-      operation_axiom(theta, output_agenda(agenda_));
+      operation_axiom(theta);
       
+      const size_type beam_goal = utils::bithack::max(beam_size_, kbest);
       const size_type unary_max = input.size() * unary_size_;
       const size_type step_last = input.size() * 2 + unary_max;
       
       for (size_type step = 0; step != step_last; ++ step) {
-	heap_type& heap = agenda_[step];
+	heap_type& heap      = agenda_[step];
+	heap_type& heap_goal = agenda_goal_[step];
 	
-	if (heap.empty()) break;
+	if (heap.empty() && heap_goal.empty()) break;
 	
-	prune(heap, beam_size_);
+	prune(heap,      beam_size_);
+	prune(heap_goal, beam_goal);
 	
 	// best_action
-	best_action(step, heap.back());
+	if (! heap.empty() && ! heap_goal.empty()) {
+	  if (heap_goal.back().score() >= heap.back().score())
+	    best_action(step, heap_goal.back());
+	  else
+	    best_action(step, heap.back());
+	} else if (! heap.empty())
+	  best_action(step, heap.back());
+	else
+	  best_action(step, heap_goal.back());
 	
+	// process goal items
+	heap_type::const_iterator giter_end = heap_goal.end();
+	for (heap_type::const_iterator giter = heap_goal.begin(); giter != giter_end; ++ giter)
+	  operation_idle(*giter, grammar.goal_, theta);
+	
+	// process others
 	heap_type::const_iterator hiter_end = heap.end();
 	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
 	  const state_type& state = *hiter;
-
+	  
 	  if (state.operation().finished())
-	    operation_idle(state, grammar.goal_, theta, output_agenda(agenda_));
-	  else {
-	    // we perform shift..
-	    if (state.next() < input.size()) {
-	      const grammar_type::rule_set_type& rules = grammar.preterminal(input[state.next()]);
-	      
-	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
-	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_shift(state, input[state.next()], riter->lhs_, theta, output_agenda(agenda_));
-	    }
+	    throw std::runtime_error("invalid item..?");
+	  
+	  // we perform shift..
+	  if (state.next() < input.size()) {
+	    const grammar_type::rule_set_type& rules = grammar.preterminal(input[state.next()]);
 	    
-	    // we perform unary
-	    if (state.unary() < unary_max && state.operation().closure() < unary_size_) {
-	      const grammar_type::rule_set_type& rules = grammar.unary(state.label());
-	      
-	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
-	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_unary(state, riter->lhs_, theta, output_agenda(agenda_));
-	    }
+	    grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+	    for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
+	      operation_shift(state, input[state.next()], riter->lhs_, theta);
+	  }
+	  
+	  // we perform unary
+	  if (state.unary() < unary_max && state.operation().closure() < unary_size_) {
+	    const grammar_type::rule_set_type& rules = grammar.unary(state.label());
 	    
-	    // final...
-	    if (state.stack()
-		&& state.stack().label() == symbol_type::EPSILON
-		&& state.label() == grammar.goal_
-		&& state.next() == input.size())
-	      operation_final(state, grammar.goal_, theta, output_agenda(agenda_));
+	    grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+	    for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
+	      operation_unary(state, riter->lhs_, theta);
+	  }
+	  
+	  // final...
+	  if (state.stack()
+	      && state.stack().label() == symbol_type::EPSILON
+	      && state.label() == grammar.goal_
+	      && state.next() == input.size())
+	    operation_final(state, grammar.goal_, theta);
+	  
+	  // we will perform reduce
+	  if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
+	    const grammar_type::rule_set_type& rules = grammar.binary(state.stack().label(), state.label());
 	    
-	    // we will perform reduce
-	    if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
-	      const grammar_type::rule_set_type& rules = grammar.binary(state.stack().label(), state.label());
-	      
-	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
-	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_reduce(state, riter->lhs_, theta, output_agenda(agenda_));
-	    }
+	    grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+	    for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
+	      operation_reduce(state, riter->lhs_, theta);
 	  }
 	}
       }
       
       // compute the final kbest derivations
-      heap_type& heap = agenda_[step_last];
+      if (! agenda_[step_last].empty())
+	throw std::runtime_error("why non-final item exists in the last beam..?");
+
+      heap_type& heap_goal = agenda_goal_[step_last];
       
-      if (! heap.empty()) {
-	prune(heap, kbest);
+      if (! heap_goal.empty()) {
+	prune(heap_goal, kbest);
 	
-	derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
-	
-#if 0
-	// check...
-	heap_type::const_iterator hiter_end = heap.end();
-	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter)
-	  if (! hiter->operation().finished()) {
-	    std::cerr << "non-final operation? " << std::endl;
-	    std::cerr << "input size: " << input.size() << " input: " << input << std::endl;
-	    
-	    state_type stack = *hiter;
-	    while (stack) {
-	      std::cerr << "\tstack step: " << stack.step()
-			<< " op: " << stack.operation()
-			<< " next: " << stack.next()
-			<< " label: " << stack.label()
-			<< " span: " << stack.span() << std::endl;
-	      
-	      stack = stack.stack();
-	    }
-	    
-	    state_type curr = *hiter;
-	    while (curr) {
-	      std::cerr << "\tderivation step: " << curr.step()
-			<< " op: " << curr.operation()
-			<< " next: " << curr.next()
-			<< " label: " << curr.label() 
-			<< " span: " << curr.span() << std::endl;
-	      
-	      curr = curr.derivation();
-	    }
-	  }
-#endif
+	derivations.insert(derivations.end(), heap_goal.rbegin(), heap_goal.rend());
       }
     }
     
@@ -230,6 +206,9 @@ namespace rnnp
       // # of operations is 2n + # of unary rules + final
       agenda_.clear();
       agenda_.resize(input.size() * 2 + input.size() * unary_size_ + 1);
+
+      agenda_goal_.clear();
+      agenda_goal_.resize(input.size() * 2 + input.size() * unary_size_ + 1);
       
       state_allocator_.clear();
       state_allocator_.assign(state_type::size(theta.hidden_));
@@ -237,6 +216,8 @@ namespace rnnp
     
     void prune(heap_type& heap, const size_type beam)
     {
+      if (heap.empty()) return;
+
       heap_type::iterator hiter_begin = heap.begin();
       heap_type::iterator hiter       = heap.end();
       heap_type::iterator hiter_end   = heap.end();
@@ -254,12 +235,10 @@ namespace rnnp
       heap.erase(hiter_begin, hiter);
     }
     
-    template <typename Output>
     void operation_shift(const state_type& state,
 			 const word_type& head,
 			 const symbol_type& label,
-			 const model_type& theta,
-			 Output output)
+			 const model_type& theta)
     {
       const size_type offset1 = 0;
       const size_type offset2 = theta.hidden_;
@@ -293,14 +272,12 @@ namespace rnnp
       
       state_new.score() = state.score() + score;
       
-      output(state_new);
+      agenda_[state_new.step()].push_back(state_new);
     }
     
-    template <typename Output>
     void operation_reduce(const state_type& state,
 			  const symbol_type& label,
-			  const model_type& theta,
-			  Output output)
+			  const model_type& theta)
     {
       const size_type offset1 = 0;
       const size_type offset2 = theta.hidden_;
@@ -337,14 +314,12 @@ namespace rnnp
       
       state_new.score() = state.score() + score;
       
-      output(state_new);
+      agenda_[state_new.step()].push_back(state_new);
     }
     
-    template <typename Output>
     void operation_unary(const state_type& state,
 			 const symbol_type& label,
-			 const model_type& theta,
-			 Output output)
+			 const model_type& theta)
     {
       state_type state_new = state_allocator_.allocate();
       
@@ -373,14 +348,12 @@ namespace rnnp
       
       state_new.score() = state.score() + score;
       
-      output(state_new);
+      agenda_[state_new.step()].push_back(state_new);
     }
     
-    template <typename Output>
     void operation_final(const state_type& state,
 			 const symbol_type& goal,
-			 const model_type& theta,
-			 Output output)
+			 const model_type& theta)
     {
       state_type state_new = state_allocator_.allocate();
       
@@ -406,14 +379,12 @@ namespace rnnp
       
       state_new.score() = state.score() + score;
       
-      output(state_new);
+      agenda_goal_[state_new.step()].push_back(state_new);
     }
 
-    template <typename Output>
     void operation_idle(const state_type& state,
 			const symbol_type& goal,
-			const model_type& theta,
-			Output output)
+			const model_type& theta)
     {
       state_type state_new = state_allocator_.allocate();
       
@@ -439,12 +410,10 @@ namespace rnnp
       
       state_new.score() = state.score() + score;
       
-      output(state_new);
+      agenda_goal_[state_new.step()].push_back(state_new);
     }
 
-    template <typename Output>
-    void operation_axiom(const model_type& theta,
-			 Output output)
+    void operation_axiom(const model_type& theta)
     {
       state_type state_new = state_allocator_.allocate();
       
@@ -464,7 +433,7 @@ namespace rnnp
       state_new.score() = 0;
       state_new.layer(theta.hidden_) = theta.Ba_.array().unaryExpr(model_type::activation());
       
-      output(state_new);
+      agenda_[state_new.step()].push_back(state_new);
     }
 
   public:
@@ -472,6 +441,7 @@ namespace rnnp
     size_type unary_size_;
     
     agenda_type agenda_;
+    agenda_type agenda_goal_;
     
     // allocator
     state_allocator_type          state_allocator_;
