@@ -59,7 +59,7 @@ namespace rnnp
       
       initialize(oracle_.sentence_, grammar, theta);
 
-      if (oracle_.oracle_.size() >= agenda_.size())
+      if (oracle_.actions_.size() >= agenda_.size())
 	throw std::runtime_error("oracle operation sequence is longer than agenda size!");
       
       operation_axiom(theta, output_agenda(agenda_));
@@ -70,52 +70,42 @@ namespace rnnp
       for (size_type step = 0; step != step_last; ++ step) {
 	heap_type& heap = agenda_[step];
 	
-	if (heap.empty()) continue;
+	if (heap.empty()) break;
 
-	heap_type::iterator hiter_begin = heap.begin();
-	heap_type::iterator hiter       = heap.end();
-	heap_type::iterator hiter_end   = heap.end();
+	prune(heap, beam_size_);
 	
-	std::make_heap(hiter_begin, hiter_end, heap_compare());
+	// best_action
+	best_action(step, heap.back());
 	
-	for (/**/; hiter_begin != hiter && std::distance(hiter, hiter_end) != beam_size_; -- hiter)
-	  std::pop_heap(hiter_begin, hiter, heap_compare());
-	
-	// deallocate unused states
-	for (heap_type::iterator iter = hiter_begin; iter != hiter; ++ iter)
-	  state_allocator_.deallocate(*iter);
-	
-	if (hiter != hiter_end)
-	  best_action(step, *(hiter_end - 1));
-	
-	for (heap_type::iterator iter = hiter; iter != hiter_end; ++ iter) {
-	  const state_type& state = *iter;
+	heap_type::const_iterator hiter_end = heap.end();
+	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
+	  const state_type& state = *hiter;
 	  
 	  if (state.operation().finished())
 	    operation_idle(state, grammar.goal_, theta, output_agenda(agenda_));
 	  else {
 	    // implement!
-	    if (step + 1 < oracle_.oracle_.size()) {
-	      const oracle_type::item_type& item = oracle_.oracle_[step + 1];
+	    if (step + 1 < oracle_.actions_.size()) {
+	      const oracle_type::action_type& action = oracle_.actions_[step + 1];
 	      
-	      switch (item.operation_.operation()) {
+	      switch (action.operation_.operation()) {
 	      case operation_type::SHIFT:
 		if (state.next() >= oracle_.sentence_.size())
 		  throw std::runtime_error("invalid shift!");
 
-		operation_shift(state, item.head_, item.label_, theta, output_agenda(agenda_));
+		operation_shift(state, action.head_, action.label_, theta, output_agenda(agenda_));
 		break;
 	      case operation_type::REDUCE:
 		if (! state.stack() || state.stack().label() == symbol_type::EPSILON)
 		  throw std::runtime_error("invalid reduction!");
 
-		operation_reduce(state, item.label_, theta, output_agenda(agenda_));
+		operation_reduce(state, action.label_, theta, output_agenda(agenda_));
 		break;
 	      case operation_type::UNARY:
 		if(state.unary() >= unary_max || state.operation().closure() >= unary_size_)
 		  throw std::runtime_error("invalid unary!");
 
-		operation_unary(state, item.label_, theta, output_agenda(agenda_));
+		operation_unary(state, action.label_, theta, output_agenda(agenda_));
 		break;
 	      default:
 		throw std::runtime_error("invalid operation!");
@@ -132,9 +122,6 @@ namespace rnnp
 	    }
 	  }
 	}
-	
-	// erase deallocated states
-	heap.erase(hiter_begin, hiter);
       }
       
       // compute the final kbest derivations
@@ -143,20 +130,19 @@ namespace rnnp
       if (heap.empty())
 	throw std::runtime_error("no oracle parse?");
       else {
-	heap_type::iterator hiter_begin = heap.begin();
-	heap_type::iterator hiter       = heap.end();
-	heap_type::iterator hiter_end   = heap.end();
+	prune(heap, kbest);
 	
-	std::make_heap(hiter_begin, hiter_end, heap_compare());
-	for (/**/; hiter_begin != hiter && std::distance(hiter, hiter_end) != kbest; -- hiter) {
-	  std::pop_heap(hiter_begin, hiter, heap_compare());
-	  
-#if 1
-	  if (! (hiter - 1)->operation().finished()) {
+	derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
+	
+#if 0
+	// check...
+	heap_type::const_iterator hiter_end = heap.end();
+	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter)
+	  if (! hiter->operation().finished()) {
 	    std::cerr << "non-final operation? " << std::endl;
-	    std::cerr << "input size: " << oracle_.sentence_.size() << " input: " << oracle_.sentence_ << std::endl;
+	    std::cerr << "input size: " << input.size() << " input: " << input << std::endl;
 	    
-	    state_type stack = *(hiter - 1);
+	    state_type stack = *hiter;
 	    while (stack) {
 	      std::cerr << "\tstack step: " << stack.step()
 			<< " op: " << stack.operation()
@@ -167,7 +153,7 @@ namespace rnnp
 	      stack = stack.stack();
 	    }
 	    
-	    state_type curr = *(hiter - 1);
+	    state_type curr = *hiter;
 	    while (curr) {
 	      std::cerr << "\tderivation step: " << curr.step()
 			<< " op: " << curr.operation()
@@ -179,19 +165,6 @@ namespace rnnp
 	    }
 	  }
 #endif
-	  
-	  derivations.push_back(*(hiter - 1));
-	}
-	
-	// deallocate unused states
-	for (heap_type::iterator iter = hiter_begin; iter != hiter; ++ iter)
-	  state_allocator_.deallocate(*iter);
-	
-	if (hiter != hiter_end)
-	  best_action(step_last, *(hiter_end - 1));
-	
-	// erase deallocated states
-	heap.erase(hiter_begin, hiter);
       }
     }
     

@@ -132,26 +132,16 @@ namespace rnnp
       for (size_type step = 0; step != step_last; ++ step) {
 	heap_type& heap = agenda_[step];
 	
-	if (heap.empty()) continue;
-
-	heap_type::iterator hiter_begin = heap.begin();
-	heap_type::iterator hiter       = heap.end();
-	heap_type::iterator hiter_end   = heap.end();
+	if (heap.empty()) break;
 	
-	std::make_heap(hiter_begin, hiter_end, heap_compare());
+	prune(heap, beam_size_);
 	
-	for (/**/; hiter_begin != hiter && std::distance(hiter, hiter_end) != beam_size_; -- hiter)
-	  std::pop_heap(hiter_begin, hiter, heap_compare());
+	// best_action
+	best_action(step, heap.back());
 	
-	// deallocate unused states
-	for (heap_type::iterator iter = hiter_begin; iter != hiter; ++ iter)
-	  state_allocator_.deallocate(*iter);
-	
-	if (hiter != hiter_end)
-	  best_action(step, *(hiter_end - 1));
-	
-	for (heap_type::iterator iter = hiter; iter != hiter_end; ++ iter) {
-	  const state_type& state = *iter;
+	heap_type::const_iterator hiter_end = heap.end();
+	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
+	  const state_type& state = *hiter;
 
 	  if (state.operation().finished())
 	    operation_idle(state, grammar.goal_, theta, output_agenda(agenda_));
@@ -191,29 +181,25 @@ namespace rnnp
 	    }
 	  }
 	}
-	
-	// erase deallocated states
-	heap.erase(hiter_begin, hiter);
       }
       
       // compute the final kbest derivations
       heap_type& heap = agenda_[step_last];
       
       if (! heap.empty()) {
-	heap_type::iterator hiter_begin = heap.begin();
-	heap_type::iterator hiter       = heap.end();
-	heap_type::iterator hiter_end   = heap.end();
+	prune(heap, kbest);
 	
-	std::make_heap(hiter_begin, hiter_end, heap_compare());
-	for (/**/; hiter_begin != hiter && std::distance(hiter, hiter_end) != kbest; -- hiter) {
-	  std::pop_heap(hiter_begin, hiter, heap_compare());
-	  
-#if 1
-	  if (! (hiter - 1)->operation().finished()) {
+	derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
+	
+#if 0
+	// check...
+	heap_type::const_iterator hiter_end = heap.end();
+	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter)
+	  if (! hiter->operation().finished()) {
 	    std::cerr << "non-final operation? " << std::endl;
 	    std::cerr << "input size: " << input.size() << " input: " << input << std::endl;
 	    
-	    state_type stack = *(hiter - 1);
+	    state_type stack = *hiter;
 	    while (stack) {
 	      std::cerr << "\tstack step: " << stack.step()
 			<< " op: " << stack.operation()
@@ -224,7 +210,7 @@ namespace rnnp
 	      stack = stack.stack();
 	    }
 	    
-	    state_type curr = *(hiter - 1);
+	    state_type curr = *hiter;
 	    while (curr) {
 	      std::cerr << "\tderivation step: " << curr.step()
 			<< " op: " << curr.operation()
@@ -236,19 +222,6 @@ namespace rnnp
 	    }
 	  }
 #endif
-	  
-	  derivations.push_back(*(hiter - 1));
-	}
-	
-	// deallocate unused states
-	for (heap_type::iterator iter = hiter_begin; iter != hiter; ++ iter)
-	  state_allocator_.deallocate(*iter);
-	
-	if (hiter != hiter_end)
-	  best_action(step_last, *(hiter_end - 1));
-	
-	// erase deallocated states
-	heap.erase(hiter_begin, hiter);
       }
     }
     
@@ -261,7 +234,26 @@ namespace rnnp
       state_allocator_.clear();
       state_allocator_.assign(state_type::size(theta.hidden_));
     }
-
+    
+    void prune(heap_type& heap, const size_type beam)
+    {
+      heap_type::iterator hiter_begin = heap.begin();
+      heap_type::iterator hiter       = heap.end();
+      heap_type::iterator hiter_end   = heap.end();
+      
+      std::make_heap(hiter_begin, hiter_end, heap_compare());
+      
+      for (/**/; hiter_begin != hiter && std::distance(hiter, hiter_end) != beam; -- hiter)
+	std::pop_heap(hiter_begin, hiter, heap_compare());
+      
+      // deallocate unused states
+      for (heap_type::iterator iter = hiter_begin; iter != hiter; ++ iter)
+	state_allocator_.deallocate(*iter);
+      
+      // erase deallocated states
+      heap.erase(hiter_begin, hiter);
+    }
+    
     template <typename Output>
     void operation_shift(const state_type& state,
 			 const word_type& head,

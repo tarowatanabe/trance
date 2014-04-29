@@ -25,31 +25,31 @@ namespace rnnp
     typedef Tree      tree_type;
     typedef Operation operation_type;
 
-    struct Item
+    struct Action
     {
       operation_type operation_;
       symbol_type    label_;
       symbol_type    head_;
       
-      Item() : operation_(operation_type::AXIOM), label_(), head_() {}
-      Item(const operation_type& operation)
+      Action() : operation_(operation_type::AXIOM), label_(), head_() {}
+      Action(const operation_type& operation)
 	: operation_(operation), label_(symbol_type::EPSILON), head_(symbol_type::EPSILON) {}
-      Item(const operation_type& operation, const symbol_type& label)
+      Action(const operation_type& operation, const symbol_type& label)
 	: operation_(operation), label_(label), head_(symbol_type::EPSILON) {}
-      Item(const operation_type& operation, const symbol_type& label, const symbol_type& head)
+      Action(const operation_type& operation, const symbol_type& label, const symbol_type& head)
 	: operation_(operation), label_(label), head_(head) {}
     };
-    typedef Item item_type;
+    typedef Action action_type;
     
-    typedef std::vector<item_type, std::allocator<item_type> > oracle_type;
+    typedef std::vector<action_type, std::allocator<action_type> > action_set_type;
     
     Oracle() {}
     Oracle(const tree_type& tree, const bool left) { assign(tree, left); }
     
     void assign(const tree_type& tree, const bool left)
     {
-      oracle_.clear();
-      oracle_.push_back(item_type(operation_type::AXIOM));
+      actions_.clear();
+      actions_.push_back(action_type(operation_type::AXIOM));
       
       sentence_.clear();
 
@@ -72,17 +72,17 @@ namespace rnnp
 	    throw std::runtime_error("invalid leaf");
 	  
 	  sentence_.push_back(tree.antecedent_.front().label_);
-	  oracle_.push_back(item_type(operation_type::SHIFT, tree.label_, tree.antecedent_.front().label_));
+	  actions_.push_back(action_type(operation_type::SHIFT, tree.label_, tree.antecedent_.front().label_));
 	} else {
 	  oracle(tree.antecedent_.front());
-	  oracle_.push_back(item_type(operation_type(operation_type::UNARY, oracle_.back().operation_.closure() + 1),
+	  actions_.push_back(action_type(operation_type(operation_type::UNARY, actions_.back().operation_.closure() + 1),
 				      tree.label_));
 	}
 	break;
       case 2:
 	oracle(tree.antecedent_.front());
 	oracle(tree.antecedent_.back());
-	oracle_.push_back(item_type(operation_type::REDUCE, tree.label_));
+	actions_.push_back(action_type(operation_type::REDUCE, tree.label_));
 	break;
       default:
 	throw std::runtime_error("invalid tree structure");
@@ -90,9 +90,9 @@ namespace rnnp
     }
     
   public:
-    tree_type     binarized_;
-    oracle_type   oracle_;
-    sentence_type sentence_;
+    tree_type       binarized_;
+    action_set_type actions_;
+    sentence_type   sentence_;
   };
 };
 

@@ -64,8 +64,8 @@ int main(int argc, char** argv)
       oracle.assign(tree, binarize_left);
       
       bool init = true;
-      rnnp::Oracle::oracle_type::const_iterator oiter_end = oracle.oracle_.end();
-      for (rnnp::Oracle::oracle_type::const_iterator oiter = oracle.oracle_.begin(); oiter != oiter_end; ++ oiter) {
+      rnnp::Oracle::action_set_type::const_iterator oiter_end = oracle.actions_.end();
+      for (rnnp::Oracle::action_set_type::const_iterator oiter = oracle.actions_.begin(); oiter != oiter_end; ++ oiter) {
 	if (! init)
 	  os << ' ';
 	init = false;
