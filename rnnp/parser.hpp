@@ -115,89 +115,72 @@ namespace rnnp
       
       operation_axiom(theta);
       
-      const size_type beam_goal = utils::bithack::max(beam_size_, kbest);
       const size_type unary_max = input.size() * unary_size_;
       const size_type step_last = input.size() * 2 + unary_max;
       
       for (size_type step = 0; step != step_last; ++ step) {
-	heap_type& heap      = agenda_[step];
-	heap_type& heap_goal = agenda_goal_[step];
+	heap_type& heap = agenda_[step];
 	
-	if (heap.empty() && heap_goal.empty()) break;
+	if (heap.empty()) break;
 	
-	prune(heap,      beam_size_);
-	prune(heap_goal, beam_goal);
+	prune(heap, beam_size_);
 	
 	// best_action
-	if (! heap.empty() && ! heap_goal.empty()) {
-	  if (heap_goal.back().score() >= heap.back().score())
-	    best_action(step, heap_goal.back());
-	  else
-	    best_action(step, heap.back());
-	} else if (! heap.empty())
-	  best_action(step, heap.back());
-	else
-	  best_action(step, heap_goal.back());
+	best_action(step, heap.back());
 	
-	// process goal items
-	heap_type::const_iterator giter_end = heap_goal.end();
-	for (heap_type::const_iterator giter = heap_goal.begin(); giter != giter_end; ++ giter)
-	  operation_idle(*giter, grammar.goal_, theta);
-	
-	// process others
 	heap_type::const_iterator hiter_end = heap.end();
 	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
 	  const state_type& state = *hiter;
 	  
 	  if (state.operation().finished())
-	    throw std::runtime_error("invalid item..?");
-	  
-	  // we perform shift..
-	  if (state.next() < input.size()) {
-	    const grammar_type::rule_set_type& rules = grammar.preterminal(input[state.next()]);
+	    operation_idle(state, grammar.goal_, theta);
+	  else {
+	    // we perform shift..
+	    if (state.next() < input.size()) {
+	      const grammar_type::rule_set_type& rules = grammar.preterminal(input[state.next()]);
+	      
+	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
+		operation_shift(state, input[state.next()], riter->lhs_, theta);
+	    }
 	    
-	    grammar_type::rule_set_type::const_iterator riter_end = rules.end();
-	    for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-	      operation_shift(state, input[state.next()], riter->lhs_, theta);
-	  }
-	  
-	  // we perform unary
-	  if (state.unary() < unary_max && state.operation().closure() < unary_size_) {
-	    const grammar_type::rule_set_type& rules = grammar.unary(state.label());
+	    // we perform unary
+	    if (state.unary() < unary_max && state.operation().closure() < unary_size_) {
+	      const grammar_type::rule_set_type& rules = grammar.unary(state.label());
+	      
+	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
+		operation_unary(state, riter->lhs_, theta);
+	    }
 	    
-	    grammar_type::rule_set_type::const_iterator riter_end = rules.end();
-	    for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-	      operation_unary(state, riter->lhs_, theta);
-	  }
-	  
-	  // final...
-	  if (state.stack()
-	      && state.stack().label() == symbol_type::EPSILON
-	      && state.label() == grammar.goal_
-	      && state.next() == input.size())
-	    operation_final(state, grammar.goal_, theta);
-	  
-	  // we will perform reduce
-	  if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
-	    const grammar_type::rule_set_type& rules = grammar.binary(state.stack().label(), state.label());
+	    // final...
+	    if (state.stack()
+		&& state.stack().label() == symbol_type::EPSILON
+		&& state.label() == grammar.goal_
+		&& state.next() == input.size())
+	      operation_final(state, grammar.goal_, theta);
 	    
-	    grammar_type::rule_set_type::const_iterator riter_end = rules.end();
-	    for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-	      operation_reduce(state, riter->lhs_, theta);
+	    // we will perform reduce
+	    if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
+	      const grammar_type::rule_set_type& rules = grammar.binary(state.stack().label(), state.label());
+	      
+	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
+		operation_reduce(state, riter->lhs_, theta);
+	    }
 	  }
 	}
       }
       
       // compute the final kbest derivations
-      if (! agenda_[step_last].empty())
-	throw std::runtime_error("why non-final item exists in the last beam..?");
+      heap_type& heap = agenda_[step_last];
       
-      heap_type& heap_goal = agenda_goal_[step_last];
-      
-      if (! heap_goal.empty()) {
-	prune(heap_goal, kbest);
+      if (! heap.empty()) {
+	prune(heap, kbest);
 	
-	derivations.insert(derivations.end(), heap_goal.rbegin(), heap_goal.rend());
+	best_action(step_last, heap.back());
+
+	derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
       }
     }
     
@@ -207,9 +190,6 @@ namespace rnnp
       agenda_.clear();
       agenda_.resize(input.size() * 2 + input.size() * unary_size_ + 1);
 
-      agenda_goal_.clear();
-      agenda_goal_.resize(input.size() * 2 + input.size() * unary_size_ + 1);
-      
       state_allocator_.clear();
       state_allocator_.assign(state_type::size(theta.hidden_));
     }
@@ -379,7 +359,7 @@ namespace rnnp
       
       state_new.score() = state.score() + score;
       
-      agenda_goal_[state_new.step()].push_back(state_new);
+      agenda_[state_new.step()].push_back(state_new);
     }
 
     void operation_idle(const state_type& state,
@@ -410,7 +390,7 @@ namespace rnnp
       
       state_new.score() = state.score() + score;
       
-      agenda_goal_[state_new.step()].push_back(state_new);
+      agenda_[state_new.step()].push_back(state_new);
     }
 
     void operation_axiom(const model_type& theta)
@@ -441,7 +421,6 @@ namespace rnnp
     size_type unary_size_;
     
     agenda_type agenda_;
-    agenda_type agenda_goal_;
     
     // allocator
     state_allocator_type          state_allocator_;
