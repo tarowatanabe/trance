@@ -423,7 +423,7 @@ namespace rnnp
     agenda_type agenda_;
     
     // allocator
-    state_allocator_type          state_allocator_;
+    state_allocator_type state_allocator_;
   };
 };
 
