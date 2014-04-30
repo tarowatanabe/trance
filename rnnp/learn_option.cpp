@@ -83,6 +83,8 @@ namespace rnnp
       } else if (utils::ipiece(oiter->first) == "margin") {
 	if (utils::ipiece(oiter->second) == "derivation")
 	  objective_ = MARGIN_DERIVATION;
+	else if (utils::ipiece(oiter->second) == "evalb")
+	  objective_ = MARGIN_EVALB;
 	else if (utils::ipiece(oiter->second) == "early")
 	  objective_ = MARGIN_EARLY;
 	else if (utils::ipiece(oiter->second) == "late")
@@ -124,6 +126,14 @@ namespace rnnp
       throw std::runtime_error("negative lambda?");
     if (eta0_ <= 0.0)
       throw std::runtime_error("zero or negative eta0?");
+
+    if (margin_evalb()) {
+      if (scale_ == 0)
+	scale_ = 2;
+      
+      if (scale_ <= 0)
+	throw std::runtime_error("scaling must be positive");
+    }
   }
 
   std::ostream& operator<<(std::ostream& os, const LearnOption& option)
@@ -169,8 +179,11 @@ namespace rnnp
     else if (option.optimize_adadelta())
       opt.push_back(std::make_pair("optimize", "adadelta"));
     
+    
     if (option.margin_derivation())
       opt.push_back(std::make_pair("margin", "derivation"));
+    else if (option.margin_evalb())
+      opt.push_back(std::make_pair("margin", "evalb"));
     else if (option.margin_early())
       opt.push_back(std::make_pair("margin", "early"));
     else if (option.margin_late())

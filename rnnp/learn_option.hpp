@@ -31,6 +31,7 @@ namespace rnnp
 
     typedef enum {
       MARGIN_DERIVATION,
+      MARGIN_EVALB,
       MARGIN_EARLY,
       MARGIN_LATE,
       MARGIN_MAX,
@@ -50,8 +51,9 @@ namespace rnnp
     bool optimize_adagrad()  const { return optimize_ == OPTIMIZE_ADAGRAD; }
     bool optimize_adadec()   const { return optimize_ == OPTIMIZE_ADADEC; }
     bool optimize_adadelta() const { return optimize_ == OPTIMIZE_ADADELTA; }
-
+    
     bool margin_derivation() const { return objective_ == MARGIN_DERIVATION; }
+    bool margin_evalb()      const { return objective_ == MARGIN_EVALB; }
     bool margin_early()      const { return objective_ == MARGIN_EARLY; }
     bool margin_late()       const { return objective_ == MARGIN_LATE; }
     bool margin_max()        const { return objective_ == MARGIN_MAX; }

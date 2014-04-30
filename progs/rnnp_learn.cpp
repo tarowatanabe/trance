@@ -14,6 +14,7 @@
 #include <rnnp/derivation.hpp>
 
 #include <rnnp/objective/margin_derivation.hpp>
+#include <rnnp/objective/margin_evalb.hpp>
 #include <rnnp/objective/margin_early.hpp>
 #include <rnnp/objective/margin_late.hpp>
 #include <rnnp/objective/margin_max.hpp>
@@ -429,8 +430,11 @@ void learn(const Optimizer& optimizer,
 	   model_type& theta,
 	   Gen& gen)
 {
+  
   if (option.margin_derivation())
     learn(optimizer, rnnp::objective::MarginDerivation(), option, trees, grammar, theta, gen);
+  else if (option.margin_evalb())
+    learn(optimizer, rnnp::objective::MarginEvalb(), option, trees, grammar, theta, gen);
   else if (option.margin_early())
     learn(optimizer, rnnp::objective::MarginEarly(), option, trees, grammar, theta, gen);
   else if (option.margin_late())
