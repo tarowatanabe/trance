@@ -81,7 +81,9 @@ namespace rnnp
 	else
 	  throw std::runtime_error("unsupported optimization algorithm: " + oiter->second);
       } else if (utils::ipiece(oiter->first) == "margin") {
-	if (utils::ipiece(oiter->second) == "derivation")
+	if (utils::ipiece(oiter->second) == "cross")
+	  objective_ = MARGIN_CROSS;
+	else if (utils::ipiece(oiter->second) == "derivation")
 	  objective_ = MARGIN_DERIVATION;
 	else if (utils::ipiece(oiter->second) == "evalb")
 	  objective_ = MARGIN_EVALB;
@@ -127,7 +129,7 @@ namespace rnnp
     if (eta0_ <= 0.0)
       throw std::runtime_error("zero or negative eta0?");
 
-    if (margin_evalb()) {
+    if (margin_cross() || margin_evalb()) {
       if (scale_ == 0)
 	scale_ = 2;
       
@@ -179,8 +181,9 @@ namespace rnnp
     else if (option.optimize_adadelta())
       opt.push_back(std::make_pair("optimize", "adadelta"));
     
-    
-    if (option.margin_derivation())
+    if (option.margin_cross())
+      opt.push_back(std::make_pair("margin", "cross"));
+    else if (option.margin_derivation())
       opt.push_back(std::make_pair("margin", "derivation"));
     else if (option.margin_evalb())
       opt.push_back(std::make_pair("margin", "evalb"));
