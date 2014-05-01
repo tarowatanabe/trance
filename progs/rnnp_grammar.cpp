@@ -200,9 +200,10 @@ void cutoff_terminal(grammar_type& grammar,
 
   count_type oov = 0;
   
+  // add workaround for penntreebank
   unigram_type::const_iterator uiter_end = unigram.end();
   for (unigram_type::const_iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter) {
-    if (uiter->second >= cutoff)
+    if (uiter->second >= cutoff || static_cast<const std::string&>(uiter->first).find("``", 0, 2) != std::string::npos)
       unigram_cutoff.insert(*uiter);
     else
       oov += uiter->second;

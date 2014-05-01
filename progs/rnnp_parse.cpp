@@ -219,7 +219,7 @@ struct Mapper : public MapReduce
     derivation_type derivation;
     derivation_set_type derivations;
     buf_type buf;
-
+    
     resource_.clear();
     
     for (;;) {
@@ -228,13 +228,13 @@ struct Mapper : public MapReduce
       if (mapped.id_ == id_type(-1)) break;
       
       input.assign(mapped.buffer_);
-
+      
       utils::resource start;
       
       parser(input, grammar_, theta_, kbest_size, derivations);
-
+      
       utils::resource end;
-
+      
       resource_ += end - start;
       
       // output kbest derivations
@@ -410,14 +410,13 @@ void parse(const grammar_type& grammar,
   
   for (int i = 1; i != threads; ++ i)
     workers.front().resource_ += workers[i].resource_;
-
+  
   if (debug)
     std::cerr << "sentences: " << id << std::endl
 	      << "cpu time:    " << workers.front().resource_.cpu_time() << std::endl
 	      << "user time:   " << workers.front().resource_.user_time() << std::endl
 	      << "thread time: " << workers.front().resource_.thread_time() << std::endl;
   
-
   // terminate reducers
   id_buffer.clear();
   queue_reducer.push(id_buffer);
