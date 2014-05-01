@@ -51,14 +51,6 @@ indexed_set.hpp \
 lockfree_list_queue.hpp \
 malloc_stats.hpp \
 memory.hpp \
-mpi.hpp \
-mpi_allocator.hpp \
-mpi_device.hpp \
-mpi_device_bcast.hpp \
-mpi_stream.hpp \
-mpi_stream_simple.hpp \
-mpi_traits.hpp \
-mulvector2.hpp \
 piece.hpp \
 program_options.hpp \
 random_seed.hpp \
