@@ -101,6 +101,14 @@ namespace utils
     double cpu_time() const { return __cpu_time; }
     double user_time() const { return __user_time; }
     double thread_time() const { return __thread_time; }
+
+  public:
+    void clear()
+    {
+      __cpu_time = 0;
+      __user_time = 0;
+      __thread_time = 0;
+    }
     
   public:
     resource& operator+=(const resource& x)

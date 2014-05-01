@@ -118,55 +118,71 @@ namespace rnnp
       const size_type unary_max = input.size() * unary_size_;
       const size_type step_last = input.size() * 2 + unary_max;
       
-      for (size_type step = 0; step != step_last; ++ step) {
-	heap_type& heap = agenda_[step];
+      size_type beam = beam_size_;
+      for (size_type iter = 0; iter != 2 && agenda_[step_last].empty(); ++ iter, beam <<= 1) {
 	
-	if (heap.empty()) break;
-	
-	prune(heap, beam_size_);
-	
-	// best_action
-	best_action(step, heap.back());
-	
-	heap_type::const_iterator hiter_end = heap.end();
-	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
-	  const state_type& state = *hiter;
+	// deallocate...
+	for (size_type step = 1; step != step_last; ++ step) {
+	  heap_type& heap = agenda_[step];
 	  
-	  if (state.operation().finished())
-	    operation_idle(state, grammar.goal_, theta);
-	  else {
-	    // we perform shift..
-	    if (state.next() < input.size()) {
-	      const grammar_type::rule_set_type& rules = grammar.preterminal(input[state.next()]);
+	  heap_type::const_iterator hiter_end = heap.end();
+	  for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter)
+	    state_allocator_.deallocate(*hiter);
+	  
+	  heap.clear();
+	}
+	
+	// search
+	for (size_type step = 0; step != step_last; ++ step) {
+	  heap_type& heap = agenda_[step];
+	
+	  if (heap.empty()) break;
+	
+	  prune(heap, beam);
+	
+	  // best_action
+	  best_action(step, heap.back());
+	
+	  heap_type::const_iterator hiter_end = heap.end();
+	  for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
+	    const state_type& state = *hiter;
+	  
+	    if (state.operation().finished())
+	      operation_idle(state, grammar.goal_, theta);
+	    else {
+	      // we perform shift..
+	      if (state.next() < input.size()) {
+		const grammar_type::rule_set_type& rules = grammar.preterminal(input[state.next()]);
 	      
-	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
-	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_shift(state, input[state.next()], riter->lhs_, theta);
-	    }
+		grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+		for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
+		  operation_shift(state, input[state.next()], riter->lhs_, theta);
+	      }
 	    
-	    // we perform unary
-	    if (state.unary() < unary_max && state.operation().closure() < unary_size_) {
-	      const grammar_type::rule_set_type& rules = grammar.unary(state.label());
+	      // we perform unary
+	      if (state.unary() < unary_max && state.operation().closure() < unary_size_) {
+		const grammar_type::rule_set_type& rules = grammar.unary(state.label());
 	      
-	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
-	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_unary(state, riter->lhs_, theta);
-	    }
+		grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+		for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
+		  operation_unary(state, riter->lhs_, theta);
+	      }
 	    
-	    // final...
-	    if (state.stack()
-		&& state.stack().label() == symbol_type::EPSILON
-		&& state.label() == grammar.goal_
-		&& state.next() == input.size())
-	      operation_final(state, grammar.goal_, theta);
+	      // final...
+	      if (state.stack()
+		  && state.stack().label() == symbol_type::EPSILON
+		  && state.label() == grammar.goal_
+		  && state.next() == input.size())
+		operation_final(state, grammar.goal_, theta);
 	    
-	    // we will perform reduce
-	    if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
-	      const grammar_type::rule_set_type& rules = grammar.binary(state.stack().label(), state.label());
+	      // we will perform reduce
+	      if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
+		const grammar_type::rule_set_type& rules = grammar.binary(state.stack().label(), state.label());
 	      
-	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
-	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_reduce(state, riter->lhs_, theta);
+		grammar_type::rule_set_type::const_iterator riter_end = rules.end();
+		for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
+		  operation_reduce(state, riter->lhs_, theta);
+	      }
 	    }
 	  }
 	}

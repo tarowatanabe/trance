@@ -30,6 +30,7 @@
 #include "utils/lexical_cast.hpp"
 #include "utils/getline.hpp"
 #include "utils/random_seed.hpp"
+#include "utils/resource.hpp"
 
 #include <boost/random.hpp>
 #include <boost/thread.hpp>
@@ -218,6 +219,8 @@ struct Mapper : public MapReduce
     derivation_type derivation;
     derivation_set_type derivations;
     buf_type buf;
+
+    resource_.clear();
     
     for (;;) {
       mapper_.pop_swap(mapped);
@@ -225,8 +228,14 @@ struct Mapper : public MapReduce
       if (mapped.id_ == id_type(-1)) break;
       
       input.assign(mapped.buffer_);
+
+      utils::resource start;
       
       parser(input, grammar_, theta_, kbest_size, derivations);
+
+      utils::resource end;
+
+      resource_ += end - start;
       
       // output kbest derivations
       reduced.id_ = mapped.id_;
@@ -275,6 +284,8 @@ struct Mapper : public MapReduce
   
   queue_type& mapper_;
   queue_type& reducer_;
+  
+  utils::resource resource_;
 };
 
 struct Reducer : public MapReduce
@@ -368,10 +379,13 @@ void parse(const grammar_type& grammar,
   
   boost::thread_group reducers;
   reducers.add_thread(new boost::thread(reducer_type(output_path, queue_reducer)));
+
+  std::vector<mapper_type, std::allocator<mapper_type> > workers(threads,
+								 mapper_type(grammar, theta, queue_mapper, queue_reducer));
   
   boost::thread_group mappers;
   for (int i = 0; i != threads; ++ i)
-    mappers.add_thread(new boost::thread(mapper_type(grammar, theta, queue_mapper, queue_reducer)));
+    mappers.add_thread(new boost::thread(boost::ref(workers[i])));
   
   map_reduce_type::id_buffer_type id_buffer;
   map_reduce_type::id_type id = 0;
@@ -394,6 +408,16 @@ void parse(const grammar_type& grammar,
   }
   mappers.join_all();
   
+  for (int i = 1; i != threads; ++ i)
+    workers.front().resource_ += workers[i].resource_;
+
+  if (debug)
+    std::cerr << "sentences: " << id << std::endl
+	      << "cpu time:    " << workers.front().resource_.cpu_time() << std::endl
+	      << "user time:   " << workers.front().resource_.user_time() << std::endl
+	      << "thread time: " << workers.front().resource_.thread_time() << std::endl;
+  
+
   // terminate reducers
   id_buffer.clear();
   queue_reducer.push(id_buffer);
