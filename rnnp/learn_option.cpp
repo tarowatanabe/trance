@@ -61,9 +61,9 @@ namespace rnnp
       if (utils::ipiece(oiter->first) == "learn") {
 	if (utils::ipiece(oiter->second) == "classification" || utils::ipiece(oiter->second) == "class")
 	  learn_ |= LEARN_CLASSIFICATION;	
-	else if (learn == "embedding" || learn == "embed")
+	else if (utils::ipiece(oiter->second) == "embedding" || utils::ipiece(oiter->second) == "embed")
 	  learn_ |= LEARN_EMBEDDING;	
-	else if (learn == "hidden")
+	else if (utils::ipiece(oiter->second) == "hidden")
 	  learn_ |= LEARN_HIDDEN;
 	else if (utils::ipiece(oiter->second) == "model")
 	  learn_ |= LEARN_MODEL;
