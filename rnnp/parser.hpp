@@ -181,9 +181,6 @@ namespace rnnp
 	for (/**/; step_drop >= 0; -- step_drop)
 	  if (! agenda_[step_drop].empty()) break;
 
-	const symbol_type pre_root = "[S]";
-	const symbol_type pre_root_binary = "[S^]";
-	
 	for (size_type step = step_drop; step != step_last; ++ step) {
 	  heap_type& heap = agenda_[step];
 	  
@@ -229,9 +226,9 @@ namespace rnnp
 	      // we will perform reduce
 	      if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
 		if (state.stack().stack() && state.stack().stack().label() == symbol_type::EPSILON)
-		  operation_reduce(state, pre_root, theta);
+		  operation_reduce(state, grammar.sentence_, theta);
 		else
-		  operation_reduce(state, pre_root_binary, theta);
+		  operation_reduce(state, grammar.sentence_binarized_, theta);
 	      }
 	    }
 	  }

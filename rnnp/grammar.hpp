@@ -65,7 +65,9 @@ namespace rnnp
 
     void clear()
     {
-      goal_ = symbol_type();
+      goal_               = symbol_type();
+      sentence_           = symbol_type();
+      sentence_binarized_ = symbol_type();
       
       binary_.clear();
       unary_.clear();
@@ -112,6 +114,8 @@ namespace rnnp
   public:
     // goal
     symbol_type goal_;
+    symbol_type sentence_;
+    symbol_type sentence_binarized_;
     
     // rule set
     rule_set_binary_type      binary_;

@@ -41,9 +41,11 @@ struct Grammar
   typedef utils::unordered_set<rule_type,
 			       boost::hash<rule_type>, std::equal_to<rule_type>,
 			       std::allocator<rule_type> >::type rule_set_type;
-
   
-  symbol_type goal_;
+  
+  symbol_type  goal_;
+  unigram_type sentence_;
+  
   rule_set_type binary_;
   rule_set_type unary_;
   rule_set_type preterminal_;
@@ -124,6 +126,18 @@ struct CollectRules
     else if (grammar_.goal_ != binarized_.label_)
       throw std::runtime_error("different goal: previous = " + static_cast<const std::string&>(grammar_.goal_)
 			       + " current = " + static_cast<const std::string&>(binarized_.label_));
+    
+    switch (binarized_.antecedent_.size()) {
+    case 1:
+      ++ grammar_.sentence_[binarized_.antecedent_.front().label_];
+      break;
+    case 2:
+      ++ grammar_.sentence_[binarized_.antecedent_.front().label_];
+      ++ grammar_.sentence_[binarized_.antecedent_.back().label_];
+      break;
+    default: 
+      throw std::runtime_error("invalid binary tree");
+    }
     
     int unary = 0;
     extract(binarized_, unary);
@@ -236,8 +250,22 @@ void output_grammar(const path_type& path,
 		    const grammar_type& grammar)
 {
   utils::compress_ostream os(path, 1024 * 1024);
+
+  symbol_type sentence;
+  count_type  count = 0;
+
+  if (grammar.sentence_.empty())
+    throw std::runtime_error("invalid pre-goal label");
+  
+  unigram_type::const_iterator siter_end = grammar.sentence_.end();
+  for (unigram_type::const_iterator siter = grammar.sentence_.begin(); siter != siter_end; ++ siter)
+    if (siter->second > count) {
+      sentence = siter->first;
+      count = siter->second;
+    }
   
   os << grammar.goal_ << '\n';
+  os << sentence << '\n';
   os << '\n';
 
   grammar_type::rule_set_type::const_iterator uiter_end = grammar.unary_.end();

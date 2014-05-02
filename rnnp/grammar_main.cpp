@@ -16,6 +16,11 @@ int main(int argc, char** argv)
   rnnp::Grammar grammar(argv[1]);
   
   boost::shared_ptr<rnnp::Signature> signature(rnnp::Signature::create(argc == 3 ? argv[2] : "none"));
+
+  std::cerr << "goal: " << grammar.goal_
+	    << " sentence: " << grammar.sentence_
+	    << " binarized: " << grammar.sentence_binarized_
+	    << std::endl;
   
   rnnp::Symbol symbol;
   while (std::cin >> symbol) {

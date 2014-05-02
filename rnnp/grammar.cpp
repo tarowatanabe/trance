@@ -36,11 +36,15 @@ namespace rnnp
       rule.assign(line);
 
       if (rule.goal()) {
-	if (! goal_.empty())
-	  throw std::runtime_error("we do not support multiple goal");
+	if (! goal_.empty() && ! sentence_.empty())
+	  throw std::runtime_error("we do not support multiple goals/sentences");
 	
-	goal_ = rule.lhs_;
-	non_terminal.insert(rule.lhs_);
+	if (goal_.empty())
+	  goal_ = rule.lhs_;
+	else if (sentence_.empty()) {
+	  sentence_           = rule.lhs_;
+	  sentence_binarized_ = "[" + rule.lhs_.strip() + "^]";
+	}
       } else if (rule.unary()) {
 	unary_[rule.rhs_[0]].push_back(rule);
 	non_terminal.insert(rule.lhs_);
@@ -60,6 +64,9 @@ namespace rnnp
     
     if (goal_ == symbol_type())
       throw std::runtime_error("no goal?");
+    if (sentence_ == symbol_type())
+      throw std::runtime_error("no sentencde label?");
+    
     if (terminal.empty())
       throw std::runtime_error("no terminals?");
     if (non_terminal.empty())
@@ -71,6 +78,11 @@ namespace rnnp
       throw std::runtime_error("no fallback preterminal?");
     
     // assign label set
+
+    non_terminal.insert(goal_);
+    non_terminal.insert(sentence_);
+    non_terminal.insert(sentence_binarized_);
+    
     terminal_.insert(terminal_.end(), terminal.begin(), terminal.end());
     non_terminal_.insert(non_terminal_.end(), non_terminal.begin(), non_terminal.end());
     pos_.insert(pos_.end(), pos.begin(), pos.end());
@@ -122,6 +134,7 @@ namespace rnnp
 
     // goal
     os << rule_type(goal_) << '\n';
+    os << rule_type(sentence_) << '\n';
     
     // binary rules
     rule_set_binary_type::const_iterator biter_end = binary_.end();
