@@ -101,12 +101,16 @@ librnnp_la_LIBADD = \
 
 noinst_PROGRAMS = \
 grammar_main \
+oracle_main \
 rule_main \
 signature_main \
 tree_main
 
 grammar_main_SOURCES  = grammar_main.cpp 
 grammar_main_LDADD    = librnnp.la
+
+oracle_main_SOURCES  = oracle_main.cpp 
+oracle_main_LDADD    = librnnp.la $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 rule_main_SOURCES  = rule_main.cpp 
 rule_main_LDADD    = librnnp.la
