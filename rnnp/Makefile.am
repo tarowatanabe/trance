@@ -120,3 +120,14 @@ signature_main_LDADD    = librnnp.la
 
 tree_main_SOURCES  = tree_main.cpp 
 tree_main_LDADD    = librnnp.la
+
+noinst_DATA = .gitignore
+
+.gitignore: Makefile.am
+	cat $(top_builddir)/.gitignore > .gitignore
+	for bin in $(PROGRAMS); do \
+	  echo $$bin >> .gitignore; \
+	done; \
+	for bin in $(SCRIPTS); do \
+	  echo $$bin >> .gitignore; \
+	done
