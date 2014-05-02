@@ -239,7 +239,10 @@ namespace rnnp
 
     if (path_bin != "-" && ! boost::filesystem::exists(path_bin))
       throw std::runtime_error("no binary embedding: " + path_bin.string());
-    
+
+    if (embedding.rows() != rows)
+      embedding.conservativeResize(rows, embedding.cols());
+
     qi::rule<iterator_type, std::string(), standard::blank_type>           word;
     qi::rule<iterator_type, embedding_parsed_type(), standard::blank_type> parser; 
     
@@ -317,7 +320,10 @@ namespace rnnp
     
     if (path_bin != "-" && ! boost::filesystem::exists(path_bin))
       throw std::runtime_error("no binary matrix: " + path_bin.string());
-    
+
+    if (matrix.cols() != cols)
+      matrix.conservativeResize(matrix.rows(), cols);
+
     qi::rule<iterator_type, std::string(), standard::blank_type>        word;
     qi::rule<iterator_type, matrix_parsed_type(), standard::blank_type> parser; 
     
