@@ -249,7 +249,7 @@ struct Mapper : public MapReduce
       utils::resource end;
       
       parsed_  += 1;
-      skipped_ += ! derivations.empty();
+      skipped_ += derivations.empty();
       resource_ += end - start;
       
       // output kbest derivations
