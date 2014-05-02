@@ -6,6 +6,8 @@
 #include <iostream>
 
 #include <rnnp/tree.hpp>
+#include <rnnp/grammar.hpp>
+#include <rnnp/signature.hpp>
 #include <rnnp/model.hpp>
 #include <rnnp/parser.hpp>
 #include <rnnp/parser_oracle.hpp>
@@ -48,10 +50,11 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
 
-typedef rnnp::Sentence sentence_type;
-typedef rnnp::Tree     tree_type;
-typedef rnnp::Grammar  grammar_type;
-typedef rnnp::Model    model_type;
+typedef rnnp::Sentence  sentence_type;
+typedef rnnp::Tree      tree_type;
+typedef rnnp::Grammar   grammar_type;
+typedef rnnp::Signature signature_type;
+typedef rnnp::Model     model_type;
 
 typedef rnnp::LearnOption option_type;
 
@@ -66,9 +69,10 @@ path_type input_file = "-";
 path_type output_file;
 
 path_type grammar_file;
+std::string signature_name = "none";
+
 path_type model_file;
 path_type embedding_file;
-
 int hidden_size = 64;
 int embedding_size = 32;
 
@@ -95,6 +99,7 @@ template <typename Gen>
 void learn(const option_type& option,
 	   const tree_set_type& trees,
 	   const grammar_type& grammar,
+	   const signature_type& signature,
 	   model_type& theta,
 	   Gen& gen);
 
@@ -159,6 +164,8 @@ int main(int argc, char** argv)
 		<< " POS: " << grammar.pos_.size()
 		<< std::endl;
 
+    signature_type::signature_ptr_type signature(signature_type::create(signature_name));
+
     model_type theta(hidden_size, embedding_size, grammar);
     
     if (! model_file.empty()) {
@@ -187,7 +194,7 @@ int main(int argc, char** argv)
     
     option_set_type::const_iterator oiter_end = optimizations.end();
     for (option_set_type::const_iterator oiter = optimizations.begin(); oiter != oiter_end; ++ oiter)
-      learn(*oiter, trees, grammar, theta, generator);
+      learn(*oiter, trees, grammar, *signature, theta, generator);
     
     if (! output_file.empty())
       theta.write(output_file);
@@ -224,6 +231,7 @@ struct Task
        const tree_set_type& trees,
        const working_set_type& working,
        const grammar_type& grammar,
+       const signature_type& signature,
        const model_type& theta,
        queue_mapper_type& mapper,
        queue_merger_set_type& mergers)
@@ -233,6 +241,7 @@ struct Task
       trees_(trees),
       working_(working),
       grammar_(grammar),
+      signature_(signature),
       theta_(theta),
       mapper_(mapper),
       mergers_(mergers),
@@ -249,7 +258,8 @@ struct Task
   
   working_set_type working_curr_;
   
-  const grammar_type& grammar_;
+  const grammar_type&   grammar_;
+  const signature_type& signature_;
   model_type theta_;
   
   queue_mapper_type&     mapper_;
@@ -273,6 +283,8 @@ struct Task
     
     const size_type shard_size = mergers_.size();
     const size_type batch_size = option_.batch_;
+
+    signature_type::signature_ptr_type signature(signature_.clone());
 
     rnnp::Parser::derivation_set_type candidates;
     rnnp::Parser::derivation_set_type oracles;
@@ -320,9 +332,9 @@ struct Task
 	  for (size_type id = first; id != last; ++ id) {
 	    const tree_type& tree = trees_[working_[id]];
 
-	    parser_oracle_(tree, grammar_, theta_, kbest_size, oracles);
+	    parser_oracle_(tree, grammar_, *signature, theta_, kbest_size, oracles);
 	    
-	    parser_(parser_oracle_.oracle_.sentence_, grammar_, theta_, kbest_size, candidates);
+	    parser_(parser_oracle_.oracle_.sentence_, grammar_, *signature, theta_, kbest_size, candidates);
 	    
 	    parsed_ += (! candidates.empty());
 	    ++ instances_;
@@ -420,6 +432,7 @@ void learn(const Optimizer& optimizer,
 	   const option_type& option,
 	   const tree_set_type& trees,
 	   const grammar_type& grammar,
+	   const signature_type& signature,
 	   model_type& theta,
 	   Gen& gen);
 
@@ -428,28 +441,29 @@ void learn(const Optimizer& optimizer,
 	   const option_type& option,
 	   const tree_set_type& trees,
 	   const grammar_type& grammar,
+	   const signature_type& signature,
 	   model_type& theta,
 	   Gen& gen)
 {
   
   if (option.margin_cross())
-    learn(optimizer, rnnp::objective::MarginCross(), option, trees, grammar, theta, gen);
+    learn(optimizer, rnnp::objective::MarginCross(), option, trees, grammar, signature, theta, gen);
   else if (option.margin_derivation())
-    learn(optimizer, rnnp::objective::MarginDerivation(), option, trees, grammar, theta, gen);
+    learn(optimizer, rnnp::objective::MarginDerivation(), option, trees, grammar, signature, theta, gen);
   else if (option.margin_evalb())
-    learn(optimizer, rnnp::objective::MarginEvalb(), option, trees, grammar, theta, gen);
+    learn(optimizer, rnnp::objective::MarginEvalb(), option, trees, grammar, signature, theta, gen);
   else if (option.margin_early())
-    learn(optimizer, rnnp::objective::MarginEarly(), option, trees, grammar, theta, gen);
+    learn(optimizer, rnnp::objective::MarginEarly(), option, trees, grammar, signature, theta, gen);
   else if (option.margin_late())
-    learn(optimizer, rnnp::objective::MarginLate(), option, trees, grammar, theta, gen);
+    learn(optimizer, rnnp::objective::MarginLate(), option, trees, grammar, signature, theta, gen);
   else if (option.margin_max())
-    learn(optimizer, rnnp::objective::MarginMax(), option, trees, grammar, theta, gen);
+    learn(optimizer, rnnp::objective::MarginMax(), option, trees, grammar, signature, theta, gen);
   else if (option.violation_early())
-    learn(optimizer, rnnp::objective::ViolationEarly(), option, trees, grammar, theta, gen);
+    learn(optimizer, rnnp::objective::ViolationEarly(), option, trees, grammar, signature, theta, gen);
   else if (option.violation_late())
-    learn(optimizer, rnnp::objective::ViolationLate(), option, trees, grammar, theta, gen);
+    learn(optimizer, rnnp::objective::ViolationLate(), option, trees, grammar, signature, theta, gen);
   else if (option.violation_max())
-    learn(optimizer, rnnp::objective::ViolationMax(), option, trees, grammar, theta, gen);
+    learn(optimizer, rnnp::objective::ViolationMax(), option, trees, grammar, signature, theta, gen);
   else
     throw std::runtime_error("unsupported objective");
 }
@@ -458,6 +472,7 @@ template <typename Gen>
 void learn(const option_type& option,
 	   const tree_set_type& trees,
 	   const grammar_type& grammar,
+	   const signature_type& signature,
 	   model_type& theta,
 	   Gen& gen)
 {
@@ -465,13 +480,13 @@ void learn(const option_type& option,
     std::cerr << "learning: " << option << std::endl;
 
   if (option.optimize_adagrad())
-    learn(rnnp::optimize::AdaGrad(theta, option.lambda_, option.eta0_), option, trees, grammar, theta, gen);
+    learn(rnnp::optimize::AdaGrad(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
   else if (option.optimize_adadec())
-    learn(rnnp::optimize::AdaDec(theta, option.lambda_, option.eta0_), option, trees, grammar, theta, gen);
+    learn(rnnp::optimize::AdaDec(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
   else if (option.optimize_adadelta())
-    learn(rnnp::optimize::AdaDelta(theta, option.lambda_, option.eta0_), option, trees, grammar, theta, gen);
+    learn(rnnp::optimize::AdaDelta(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
   else if (option.optimize_sgd())
-    learn(rnnp::optimize::SGD(theta, option.lambda_, option.eta0_), option, trees, grammar, theta, gen);
+    learn(rnnp::optimize::SGD(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
   else
     throw std::runtime_error("unknown optimizer");
 }
@@ -483,6 +498,7 @@ void learn(const Optimizer& optimizer,
 	   const option_type& option,
 	   const tree_set_type& trees,
 	   const grammar_type& grammar,
+	   const signature_type& signature,
 	   model_type& theta,
 	   Gen& gen)
 {
@@ -512,6 +528,7 @@ void learn(const Optimizer& optimizer,
 					 trees,
 					 working,
 					 grammar,
+					 signature,
 					 theta,
 					 mapper,
 					 mergers));
@@ -660,9 +677,10 @@ void options(int argc, char** argv)
     ("input",     po::value<path_type>(&input_file)->default_value(input_file), "input file")
     ("output",    po::value<path_type>(&output_file),                           "output file")
     
-    ("grammar",        po::value<path_type>(&grammar_file),   "grammar file")
-    ("model",          po::value<path_type>(&model_file),     "model file")
+    ("grammar",    po::value<path_type>(&grammar_file),                                    "grammar file")
+    ("signature",  po::value<std::string>(&signature_name)->default_value(signature_name), "language specific signature")
     
+    ("model",     po::value<path_type>(&model_file),                              "model file")
     ("hidden",    po::value<int>(&hidden_size)->default_value(hidden_size),       "hidden dimension")
     ("embedding", po::value<int>(&embedding_size)->default_value(embedding_size), "embedding dimension")
     

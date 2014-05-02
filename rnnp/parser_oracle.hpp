@@ -25,27 +25,30 @@ namespace rnnp
   public:
     void operator()(const tree_type& input,
 		    const grammar_type& grammar,
+		    const signature_type& signature,
 		    const model_type& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations)
     {
-      parse(input, grammar, theta, kbest, derivations, best_action_none());
+      parse(input, grammar, signature, theta, kbest, derivations, best_action_none());
     }
 
     template <typename BestAction>
     void operator()(const tree_type& input,
 		    const grammar_type& grammar,
+		    const signature_type& signature,
 		    const model_type& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations,
 		    const BestAction& best_action)
     {
-      parse(input, grammar, theta, kbest, derivations, best_action);
+      parse(input, grammar, signature, theta, kbest, derivations, best_action);
     }
     
     template <typename BestAction>
     void parse(const tree_type& input,
 	       const grammar_type& grammar,
+	       const signature_type& signature,
 	       const model_type& theta,
 	       const size_type kbest,
 	       derivation_set_type& derivations,
@@ -57,7 +60,7 @@ namespace rnnp
       
       if (oracle_.sentence_.empty()) return;
       
-      initialize(oracle_.sentence_, grammar, theta);
+      initialize(oracle_.sentence_, theta);
 
       if (oracle_.actions_.size() >= agenda_.size())
 	throw std::runtime_error("oracle operation sequence is longer than agenda size!");

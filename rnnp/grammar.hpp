@@ -10,6 +10,7 @@
 
 #include <rnnp/symbol.hpp>
 #include <rnnp/rule.hpp>
+#include <rnnp/signature.hpp>
 
 #include <utils/bithack.hpp>
 #include <utils/unordered_map.hpp>
@@ -27,7 +28,9 @@ namespace rnnp
     
     typedef Symbol symbol_type;
     typedef Symbol word_type;
-    typedef Rule   rule_type;
+    
+    typedef Rule      rule_type;
+    typedef Signature signature_type;
     
     typedef boost::filesystem::path path_type;
     
@@ -93,12 +96,12 @@ namespace rnnp
 	return uiter->second;
     }
 
-    const rule_set_type& preterminal(const word_type& terminal) const
+    const rule_set_type& preterminal(const signature_type& signature, const word_type& terminal) const
     {
       rule_set_preterminal_type::const_iterator piter = preterminal_.find(terminal);
       if (piter == preterminal_.end())
-	piter = preterminal_.find(symbol_type::UNK);
-	
+	piter = preterminal_.find(signature(terminal));
+      
       if (piter == preterminal_.end()) {
 	static const rule_set_type empty_;
 	return empty_;

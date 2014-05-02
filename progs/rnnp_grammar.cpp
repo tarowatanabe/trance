@@ -13,6 +13,7 @@
 #include <rnnp/rule.hpp>
 #include <rnnp/grammar.hpp>
 #include <rnnp/binarize.hpp>
+#include <rnnp/signature.hpp>
 
 #include "utils/compress_stream.hpp"
 #include "utils/compact_map.hpp"
@@ -50,17 +51,22 @@ struct Grammar
 
 typedef Grammar grammar_type;
 
+typedef rnnp::Signature signature_type;
+
 void collect_rules(const path_type& path,
 		   grammar_type& grammar,
 		   unigram_type& unigram,
 		   const bool left=true);
-void cutoff_terminal(grammar_type& grammar,
+void cutoff_terminal(const signature_type& signature,
+		     grammar_type& grammar,
 		     unigram_type& unigram);
 void output_grammar(const path_type& path,
 		    const grammar_type& grammar);
 
 path_type input_file = "-";
 path_type output_file = "-";
+
+std::string signature_name = "none";
 
 bool binarize_left = false;
 bool binarize_right = false;
@@ -88,8 +94,8 @@ int main(int argc, char** argv)
     collect_rules(input_file, grammar, unigram, binarize_left);
 
     if (cutoff > 0)
-      cutoff_terminal(grammar, unigram);
-
+      cutoff_terminal(*signature_type::create(signature_name), grammar, unigram);
+    
     output_grammar(output_file, grammar);
   }
   catch (const std::exception& err) {
@@ -193,26 +199,21 @@ void collect_rules(const path_type& path,
     std::cerr << "maximum unary size: " << collect.unary_max_ << std::endl;
 }
 
-void cutoff_terminal(grammar_type& grammar,
+void cutoff_terminal(const signature_type& signature,
+		     grammar_type& grammar,
 		     unigram_type& unigram)
 {
   unigram_type unigram_cutoff;
 
-  count_type oov = 0;
-  
   // add workaround for penntreebank
   unigram_type::const_iterator uiter_end = unigram.end();
   for (unigram_type::const_iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter) {
     if (uiter->second >= cutoff || static_cast<const std::string&>(uiter->first).find("``", 0, 2) != std::string::npos)
       unigram_cutoff.insert(*uiter);
     else
-      oov += uiter->second;
+      unigram_cutoff[signature(uiter->first)] += uiter->second;
   }
   
-  if (! oov) return;
-  
-  unigram_cutoff[symbol_type::UNK] = oov;
-
   unigram.swap(unigram_cutoff);
   
   grammar_type::rule_set_type preterminal;
@@ -224,8 +225,8 @@ void cutoff_terminal(grammar_type& grammar,
     else {
       if (debug >= 2)
 	std::cerr << "removing preterminal: " << *piter << std::endl;
-
-      preterminal.insert(rule_type(piter->lhs_, rule_type::rhs_type(1, symbol_type::UNK)));
+      
+      preterminal.insert(rule_type(piter->lhs_, rule_type::rhs_type(1, signature(piter->rhs_.front()))));
     }
   
   grammar.preterminal_.swap(preterminal);
@@ -263,6 +264,8 @@ void options(int argc, char** argv)
   desc.add_options()
     ("input",     po::value<path_type>(&input_file)->default_value(input_file),   "input file")
     ("output",    po::value<path_type>(&output_file)->default_value(output_file), "output")
+
+    ("signature", po::value<std::string>(&signature_name)->default_value(signature_name), "language specific signature")
     
     ("binarize-left",  po::bool_switch(&binarize_left),  "left recursive (or left heavy) binarization (default)")
     ("binarize-right", po::bool_switch(&binarize_right), "right recursive (or right heavy) binarization")

@@ -20,6 +20,11 @@ namespace rnnp
     {
       typedef rnnp::semiring::Logprob<double> weight_type;
       
+    public:
+      Violation() {}
+      virtual ~Violation() {}
+      
+    public:
       // virtual function
       virtual size_type violation(const model_type& theta,
 				  const parser_type& candidates,

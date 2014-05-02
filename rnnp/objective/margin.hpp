@@ -15,7 +15,10 @@ namespace rnnp
     struct Margin : public Objective
     {
     public:
+      Margin() {}
+      virtual ~Margin() {}
       
+    public:
       loss_type operator()(const model_type& theta,
 			   const parser_type& candidates,
 			   const parser_oracle_type& oracles,

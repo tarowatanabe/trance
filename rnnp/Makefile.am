@@ -1,5 +1,5 @@
 
-AM_CPPFLAGS = -I.. -I../eigen $(BOOST_CPPFLAGS) $(PTHREAD_FLAGS)
+AM_CPPFLAGS = -I.. -I../eigen $(BOOST_CPPFLAGS) $(ICU_CPPFLAGS) $(PTHREAD_FLAGS)
 
 LIBUTILS=$(top_builddir)/utils/libutils.la
 
@@ -10,6 +10,7 @@ librnnpincludedir= $(pkgincludedir)/rnnp
 objectivedir = $(pkgincludedir)/rnnp/objective
 optimizedir  = $(pkgincludedir)/rnnp/optimize
 semiringdir  = $(pkgincludedir)/rnnp/semiring
+signaturedir = $(pkgincludedir)/rnnp/signature
 
 dist_objective_HEADERS = \
 objective/margin.hpp \
@@ -36,6 +37,10 @@ semiring/logprob.hpp \
 semiring/tropical.hpp \
 semiring/traits.hpp
 
+dist_signature_HEADERS = \
+signature/chinese.hpp \
+signature/english.hpp
+
 librnnpinclude_HEADERS = \
 allocator.hpp \
 binarize.hpp \
@@ -58,6 +63,7 @@ parser.hpp \
 rule.hpp \
 semiring.hpp \
 sentence.hpp \
+signature.hpp \
 span.hpp \
 state.hpp \
 symbol.hpp \
@@ -73,6 +79,7 @@ operation.cpp \
 option.cpp \
 rule.cpp \
 sentence.cpp \
+signature.cpp \
 span.cpp \
 symbol.cpp \
 tree.cpp
@@ -82,17 +89,20 @@ librnnp_la_LDFLAGS = \
 	$(BOOST_THREAD_LDFLAGS) \
 	$(BOOST_FILESYSTEM_LDFLAGS) \
 	$(BOOST_IOSTREAMS_LDFLAGS) \
+	$(ICU_LDFLAGS) \
 	-version-info $(RNNP_LTVERSION)
 
 librnnp_la_LIBADD = \
 	$(LIBUTILS) \
 	$(BOOST_THREAD_LIBS) \
 	$(BOOST_FILESYSTEM_LIBS) \
-	$(BOOST_IOSTREAMS_LIBS) 
+	$(BOOST_IOSTREAMS_LIBS) \
+	$(ICU_LDFLAGS)
 
 noinst_PROGRAMS = \
 grammar_main \
 rule_main \
+signature_main \
 tree_main
 
 grammar_main_SOURCES  = grammar_main.cpp 
@@ -100,6 +110,9 @@ grammar_main_LDADD    = librnnp.la
 
 rule_main_SOURCES  = rule_main.cpp 
 rule_main_LDADD    = librnnp.la
+
+signature_main_SOURCES  = signature_main.cpp 
+signature_main_LDADD    = librnnp.la
 
 tree_main_SOURCES  = tree_main.cpp 
 tree_main_LDADD    = librnnp.la

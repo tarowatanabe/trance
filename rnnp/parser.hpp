@@ -11,6 +11,7 @@
 #include <queue>
 
 #include <rnnp/sentence.hpp>
+#include <rnnp/signature.hpp>
 #include <rnnp/symbol.hpp>
 #include <rnnp/model.hpp>
 #include <rnnp/grammar.hpp>
@@ -31,10 +32,9 @@ namespace rnnp
     
     typedef Sentence  sentence_type;
     
-    typedef Grammar grammar_type;
-
-    typedef grammar_type::rule_type rule_type;
-
+    typedef Grammar   grammar_type;
+    typedef Signature signature_type;
+    
     typedef Model model_type;
     
     typedef model_type::symbol_type    symbol_type;
@@ -81,27 +81,30 @@ namespace rnnp
     
     void operator()(const sentence_type& input,
 		    const grammar_type& grammar,
+		    const signature_type& signature,
 		    const model_type& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations)
     {
-      parse(input, grammar, theta, kbest, derivations, best_action_none());
+      parse(input, grammar, signature, theta, kbest, derivations, best_action_none());
     }
 
     template <typename BestAction>
     void operator()(const sentence_type& input,
 		    const grammar_type& grammar,
+		    const signature_type& signature,
 		    const model_type& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations,
 		    const BestAction& best_action)
     {
-      parse(input, grammar, theta, kbest, derivations, best_action);
+      parse(input, grammar, signature, theta, kbest, derivations, best_action);
     }
     
     template <typename BestAction>
     void parse(const sentence_type& input,
 	       const grammar_type& grammar,
+	       const signature_type& signature,
 	       const model_type& theta,
 	       const size_type kbest,
 	       derivation_set_type& derivations,
@@ -111,7 +114,7 @@ namespace rnnp
       
       if (input.empty()) return;
       
-      initialize(input, grammar, theta);
+      initialize(input, theta);
       
       operation_axiom(theta);
       
@@ -152,7 +155,7 @@ namespace rnnp
 	    else {
 	      // we perform shift..
 	      if (state.next() < input.size()) {
-		const grammar_type::rule_set_type& rules = grammar.preterminal(input[state.next()]);
+		const grammar_type::rule_set_type& rules = grammar.preterminal(signature, input[state.next()]);
 	      
 		grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 		for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
@@ -200,7 +203,7 @@ namespace rnnp
       }
     }
     
-    void initialize(const sentence_type& input, const grammar_type& grammar, const model_type& theta)
+    void initialize(const sentence_type& input, const model_type& theta)
     {
       // # of operations is 2n + # of unary rules + final
       agenda_.clear();

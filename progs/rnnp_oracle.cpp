@@ -19,6 +19,7 @@
 #include <boost/filesystem.hpp>
 
 #include <rnnp/grammar.hpp>
+#include <rnnp/signature.hpp>
 #include <rnnp/model.hpp>
 #include <rnnp/parser_oracle.hpp>
 #include <rnnp/derivation.hpp>
@@ -38,6 +39,7 @@
 
 typedef rnnp::Tree          tree_type;
 typedef rnnp::Grammar       grammar_type;
+typedef rnnp::Signature     signature_type;
 typedef rnnp::Model         model_type;
 
 typedef boost::filesystem::path path_type;
@@ -48,6 +50,8 @@ path_type output_file = "-";
 bool simple_mode = false;
 
 path_type grammar_file;
+std::string signature_name = "none";
+
 path_type model_file;
 int hidden_size = 64;
 int embedding_size = 32;
@@ -68,6 +72,7 @@ int threads = 1;
 int debug = 0;
 
 void parse(const grammar_type& grammar,
+	   const signature_type& signature,
 	   const model_type& theta,
 	   const path_type& input_path,
 	   const path_type& output_path);
@@ -105,7 +110,12 @@ int main(int argc, char** argv)
       std::cerr << "binary: " << grammar.binary_size()
 		<< " unary: " << grammar.unary_size()
 		<< " preterminal: " << grammar.preterminal_size()
+		<< " terminals: " << grammar.terminal_.size()
+		<< " non-terminals: " << grammar.non_terminal_.size()
+		<< " POS: " << grammar.pos_.size()
 		<< std::endl;
+
+    signature_type::signature_ptr_type signature(signature_type::create(signature_name));
     
     model_type theta(hidden_size, embedding_size, grammar);
 
@@ -126,7 +136,18 @@ int main(int argc, char** argv)
 	theta.read_embedding(embedding_file);
     }
     
-    parse(grammar, theta, input_file, output_file);
+    if (debug) {
+      const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
+      const size_t non_terminals = (theta.vocab_non_terminal_.size()
+				    - std::count(theta.vocab_non_terminal_.begin(), theta.vocab_non_terminal_.end(),
+						 model_type::symbol_type()));
+      
+      std::cerr << "terminals: " << terminals
+		<< " non-terminals: " << non_terminals
+		<< std::endl;
+    }
+    
+    parse(grammar, *signature, theta, input_file, output_file);
     
   } catch (const std::exception& err) {
     std::cerr << "error: " << err.what() << std::endl;
@@ -180,10 +201,12 @@ namespace std
 struct Mapper : public MapReduce
 {
   Mapper(const grammar_type& grammar,
+	 const signature_type& signature,
 	 const model_type&   theta,
 	 queue_type& mapper,
 	 queue_type& reducer)
     : grammar_(grammar),
+      signature_(signature),
       theta_(theta),
       mapper_(mapper),
       reducer_(reducer) {}
@@ -213,6 +236,8 @@ struct Mapper : public MapReduce
     derivation_type derivation;
     derivation_set_type derivations;
     buf_type buf;
+
+    signature_type::signature_ptr_type signature(signature_.clone());
     
     for (;;) {
       mapper_.pop_swap(mapped);
@@ -221,7 +246,7 @@ struct Mapper : public MapReduce
       
       input.assign(mapped.buffer_);
       
-      parser(input, grammar_, theta_, kbest_size, derivations);
+      parser(input, grammar_, *signature, theta_, kbest_size, derivations);
       
       // output kbest derivations
       reduced.id_ = mapped.id_;
@@ -265,8 +290,9 @@ struct Mapper : public MapReduce
     }
   }
 
-  const grammar_type& grammar_;
-  const model_type&   theta_;
+  const grammar_type&   grammar_;
+  const signature_type& signature_;
+  const model_type&     theta_;
   
   queue_type& mapper_;
   queue_type& reducer_;
@@ -350,6 +376,7 @@ struct Reducer : public MapReduce
 };
 
 void parse(const grammar_type& grammar,
+	   const signature_type& signature,
 	   const model_type& theta,
 	   const path_type& input_path,
 	   const path_type& output_path)
@@ -366,7 +393,7 @@ void parse(const grammar_type& grammar,
   
   boost::thread_group mappers;
   for (int i = 0; i != threads; ++ i)
-    mappers.add_thread(new boost::thread(mapper_type(grammar, theta, queue_mapper, queue_reducer)));
+    mappers.add_thread(new boost::thread(mapper_type(grammar, signature, theta, queue_mapper, queue_reducer)));
   
   map_reduce_type::id_buffer_type id_buffer;
   map_reduce_type::id_type id = 0;
@@ -406,9 +433,10 @@ void options(int argc, char** argv)
     
     ("simple",    po::bool_switch(&simple_mode), "output parse tree only")
     
-    ("grammar",    po::value<path_type>(&grammar_file),                      "grammar file")
-    ("model",      po::value<path_type>(&model_file),                        "model file")
+    ("grammar",    po::value<path_type>(&grammar_file),                                    "grammar file")
+    ("signature",  po::value<std::string>(&signature_name)->default_value(signature_name), "language specific signature")
     
+    ("model",     po::value<path_type>(&model_file),                              "model file")
     ("hidden",    po::value<int>(&hidden_size)->default_value(hidden_size),       "hidden dimension")
     ("embedding", po::value<int>(&embedding_size)->default_value(embedding_size), "embedding dimension")
     
