@@ -229,6 +229,8 @@ struct Mapper : public MapReduce
     derivation_set_type derivations;
     buf_type buf;
     
+    parsed_  = 0;
+    skipped_ = 0;
     resource_.clear();
 
     signature_type::signature_ptr_type signature(signature_.clone());
@@ -246,6 +248,8 @@ struct Mapper : public MapReduce
       
       utils::resource end;
       
+      parsed_  += 1;
+      skipped_ += ! derivations.empty();
       resource_ += end - start;
       
       // output kbest derivations
@@ -297,6 +301,8 @@ struct Mapper : public MapReduce
   queue_type& mapper_;
   queue_type& reducer_;
   
+  size_type       parsed_;
+  size_type       skipped_;
   utils::resource resource_;
 };
 
@@ -421,11 +427,15 @@ void parse(const grammar_type& grammar,
   }
   mappers.join_all();
   
-  for (int i = 1; i != threads; ++ i)
+  for (int i = 1; i != threads; ++ i) {
+    workers.front().parsed_   += workers[i].parsed_;
+    workers.front().skipped_  += workers[i].skipped_;
     workers.front().resource_ += workers[i].resource_;
+  }
   
   if (debug)
-    std::cerr << "sentences: " << id << std::endl
+    std::cerr << "parsed: " << workers.front().parsed_ << std::endl
+	      << "skipped: " << workers.front().skipped_ << std::endl
 	      << "cpu time:    " << workers.front().resource_.cpu_time() << std::endl
 	      << "user time:   " << workers.front().resource_.user_time() << std::endl
 	      << "thread time: " << workers.front().resource_.thread_time() << std::endl;
