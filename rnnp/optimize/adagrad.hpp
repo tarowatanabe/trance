@@ -128,19 +128,6 @@ namespace rnnp
 	const double eta0_;
       };
     
-      struct learning_rate
-      {
-	learning_rate(const double& eta0) : eta0_(eta0) {}
-      
-	template <typename Tp>
-	Tp operator()(const Tp& x) const
-	{
-	  return (x == 0.0 ? 0.0 : eta0_ / std::sqrt(double(1.0) + x));
-	}
-      
-	const double& eta0_;
-      };
-      
       template <typename Theta, typename GVar, typename Embedding>
       void update_embedding(Eigen::MatrixBase<Theta>& theta,
 			    Eigen::MatrixBase<GVar>& G,
@@ -167,9 +154,16 @@ namespace rnnp
 	  typename Embedding::const_iterator eiter_end = embedding.end();
 	  for (typename Embedding::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
 	    const size_type col = eiter->first.id();
+	    const tensor_type& g = eiter->second;
 	  
-	    G.col(col).array() += eiter->second.array().square() * scale * scale;
-	    theta.col(col).array() -= scale * eiter->second.array() * G.col(col).array().unaryExpr(learning_rate(eta0_));
+	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
+	      if (g(row, 0) != 0.0) {
+		G(row, col) +=  g(row, 0) * g(row, 0) * scale * scale;
+		
+		const double rate = eta0_ / std::sqrt(double(1.0) + G(row, col));
+		
+		theta(row, col) -= rate * scale * g(row, 0);
+	      }
 	  }
 	}
       }
@@ -210,10 +204,17 @@ namespace rnnp
 	    const size_type cols = giter->second.cols();
 	    const size_type offset = rows * giter->first.non_terminal_id();
 	    
-	    G.block(offset, 0, rows, cols).array()
-	      += giter->second.array().square() * scale * scale;
-	    theta.block(offset, 0, rows, cols).array()
-	      -= scale * giter->second.array() * G.block(offset, 0, rows, cols).array().unaryExpr(learning_rate(eta0_));
+	    const tensor_type& g = giter->second;
+	    
+	    for (tensor_type::Index col = 0; col != g.cols(); ++ col) 
+	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
+		if (g(row, col) != 0) {
+		  G.block(offset, 0, rows, cols)(row, col) += g(row, col) * g(row, col) * scale * scale;
+		  
+		  const double rate = eta0_ / std::sqrt(double(1.0) + G.block(offset, 0, rows, cols)(row, col));
+		  
+		  theta.block(offset, 0, rows, cols)(row, col) -= rate * scale * g(row, col);
+		}
 	  }
 	}
       }
