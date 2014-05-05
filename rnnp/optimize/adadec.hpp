@@ -98,6 +98,40 @@ namespace rnnp
 	const double lambda_;
 	const double eta0_;
       };
+
+      template <typename Theta, typename GVar>
+      struct update_visitor
+      {
+	update_visitor(Eigen::MatrixBase<Theta>& theta,
+		       Eigen::MatrixBase<GVar>& G,
+		       const tensor_type&  g,
+		       const double& scale,
+		       const double& eta0)
+	  : theta_(theta), G_(G), g_(g), scale_(scale), eta0_(eta0) {}
+      
+	void init(const tensor_type::Scalar& value, tensor_type::Index i, tensor_type::Index j)
+	{
+	  operator()(value, i, j);
+	}
+      
+	void operator()(const tensor_type::Scalar& value, tensor_type::Index i, tensor_type::Index j)
+	{
+	  if (g_(i, j) == 0) return;
+	
+	  G_(i, j) = G_(i, j) * 0.95 + g_(i, j) * g_(i, j) * scale_ * scale_;
+	
+	  const double rate = eta0_ / std::sqrt(double(1.0) + G_(i, j));
+	  
+	  theta_(i, j) -= rate * scale_ * g_(i, j);
+	}
+      
+	Eigen::MatrixBase<Theta>& theta_;
+	Eigen::MatrixBase<GVar>&  G_;
+	const tensor_type&        g_;
+      
+	const double scale_;
+	const double eta0_;
+      };
     
       struct learning_rate
       {
@@ -202,8 +236,9 @@ namespace rnnp
 	
 	  theta.visit(visitor);
 	} else {
-	  G = G.array() * 0.95 + g.array().square() * scale * scale;
-	  theta.array() -= scale * g.array() * G.array().unaryExpr(learning_rate(eta0_));
+	  update_visitor<Theta, GVar> visitor(theta, G, g, scale, eta0_);
+	  
+	  theta.visit(visitor);
 	}
       }
     
