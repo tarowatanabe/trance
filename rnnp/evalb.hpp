@@ -62,6 +62,8 @@ namespace rnnp
       }
     }
     
+    double operator()() const { return f(); }
+    
     count_type match_;
     count_type gold_;
     count_type test_;
@@ -130,7 +132,7 @@ namespace rnnp
     }
 
   private:
-    void collect(state_type state, stat_set_type& stats)
+    void collect(state_type state, stat_set_type& stats) const
     {
       stats.clear();
       
@@ -148,7 +150,7 @@ namespace rnnp
       }
     }
     
-    void collect(const tree_type& tree, stat_set_type& stats)
+    void collect(const tree_type& tree, stat_set_type& stats) const
     {
       stats.clear();
       
@@ -156,13 +158,13 @@ namespace rnnp
       collect(tree, span, stats);
     }
     
-    void collect(const tree_type& tree, span_type& span, stat_set_type& stats)
+    void collect(const tree_type& tree, span_type& span, stat_set_type& stats) const
     {
       tree_type::const_iterator titer_end = tree.end();
       for (tree_type::const_iterator titer = tree.begin(); titer != titer_end; ++ titer) {
 	const tree_type& antecedent = *titer;
 	
-	if (antecedent.anteceent_.empty())
+	if (antecedent.antecedent_.empty())
 	  ++ span.last_;
 	else {
 	  span_type span_ant(span.last_, span.last_);

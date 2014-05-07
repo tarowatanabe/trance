@@ -8,8 +8,7 @@
 
 #include <limits>
 
-#include <rnnp/symbol.hpp>
-#include <rnnp/span.hpp>
+#include <rnnp/evalb.hpp>
 #include <rnnp/objective/margin.hpp>
 #include <rnnp/semiring/log.hpp>
 
@@ -27,67 +26,18 @@ namespace rnnp
     {
       typedef rnnp::semiring::Log<double> weight_type;
       
-      typedef rnnp::Span   span_type;
-      typedef rnnp::Symbol symbol_type;
-
-      struct Evalb
-      {
-	symbol_type label_;
-	span_type   span_;
-
-	Evalb() : label_(), span_() {}
-	Evalb(const symbol_type& label, const span_type& span) : label_(label), span_(span) {}
-
-	friend
-	bool operator==(const Evalb& x, const Evalb& y)
-	{
-	  return x.label_ == y.label_ && x.span_ == y.span_;
-	}
-	
-	friend
-	bool operator!=(const Evalb& x, const Evalb& y)
-	{
-	  return x.label_ != y.label_ || x.span_ != y.span_;
-	}
-
-      };
-      typedef Evalb evalb_type;
-      
-      typedef utils::compact_set<evalb_type,
-				 utils::unassigned<evalb_type>, utils::unassigned<evalb_type>,
-				 utils::hashmurmur3<size_t>, std::equal_to<evalb_type>,
-				 std::allocator<evalb_type> > evalb_set_type;
-      typedef std::vector<evalb_set_type, std::allocator<evalb_set_type> > evalb_map_type;
+      typedef EvalbScorer scorer_type;
+      typedef std::vector<scorer_type, std::allocator<scorer_type> > scorer_set_type;
 
       typedef std::vector<double, std::allocator<double> >           score_set_type;
       typedef std::vector<double, std::allocator<double> >           margin_set_type;
       typedef std::vector<weight_type, std::allocator<weight_type> > prob_set_type;
       
-      evalb_map_type  evalb_;
-      evalb_set_type  evalb_candidate_;
+      scorer_set_type evalb_;
       score_set_type  score_;
       margin_set_type margin_;
       prob_set_type   prob_;
 
-      void collect_statistics(state_type state,
-			      evalb_set_type& evalb)
-      {
-	evalb.clear();
-	
-	while (state) {
-	  switch (state.operation().operation()) {
-	  case operation_type::REDUCE:
-	  case operation_type::UNARY:
-	    if (! state.label().binarized())
-	      evalb.insert(evalb_type(state.label(), state.span()));
-	    break;
-	  default:
-	    break;
-	  }
-	  state = state.derivation();
-	}
-      }
-      
       double margin(const model_type& theta,
 		    const parser_type& candidates,
 		    const parser_oracle_type& oracles,
@@ -112,27 +62,14 @@ namespace rnnp
 	evalb_.resize(kbest_oracle_size);
 	
 	for (size_type o = 0; o != kbest_oracle_size; ++ o)
-	  collect_statistics(oracles.agenda_[step_back][o], evalb_[o]);
+	  evalb_[o].assign(oracles.agenda_[step_back][o]);
 	
 	score_.clear();
 	score_.resize(kbest_candidate_size, 0);
 	
-	for (size_type c = 0; c != kbest_candidate_size; ++ c) {
-	  collect_statistics(candidates.agenda_[step_back][c], evalb_candidate_);
-
-	  for (size_type o = 0; o != kbest_oracle_size; ++ o) {
-	    size_type matched = 0;
-	    evalb_set_type::const_iterator eiter_end = evalb_candidate_.end();
-	    for (evalb_set_type::const_iterator eiter = evalb_candidate_.begin(); eiter != eiter_end; ++ eiter)
-	      matched += (evalb_[o].find(*eiter) != evalb_[o].end());
-	    
-	    const double recall    = double(matched) / double(evalb_[o].size());
-	    const double precision = double(matched) / double(evalb_candidate_.size());
-	    
-	    // F-measure
-	    score_[c] = std::max(score_[c], 2 * precision * recall / (precision + recall));
-	  }
-	}
+	for (size_type c = 0; c != kbest_candidate_size; ++ c)
+	  for (size_type o = 0; o != kbest_oracle_size; ++ o) 
+	    score_[c] = std::max(score_[c], evalb_[o](candidates.agenda_[step_back][c])());
 	
 	weight_type Z;
 	
