@@ -49,6 +49,7 @@ binarize_left.hpp \
 binarize_right.hpp \
 debinarize.hpp \
 derivation.hpp \
+evalb.hpp \
 gradient.hpp \
 grammar.hpp \
 graphviz.hpp \

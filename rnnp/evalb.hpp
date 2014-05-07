@@ -12,6 +12,7 @@
 #include <rnnp/symbol.hpp>
 #include <rnnp/span.hpp>
 #include <rnnp/state.hpp>
+#include <rnnp/tree.hpp>
 
 #include <utils/compact_set.hpp>
 
@@ -77,6 +78,7 @@ namespace rnnp
     typedef Symbol symbol_type;
     typedef Span   span_type;
     typedef State  state_type;
+    typedef Tree   tree_type;
 
     typedef Operation operation_type;
     
@@ -88,16 +90,35 @@ namespace rnnp
     
   public:
     EvalbScorer() {}
-    EvalbScorer(state_type state) { assign(state); }
+    EvalbScorer(const state_type& state) { assign(state); }
+    EvalbScorer(const tree_type& tree) { assign(tree); }
     
-    void assign(state_type state)
+    void assign(const state_type& state)
     {
       collect(state, gold_);
+    }
+    
+    void assign(const tree_type& tree)
+    {
+      collect(tree, gold_);
     }
 
     evalb_type operator()(state_type state) const
     {
       collect(state, const_cast<stat_set_type&>(test_));
+      
+      count_type match = 0;
+      
+      stat_set_type::const_iterator titer_end = test_.end();
+      for (stat_set_type::const_iterator titer = test_.begin(); titer != titer_end; ++ titer)
+	match += (gold_.find(*titer) != gold_.end());
+      
+      return evalb_type(match, gold_.size(), test_.size());
+    }
+
+    evalb_type operator()(const tree_type& tree) const
+    {
+      collect(tree, const_cast<stat_set_type&>(test_));
       
       count_type match = 0;
       
@@ -125,6 +146,35 @@ namespace rnnp
 	}
 	state = state.derivation();
       }
+    }
+    
+    void collect(const tree_type& tree, stat_set_type& stats)
+    {
+      stats.clear();
+      
+      span_type span(0, 0);
+      collect(tree, span, stats);
+    }
+    
+    void collect(const tree_type& tree, span_type& span, stat_set_type& stats)
+    {
+      tree_type::const_iterator titer_end = tree.end();
+      for (tree_type::const_iterator titer = tree.begin(); titer != titer_end; ++ titer) {
+	const tree_type& antecedent = *titer;
+	
+	if (antecedent.anteceent_.empty())
+	  ++ span.last_;
+	else {
+	  span_type span_ant(span.last_, span.last_);
+	  collect(antecedent, span_ant, stats);
+	  
+	  span.last_ = span_ant.last_;
+	}
+      }
+      
+      // post-traversal
+      if (tree.label_.non_terminal() && ! tree.label_.binarized())
+	stats.insert(stat_type(span, tree.label_));
     }
     
   private:
