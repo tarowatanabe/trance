@@ -47,12 +47,12 @@ namespace rnnp
       return *this;
     }
     
-    double recall() const { return (! match_ ? 0.0 : double(match_) / gold_); }
-    double precision() const { return (! match_ ? 0.0 : double(match_) / test_); }
+    double recall() const { return (! gold_ ? 0.0 : double(match_) / gold_); }
+    double precision() const { return (! test_ ? 0.0 : double(match_) / test_); }
     
     double f() const
     {
-      if (! match_)
+      if (! match_ || ! gold_ || ! test_)
 	return 0.0;
       else {
 	const double p = precision();
