@@ -22,7 +22,7 @@ namespace rnnp
     typedef size_t    size_type;
     typedef ptrdiff_t difference_type;
 
-    typedef uint32_t count_type;
+    typedef int32_t count_type;
 
     Evalb() : match_(0), gold_(0), test_(0) {}
 
@@ -46,9 +46,10 @@ namespace rnnp
       test_  -= x.test_;
       return *this;
     }
-
-    double recall() const { return double(match_) / gold_; }
-    double precision() const { return double(match_) / test_; }
+    
+    double recall() const { return (! match_ ? 0.0 : double(match_) / gold_); }
+    double precision() const { return (! match_ ? 0.0 : double(match_) / test_); }
+    
     double f() const
     {
       if (! match_)
