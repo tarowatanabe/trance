@@ -4,6 +4,7 @@
 
 #include "signature/chinese.hpp"
 #include "signature/english.hpp"
+#include "signature/unicode.hpp"
 
 namespace rnnp
 {
@@ -17,6 +18,8 @@ namespace rnnp
       return signature_ptr_type(new signature::Chinese());
     else if (utils::ipiece(option.name()) == "english")
       return signature_ptr_type(new signature::English());
+    else if (utils::ipiece(option.name()) == "unicode")
+      return signature_ptr_type(new signature::Unicode());
     else if (utils::ipiece(option.name()) == "none"
 	     || utils::ipiece(option.name()) == "unk"
 	     || utils::ipiece(option.name()) == "default")
@@ -30,6 +33,7 @@ namespace rnnp
     static const char* desc = "\
 english: English signature\n\
 chinese: Chinese signature\n\
+unicode: Unicode property signature\n\
 none: use <unk> (default)\n\
 ";
     return desc;

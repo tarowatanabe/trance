@@ -39,7 +39,8 @@ semiring/traits.hpp
 
 dist_signature_HEADERS = \
 signature/chinese.hpp \
-signature/english.hpp
+signature/english.hpp \
+signature/unicode.hpp
 
 librnnpinclude_HEADERS = \
 allocator.hpp \

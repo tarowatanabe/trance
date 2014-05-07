@@ -104,6 +104,45 @@ namespace rnnp
 	const double eta0_;
       };
 
+      template <typename Theta, typename GVar, typename XVar>
+      struct update_visitor
+      {
+	update_visitor(Eigen::MatrixBase<Theta>& theta,
+		       Eigen::MatrixBase<GVar>& G,
+		       Eigen::MatrixBase<XVar>& X,
+		       const tensor_type& g,
+		       const double& scale,
+		       const double& eta0)
+	  : theta_(theta), G_(G), X_(X), g_(g), scale_(scale), eta0_(eta0) {}
+      
+	void init(const tensor_type::Scalar& value, tensor_type::Index i, tensor_type::Index j)
+	{
+	  operator()(value, i, j);
+	}
+      
+	void operator()(const tensor_type::Scalar& value, tensor_type::Index i, tensor_type::Index j)
+	{
+	  if (g_(i, j) == 0) return;
+	
+	  G_(i, j) = G_(i, j) * 0.95 + g_(i, j) * g_(i, j) * scale_ * scale_;
+	  
+	  const double rate = std::sqrt(eta0_ + X_(i, j)) / std::sqrt(eta0_ + G_(i, j));
+	  const double x1 = theta_(i, j) - rate * scale_ * g_(i, j);
+	  
+	  X_(i, j) = X_(i, j) * 0.95 + (x1 - theta_(i, j)) * (x1 - theta_(i, j));
+	  
+	  theta_(i, j) = x1;
+	}
+      
+	Eigen::MatrixBase<Theta>& theta_;
+	Eigen::MatrixBase<GVar>&  G_;
+	Eigen::MatrixBase<XVar>&  X_;
+	const tensor_type&        g_;
+      
+	const double scale_;
+	const double eta0_;
+      };
+
       template <typename Theta, typename GVar, typename XVar, typename Embedding>
       void update_embedding(Eigen::MatrixBase<Theta>& theta,
 			    Eigen::MatrixBase<GVar>& G,
@@ -111,23 +150,43 @@ namespace rnnp
 			    const Embedding& embedding,
 			    const double scale) const
       {
-	typename Embedding::const_iterator eiter_end = embedding.end();
-	for (typename Embedding::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
-	  const size_type col = eiter->first.id();
-	  const tensor_type& g = eiter->second;
-	
-	  for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
-	    if (g(row, 0) != 0.0) {
-	      G(row, col) = G(row, col) * 0.95 + g(row, 0) * g(row, 0) * scale * scale;
+	if (lambda_ != 0.0) {
+	  typename Embedding::const_iterator eiter_end = embedding.end();
+	  for (typename Embedding::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
+	    const size_type col = eiter->first.id();
+	    const tensor_type& g = eiter->second;
 	    
-	      const double rate = std::sqrt(eta0_ + X(row, col)) / std::sqrt(eta0_ + G(row, col));
-	      const double x1 = theta(row, col) - rate * scale * g(row, 0);
-	      const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
+	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
+	      if (g(row, 0) != 0.0) {
+		G(row, col) = G(row, col) * 0.95 + g(row, 0) * g(row, 0) * scale * scale;
+		
+		const double rate = std::sqrt(eta0_ + X(row, col)) / std::sqrt(eta0_ + G(row, col));
+		const double x1 = theta(row, col) - rate * scale * g(row, 0);
+		const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
+		
+		X(row, col) = X(row, col) * 0.95 + (x2 - theta(row, col)) * (x2 - theta(row, col));
+		
+		theta(row, col) = x2;
+	      }
+	  }
+	} else {
+	  typename Embedding::const_iterator eiter_end = embedding.end();
+	  for (typename Embedding::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
+	    const size_type col = eiter->first.id();
+	    const tensor_type& g = eiter->second;
 	    
-	      X(row, col) = X(row, col) * 0.95 + (x2 - theta(row, col)) * (x2 - theta(row, col));
-	    
-	      theta(row, col) = x2;
-	    }
+	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
+	      if (g(row, 0) != 0.0) {
+		G(row, col) = G(row, col) * 0.95 + g(row, 0) * g(row, 0) * scale * scale;
+		
+		const double rate = std::sqrt(eta0_ + X(row, col)) / std::sqrt(eta0_ + G(row, col));
+		const double x1 = theta(row, col) - rate * scale * g(row, 0);
+		
+		X(row, col) = X(row, col) * 0.95 + (x1 - theta(row, col)) * (x1 - theta(row, col));
+		
+		theta(row, col) = x1;
+	      }
+	  }
 	}
       }
       
@@ -206,9 +265,15 @@ namespace rnnp
 		  const double scale,
 		  const bool regularize=true) const
       {
-	update_visitor_regularize<Theta, GVar, XVar> visitor(theta, G, X, g, scale, regularize ? lambda_ : 0.0, eta0_);
-      
-	theta.visit(visitor);
+	if (regularize) {
+	  update_visitor_regularize<Theta, GVar, XVar> visitor(theta, G, X, g, scale, lambda_, eta0_);
+	  
+	  theta.visit(visitor);
+	} else {
+	  update_visitor<Theta, GVar, XVar> visitor(theta, G, X, g, scale, eta0_);
+	  
+	  theta.visit(visitor);
+	}
       }
     
     private:

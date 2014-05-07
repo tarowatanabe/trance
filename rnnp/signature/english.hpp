@@ -34,6 +34,8 @@ namespace rnnp
 	bool has_dash   = false;
 	bool has_lower  = false;
 	bool has_punct  = false;
+	bool has_symbol = false;
+	bool has_curr   = false;
 	
 	size_t length = 0;
 	UChar32 ch0 = 0;
@@ -55,8 +57,10 @@ namespace rnnp
 	  
 	  has_dash   |= ((gc & U_GC_PD_MASK) != 0);
 	  has_punct  |= ((gc & U_GC_P_MASK) != 0);
+	  has_symbol |= ((gc & U_GC_S_MASK) != 0);
+	  has_curr   |= ((gc & U_GC_SC_MASK) != 0);
 	  
-	  has_digit |= (u_getNumericValue(ch) != U_NO_NUMERIC_VALUE);
+	  has_digit  |= (u_getNumericValue(ch) != U_NO_NUMERIC_VALUE);
 	  
 	  if (u_isUAlphabetic(ch)) {
 	    if (u_isULowercase(ch))
@@ -88,6 +92,10 @@ namespace rnnp
 	  signature += "-dash";
 	if (has_punct)
 	  signature += "-punct";
+	if (has_symbol)
+	  signature += "-sym";
+	if (has_curr)
+	  signature += "-$";
       
 	if (length >= 3 && ch_1 == 's') {
 	  if (ch_2 != 's' && ch_2 != 'i' && ch_2 != 'u')
