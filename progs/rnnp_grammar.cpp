@@ -231,6 +231,8 @@ void cutoff_terminal(const signature_type& signature,
   unigram.swap(unigram_cutoff);
   
   grammar_type::rule_set_type preterminal;
+  grammar_type::rule_set_type preterminal_oov;
+  bool has_fallback = false;
   
   grammar_type::rule_set_type::const_iterator piter_end = grammar.preterminal_.end();
   for (grammar_type::rule_set_type::const_iterator piter = grammar.preterminal_.begin(); piter != piter_end; ++ piter)
@@ -240,8 +242,16 @@ void cutoff_terminal(const signature_type& signature,
       if (debug >= 2)
 	std::cerr << "removing preterminal: " << *piter << std::endl;
       
-      preterminal.insert(rule_type(piter->lhs_, rule_type::rhs_type(1, signature(piter->rhs_.front()))));
+      const symbol_type sig = signature(piter->rhs_.front());
+      
+      preterminal.insert(rule_type(piter->lhs_, rule_type::rhs_type(1, sig)));
+      preterminal_oov.insert(rule_type(piter->lhs_, rule_type::rhs_type(1, symbol_type::UNK)));
+      
+      has_fallback |= (sig == symbol_type::UNK);
     }
+
+  if (! has_fallback)
+    preterminal.insert(preterminal_oov.begin(), preterminal_oov.end());
   
   grammar.preterminal_.swap(preterminal);
 }
