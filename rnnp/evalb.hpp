@@ -7,7 +7,6 @@
 #define __RNNP__EVALB__HPP__ 1
 
 #include <cstddef>
-#include <cstdint>
 
 #include <rnnp/symbol.hpp>
 #include <rnnp/span.hpp>
