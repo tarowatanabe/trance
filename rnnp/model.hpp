@@ -11,6 +11,7 @@
 
 #include <rnnp/symbol.hpp>
 #include <rnnp/grammar.hpp>
+#include <rnnp/signature.hpp>
 
 #include <utils/bithack.hpp>
 
@@ -31,7 +32,8 @@ namespace rnnp
     typedef Symbol symbol_type;
     typedef Symbol word_type;
 
-    typedef Grammar grammar_type;
+    typedef Grammar   grammar_type;
+    typedef Signature signature_type;
 
     typedef std::vector<word_type, std::allocator<word_type> > word_set_type;
     typedef std::vector<bool, std::allocator<bool> >           word_map_type;
@@ -221,7 +223,20 @@ namespace rnnp
 				    symbol_type::UNK.id(),
 				    x.id());
     }
-
+    
+    word_type::id_type terminal(const signature_type& signature, const word_type& x) const
+    {
+      if (x.id() < vocab_terminal_.size() && vocab_terminal_[x.id()])
+	return x.id();
+      else {
+	const word_type sig = signature(x);
+	
+	return utils::bithack::branch(sig.id() >= vocab_terminal_.size() || ! vocab_terminal_[sig.id()],
+				      symbol_type::UNK.id(),
+				      sig.id());
+      }
+    }
+    
     size_type offset_classification(const symbol_type& x) const
     {
       return x.non_terminal_id();

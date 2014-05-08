@@ -57,6 +57,12 @@ namespace rnnp
 	}
       }
 
+      static inline
+      double learning_rate(const double& eta0, const double& g)
+      {
+	return eta0 / std::sqrt(1.0 + g);
+      }
+
       template <typename Theta, typename GVar>
       struct update_visitor_regularize
       {
@@ -77,9 +83,9 @@ namespace rnnp
 	{
 	  if (g_(i, j) == 0) return;
 	
-	  G_(i, j) += g_(i, j) * g_(i, j) * scale_ * scale_;
-	
-	  const double rate = eta0_ / std::sqrt(double(1.0) + G_(i, j));
+	  G_(i, j) += (g_(i, j) * scale_) * (g_(i, j) * scale_);
+	  
+	  const double rate = learning_rate(eta0_, G_(i, j));
 	  const double x1 = theta_(i, j) - rate * scale_ * g_(i, j);
 	
 	  theta_(i, j) = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
@@ -108,16 +114,14 @@ namespace rnnp
 	{
 	  operator()(value, i, j);
 	}
-      
+	
 	void operator()(const tensor_type::Scalar& value, tensor_type::Index i, tensor_type::Index j)
 	{
 	  if (g_(i, j) == 0) return;
+
+	  G_(i, j) += (g_(i, j) * scale_) * (g_(i, j) * scale_);
 	  
-	  G_(i, j) += g_(i, j) * g_(i, j) * scale_ * scale_;
-	  
-	  const double rate = eta0_ / std::sqrt(double(1.0) + G_(i, j));
-	  
-	  theta_(i, j) -= rate * scale_ * g_(i, j);
+	  theta_(i, j) -= learning_rate(eta0_, G_(i, j)) * scale_ * g_(i, j);
 	}
       
 	Eigen::MatrixBase<Theta>& theta_;
@@ -142,9 +146,9 @@ namespace rnnp
 	  
 	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
 	      if (g(row, 0) != 0.0) {
-		G(row, col) +=  g(row, 0) * g(row, 0) * scale * scale;
+		G(row, col) +=  (g(row, 0) * scale) * (g(row, 0) * scale);
 		
-		const double rate = eta0_ / std::sqrt(double(1.0) + G(row, col));
+		const double rate = learning_rate(eta0_, G(row, col));
 		const double x1 = theta(row, col) - rate * scale * g(row, 0);
 		
 		theta(row, col) = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
@@ -158,11 +162,9 @@ namespace rnnp
 	  
 	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
 	      if (g(row, 0) != 0.0) {
-		G(row, col) +=  g(row, 0) * g(row, 0) * scale * scale;
+		G(row, col) +=  (g(row, 0) * scale) * (g(row, 0) * scale);
 		
-		const double rate = eta0_ / std::sqrt(double(1.0) + G(row, col));
-		
-		theta(row, col) -= rate * scale * g(row, 0);
+		theta(row, col) -= learning_rate(eta0_, G(row, col)) * scale * g(row, 0);
 	      }
 	  }
 	}
@@ -187,11 +189,11 @@ namespace rnnp
 	    for (tensor_type::Index col = 0; col != g.cols(); ++ col) 
 	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
 		if (g(row, col) != 0) {
-		  G.block(offset, 0, rows, cols)(row, col) += g(row, col) * g(row, col) * scale * scale;
+		  G.block(offset, 0, rows, cols)(row, col) += (g(row, col) * scale) * (g(row, col) * scale);
 		  
 		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
 		  
-		  const double rate = eta0_ / std::sqrt(double(1.0) + G.block(offset, 0, rows, cols)(row, col));
+		  const double rate = learning_rate(eta0_, G.block(offset, 0, rows, cols)(row, col));
 		  const double x1 = x - rate * scale * g(row, col);
 		  
 		  x = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
@@ -209,9 +211,9 @@ namespace rnnp
 	    for (tensor_type::Index col = 0; col != g.cols(); ++ col) 
 	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
 		if (g(row, col) != 0) {
-		  G.block(offset, 0, rows, cols)(row, col) += g(row, col) * g(row, col) * scale * scale;
+		  G.block(offset, 0, rows, cols)(row, col) += (g(row, col) * scale) * (g(row, col) * scale);
 		  
-		  const double rate = eta0_ / std::sqrt(double(1.0) + G.block(offset, 0, rows, cols)(row, col));
+		  const double rate = learning_rate(eta0_, G.block(offset, 0, rows, cols)(row, col));
 		  
 		  theta.block(offset, 0, rows, cols)(row, col) -= rate * scale * g(row, col);
 		}

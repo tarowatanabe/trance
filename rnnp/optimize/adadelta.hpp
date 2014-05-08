@@ -62,6 +62,12 @@ namespace rnnp
 	}
       }
 
+      static inline
+      double learning_rate(const double& eta0, const double& x, const double& g)
+      {
+	return std::sqrt(eta0 + x) / std::sqrt(eta0 + g);
+      }
+
       template <typename Theta, typename GVar, typename XVar>
       struct update_visitor_regularize
       {
@@ -83,9 +89,9 @@ namespace rnnp
 	{
 	  if (g_(i, j) == 0) return;
 	
-	  G_(i, j) = G_(i, j) * 0.95 + g_(i, j) * g_(i, j) * scale_ * scale_;
+	  G_(i, j) = G_(i, j) * 0.95 + (g_(i, j) * scale_) * (g_(i, j) * scale_);
 	
-	  const double rate = std::sqrt(eta0_ + X_(i, j)) / std::sqrt(eta0_ + G_(i, j));
+	  const double rate = learning_rate(eta0_, X_(i, j), G_(i, j));
 	  const double x1 = theta_(i, j) - rate * scale_ * g_(i, j);
 	  const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
 	
@@ -124,9 +130,9 @@ namespace rnnp
 	{
 	  if (g_(i, j) == 0) return;
 	
-	  G_(i, j) = G_(i, j) * 0.95 + g_(i, j) * g_(i, j) * scale_ * scale_;
+	  G_(i, j) = G_(i, j) * 0.95 + (g_(i, j) * scale_) * (g_(i, j) * scale_);
 	  
-	  const double rate = std::sqrt(eta0_ + X_(i, j)) / std::sqrt(eta0_ + G_(i, j));
+	  const double rate = learning_rate(eta0_, X_(i, j), G_(i, j));
 	  const double x1 = theta_(i, j) - rate * scale_ * g_(i, j);
 	  
 	  X_(i, j) = X_(i, j) * 0.95 + (x1 - theta_(i, j)) * (x1 - theta_(i, j));
@@ -158,9 +164,9 @@ namespace rnnp
 	    
 	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
 	      if (g(row, 0) != 0.0) {
-		G(row, col) = G(row, col) * 0.95 + g(row, 0) * g(row, 0) * scale * scale;
+		G(row, col) = G(row, col) * 0.95 + (g(row, 0) * scale) * (g(row, 0) * scale);
 		
-		const double rate = std::sqrt(eta0_ + X(row, col)) / std::sqrt(eta0_ + G(row, col));
+		const double rate = learning_rate(eta0_, X(row, col), G(row, col));
 		const double x1 = theta(row, col) - rate * scale * g(row, 0);
 		const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
 		
@@ -177,9 +183,9 @@ namespace rnnp
 	    
 	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
 	      if (g(row, 0) != 0.0) {
-		G(row, col) = G(row, col) * 0.95 + g(row, 0) * g(row, 0) * scale * scale;
+		G(row, col) = G(row, col) * 0.95 + (g(row, 0) * scale) * (g(row, 0) * scale);
 		
-		const double rate = std::sqrt(eta0_ + X(row, col)) / std::sqrt(eta0_ + G(row, col));
+		const double rate = learning_rate(eta0_,  X(row, col), G(row, col));
 		const double x1 = theta(row, col) - rate * scale * g(row, 0);
 		
 		X(row, col) = X(row, col) * 0.95 + (x1 - theta(row, col)) * (x1 - theta(row, col));
@@ -211,12 +217,13 @@ namespace rnnp
 	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
 		if (g(row, col) != 0) {
 		  G.block(offset, 0, rows, cols)(row, col) =
-		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + g(row, col) * g(row, col) * scale * scale;
+		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + (g(row, col) * scale) * (g(row, col) * scale);
 
 		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
 		  
-		  const double rate = (std::sqrt(eta0_ + X.block(offset, 0, rows, cols)(row, col))
-				       / std::sqrt(eta0_ + G.block(offset, 0, rows, cols)(row, col)));
+		  const double rate = learning_rate(eta0_,
+						    X.block(offset, 0, rows, cols)(row, col),
+						    G.block(offset, 0, rows, cols)(row, col));
 		  
 		  const double x1 = x - rate * scale * g(row, col);
 		  const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
@@ -240,12 +247,13 @@ namespace rnnp
 	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
 		if (g(row, col) != 0) {
 		  G.block(offset, 0, rows, cols)(row, col) =
-		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + g(row, col) * g(row, col) * scale * scale;
+		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + (g(row, col) * scale) * (g(row, col) * scale);
 
 		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
 		  
-		  const double rate = (std::sqrt(eta0_ + X.block(offset, 0, rows, cols)(row, col))
-				       / std::sqrt(eta0_ + G.block(offset, 0, rows, cols)(row, col)));
+		  const double rate = learning_rate(eta0_,
+						    X.block(offset, 0, rows, cols)(row, col),
+						    G.block(offset, 0, rows, cols)(row, col));
 		  const double x1 = x - rate * scale * g(row, col);
 		  
 		  X.block(offset, 0, rows, cols)(row, col)
