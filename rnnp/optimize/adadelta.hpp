@@ -65,7 +65,7 @@ namespace rnnp
       static inline
       double learning_rate(const double& eta0, const double& x, const double& g)
       {
-	return std::sqrt(eta0 + x) / std::sqrt(eta0 + g);
+	return std::min(1.0, std::sqrt(eta0 + x) / std::sqrt(eta0 + g));
       }
 
       template <typename Theta, typename GVar, typename XVar>

@@ -60,7 +60,7 @@ namespace rnnp
       static inline
       double learning_rate(const double& eta0, const double& g)
       {
-	return eta0 / std::sqrt(1.0 + g);
+	return std::min(1.0, eta0 / std::sqrt(1.0 + g));
       }
 
       template <typename Theta, typename GVar>
@@ -185,7 +185,7 @@ namespace rnnp
 	    const size_type offset = rows * giter->first.non_terminal_id();
 	    
 	    const tensor_type& g = giter->second;
-
+	    
 	    for (tensor_type::Index col = 0; col != g.cols(); ++ col) 
 	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
 		if (g(row, col) != 0) {
