@@ -87,7 +87,7 @@ namespace rnnp
     typedef std::pair<span_type, symbol_type> stat_type;
     typedef utils::compact_set<stat_type,
 			       utils::unassigned<stat_type>, utils::unassigned<stat_type>,
-			       utils::hashmurmur3<size_t>, std::equal_to<stat_type>,
+			       boost::hash<stat_type>, std::equal_to<stat_type>,
 			       std::allocator<stat_type> > stat_set_type;
     
   public:

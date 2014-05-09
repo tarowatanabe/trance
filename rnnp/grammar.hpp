@@ -40,7 +40,7 @@ namespace rnnp
     
     typedef std::pair<symbol_type, symbol_type> symbol_pair_type;
     typedef utils::unordered_map<symbol_pair_type, rule_set_type,
-				 utils::hashmurmur3<size_t>, std::equal_to<symbol_pair_type>,
+				 boost::hash<symbol_pair_type>, std::equal_to<symbol_pair_type>,
 				 std::allocator<std::pair<const symbol_pair_type, rule_set_type> > >::type rule_set_binary_type;
     
     typedef utils::unordered_map<symbol_type, rule_set_type,
