@@ -50,6 +50,7 @@ binarize_right.hpp \
 debinarize.hpp \
 derivation.hpp \
 evalb.hpp \
+forest.hpp \
 gradient.hpp \
 grammar.hpp \
 graphviz.hpp \
@@ -72,6 +73,7 @@ symbol.hpp \
 tree.hpp
 
 librnnp_la_SOURCES = \
+forest.cpp \
 gradient.cpp \
 grammar.cpp \
 graphviz.cpp \
