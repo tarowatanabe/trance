@@ -49,6 +49,7 @@ path_type input_file = "-";
 path_type output_file = "-";
 
 bool simple_mode = false;
+bool forest_mode = false;
 
 path_type grammar_file;
 std::string signature_name = "none";
@@ -92,6 +93,9 @@ int main(int argc, char** argv)
 
     if (simple_mode && kbest_size > 1)
       throw std::runtime_error("--simple assumes --kbest 1");
+
+    if (simple_mode && forest_mode)
+      throw std::runtime_error("either one of --simple or --forest");
 
     if (grammar_file  != "-" && ! boost::filesystem::exists(grammar_file))
       throw std::runtime_error("no grammar file? " + grammar_file.string());
@@ -267,6 +271,10 @@ struct Mapper : public MapReduce
 	  os << derivation.tree_ << '\n';
 	} else
 	  os << "(())" << '\n';
+      } else if (forest_mode) {
+	derivation.assign(derivations);
+
+	os << reduced.id_ << " ||| " << derivation.forest_ << '\n';
       } else {
 	if (! derivations.empty()) {
 	  namespace karma = boost::spirit::karma;
@@ -456,6 +464,7 @@ void options(int argc, char** argv)
     ("output",    po::value<path_type>(&output_file)->default_value(output_file), "output file")
     
     ("simple",    po::bool_switch(&simple_mode), "output parse tree only")
+    ("forest",    po::bool_switch(&forest_mode), "output forest")
     
     ("grammar",    po::value<path_type>(&grammar_file),                                    "grammar file")
     ("signature",  po::value<std::string>(&signature_name)->default_value(signature_name), "language specific signature")

@@ -215,6 +215,14 @@ namespace rnnp
       sorted.swap(sorted_new);
     }
   };
+  
+  template <typename Filter>
+  inline
+  void topologically_sort(const Forest& source, Forest& target, Filter filter)
+  {
+    SortTopologically sorter;
+    sorter(source, target, filter);
+  }
 
   inline
   void topologically_sort(const Forest& source, Forest& target)

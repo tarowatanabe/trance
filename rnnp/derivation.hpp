@@ -11,7 +11,11 @@
 #include <rnnp/symbol.hpp>
 #include <rnnp/parser.hpp>
 #include <rnnp/tree.hpp>
+#include <rnnp/forest.hpp>
 #include <rnnp/debinarize.hpp>
+#include <rnnp/sort.hpp>
+
+#include <utils/compact_map.hpp>
 
 namespace rnnp
 {
@@ -34,18 +38,65 @@ namespace rnnp
     
     typedef parser_type::state_type   state_type;
     
+    typedef parser_type::derivation_set_type derivation_set_type;
+
+    typedef Forest forest_type;
+
+    typedef utils::compact_map<state_type, forest_type::id_type,
+			       utils::unassigned<state_type>, utils::unassigned<state_type>,
+			       boost::hash<state_type>, std::equal_to<state_type>,
+			       std::allocator<std::pair<const state_type, forest_type::id_type> > > state_map_type;
+    
   public:
     Derivation() {}
     Derivation(const state_type& state) { assign(state); }
+    Derivation(const derivation_set_type& derivations) { assign(derivations.begin(), derivations.end()); }
+    template <typename Iterator>
+    Derivation(Iterator first, Iterator last) { assign(first, last); }
     
   public:
-
     void assign(state_type state)
     {
-      assign(state, binarized_);
-      debinarize(binarized_, tree_);
+      clear();
+      
+      assign(state, tree_binarized_);
+      debinarize(tree_binarized_, tree_);
     }
+    
+    void assign(const derivation_set_type& derivations)
+    {
+      assign(derivations.begin(), derivations.end());
+    }
+    
+    template <typename Iterator>
+    void assign(Iterator first, Iterator last)
+    {
+      clear();
+      
+      if (first == last) return;
+      
+      forest_binarized_.goal_ = forest_binarized_.add_node().id_;
+      
+      for (/**/; first != last; ++ first)
+	assign(*first, forest_binarized_);
 
+      topologically_sort(forest_binarized_);
+
+      debinarize(forest_binarized_, forest_);
+    }
+    
+    void clear()
+    {
+      tree_binarized_.clear();
+      tree_.clear();
+      
+      forest_binarized_.clear();
+      forest_.clear();
+
+      states_.clear();
+    }
+    
+  private:
     void assign(state_type state, tree_type& tree)
     {
       switch (state.operation().operation()) {
@@ -72,17 +123,106 @@ namespace rnnp
 	break;
       }
     }
-    
-    void clear()
+
+    void assign(state_type state, forest_type& forest)
     {
-      binarized_.clear();
-      tree_.clear();
+      bool visited = false;
+      double score_accumulated = 0;
+
+      while (state && ! visited) {
+	switch (state.operation().operation()) {
+	case operation_type::AXIOM:
+	  break;
+	case operation_type::FINAL:
+	  score_accumulated += state.score() - state.derivation().score();
+	  
+	  states_.insert(std::make_pair(state.derivation(), forest.goal_));
+	  break;
+	case operation_type::IDLE:
+	  score_accumulated += state.score() - state.derivation().score();
+	  break;
+	case operation_type::UNARY: {
+	  std::pair<state_map_type::iterator, bool> parent = states_.insert(std::make_pair(state, 0));
+	  if (parent.second)
+	    parent.first->second = forest.add_node().id_;
+	  
+	  std::pair<state_map_type::iterator, bool> antecedent = states_.insert(std::make_pair(state.derivation(), 0));
+	  if (antecedent.second)
+	    antecedent.first->second = forest.add_node().id_;
+	  else
+	    visited = true;
+	  
+	  const forest_type::id_type&     tail = antecedent.first->second;
+	  const forest_type::symbol_type& rhs  = state.derivation().label();
+	  
+	  forest_type::edge_type& edge = forest.add_edge(&tail, (&tail) + 1);
+	  
+	  edge.score_ = state.score() - state.derivation().score() + score_accumulated;
+	  edge.rule_ = forest_type::rule_type(state.label(), &rhs, (&rhs) + 1);
+	  
+	  forest.connect_edge(edge.id_, parent.first->second);
+	  score_accumulated = 0;
+	} break;
+	case operation_type::SHIFT: {
+	  std::pair<state_map_type::iterator, bool> parent = states_.insert(std::make_pair(state, 0));
+	  if (parent.second)
+	    parent.first->second = forest.add_node().id_;
+	  
+	  const forest_type::symbol_type& rhs = state.derivation().head();
+	  
+	  forest_type::edge_type& edge = forest.add_edge();
+	  
+	  edge.score_ = state.score() - state.derivation().score() + score_accumulated;
+	  edge.rule_ = forest_type::rule_type(state.label(), &rhs, (&rhs) + 1);
+	  
+	  forest.connect_edge(edge.id_, parent.first->second);
+	  score_accumulated = 0;
+	} break;
+	case operation_type::REDUCE: {
+	  std::pair<state_map_type::iterator, bool> parent = states_.insert(std::make_pair(state, 0));
+	  if (parent.second)
+	    parent.first->second = forest.add_node().id_;
+	  
+	  std::pair<state_map_type::iterator, bool> antecedent1 = states_.insert(std::make_pair(state.reduced(), 0));
+	  if (antecedent1.second)
+	    antecedent1.first->second = forest.add_node().id_;
+	  
+	  std::pair<state_map_type::iterator, bool> antecedent2 = states_.insert(std::make_pair(state.derivation(), 0));
+	  if (antecedent2.second)
+	    antecedent2.first->second = forest.add_node().id_;
+	  else
+	    visited = true;
+	  
+	  forest_type::id_type tail[2];
+	  tail[0] = antecedent1.first->second;
+	  tail[1] = antecedent2.first->second;
+	  
+	  forest_type::symbol_type rhs[2];
+	  rhs[0] = state.reduced().label();
+	  rhs[1] = state.derivation().label();
+	  
+	  forest_type::edge_type& edge = forest.add_edge(tail, tail + 2);
+	  
+	  edge.score_ = state.score() - state.derivation().score() + score_accumulated;
+	  edge.rule_ = forest_type::rule_type(state.label(), rhs, rhs + 2);
+	  
+	  forest.connect_edge(edge.id_, parent.first->second);
+	  score_accumulated = 0;
+	} break;
+	}
+	
+	state = state.derivation();
+      }
     }
-    
-    
+
   public:    
-    tree_type binarized_;
+    tree_type tree_binarized_;
     tree_type tree_;
+    
+    forest_type forest_binarized_;
+    forest_type forest_;
+    
+    state_map_type states_;
   };
 };
 
