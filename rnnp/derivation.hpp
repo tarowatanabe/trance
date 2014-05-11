@@ -16,6 +16,7 @@
 #include <rnnp/sort.hpp>
 
 #include <utils/compact_map.hpp>
+#include <utils/compact_set.hpp>
 
 namespace rnnp
 {
@@ -46,6 +47,10 @@ namespace rnnp
 			       utils::unassigned<state_type>, utils::unassigned<state_type>,
 			       boost::hash<state_type>, std::equal_to<state_type>,
 			       std::allocator<std::pair<const state_type, forest_type::id_type> > > state_map_type;
+    typedef utils::compact_set<state_type,
+			       utils::unassigned<state_type>, utils::unassigned<state_type>,
+			       boost::hash<state_type>, std::equal_to<state_type>,
+			       std::allocator<state_type > > visited_type;
     
   public:
     Derivation() {}
@@ -94,6 +99,7 @@ namespace rnnp
       forest_.clear();
 
       states_.clear();
+      visited_.clear();
     }
     
   private:
@@ -126,10 +132,11 @@ namespace rnnp
 
     void assign(state_type state, forest_type& forest)
     {
-      bool visited = false;
       double score_accumulated = 0;
 
-      while (state && ! visited) {
+      while (state) {
+	if (! visited_.insert(state).second) break;
+	
 	switch (state.operation().operation()) {
 	case operation_type::AXIOM:
 	  break;
@@ -149,8 +156,6 @@ namespace rnnp
 	  std::pair<state_map_type::iterator, bool> antecedent = states_.insert(std::make_pair(state.derivation(), 0));
 	  if (antecedent.second)
 	    antecedent.first->second = forest.add_node().id_;
-	  else
-	    visited = true;
 	  
 	  const forest_type::id_type&     tail = antecedent.first->second;
 	  const forest_type::symbol_type& rhs  = state.derivation().label();
@@ -167,8 +172,8 @@ namespace rnnp
 	  std::pair<state_map_type::iterator, bool> parent = states_.insert(std::make_pair(state, 0));
 	  if (parent.second)
 	    parent.first->second = forest.add_node().id_;
-	  
-	  const forest_type::symbol_type& rhs = state.derivation().head();
+
+	  const forest_type::symbol_type& rhs = state.head();
 	  
 	  forest_type::edge_type& edge = forest.add_edge();
 	  
@@ -190,8 +195,6 @@ namespace rnnp
 	  std::pair<state_map_type::iterator, bool> antecedent2 = states_.insert(std::make_pair(state.derivation(), 0));
 	  if (antecedent2.second)
 	    antecedent2.first->second = forest.add_node().id_;
-	  else
-	    visited = true;
 	  
 	  forest_type::id_type tail[2];
 	  tail[0] = antecedent1.first->second;
@@ -223,6 +226,7 @@ namespace rnnp
     forest_type forest_;
     
     state_map_type states_;
+    visited_type   visited_;
   };
 };
 
