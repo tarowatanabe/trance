@@ -67,6 +67,7 @@ rule.hpp \
 semiring.hpp \
 sentence.hpp \
 signature.hpp \
+sort.hpp \
 span.hpp \
 state.hpp \
 symbol.hpp \
@@ -104,11 +105,15 @@ librnnp_la_LIBADD = \
 	$(ICU_LDFLAGS)
 
 noinst_PROGRAMS = \
+forest_main \
 grammar_main \
 oracle_main \
 rule_main \
 signature_main \
 tree_main
+
+forest_main_SOURCES  = forest_main.cpp 
+forest_main_LDADD    = librnnp.la
 
 grammar_main_SOURCES  = grammar_main.cpp 
 grammar_main_LDADD    = librnnp.la

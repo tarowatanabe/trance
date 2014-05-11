@@ -20,6 +20,7 @@
 #include <iterator>
 
 #include "forest.hpp"
+#include "sort.hpp"
 
 #include "utils/getline.hpp"
 
@@ -78,6 +79,8 @@ namespace rnnp
     goal_ = add_node().id_;
     
     assign_tree(goal_, tree, *this);
+    
+    topologically_sort(*this);
   }
   
   template <typename Iterator>
@@ -149,7 +152,7 @@ namespace rnnp
     namespace qi = boost::spirit::qi;
     namespace standard = boost::spirit::standard;
     
-    
+    throw std::runtime_error("parsing is not supported!");
     
     return true;
   }
@@ -249,7 +252,7 @@ namespace rnnp
 	karma::generate(iter, karma::lit("\"feature\":{") << karma::lit("\"score\":") << karma::double_ << "},", edge.score_);
 	
 	// rule
-	karma::generate(iter, karma::lit("\"rule\":") << karma::uint_generator<Forest::id_type>(), edge.id_);
+	karma::generate(iter, karma::lit("\"rule\":") << karma::uint_generator<Forest::id_type>(), edge.id_ + 1);
 	
 	karma::generate(iter, '}');
       }

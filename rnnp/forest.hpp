@@ -117,6 +117,16 @@ namespace rnnp
       
       return edges_.back();
     }
+
+    edge_type& add_edge(const edge_type& edge)
+    {
+      const id_type edge_id = edges_.size();
+      
+      edges_.push_back(edge);
+      edges_.back().id_ = edge_id;
+      
+      return edges_.back();
+    }
     
     template <typename Iterator>
     edge_type& add_edge(Iterator first, Iterator last)
@@ -156,6 +166,15 @@ namespace rnnp
     edge_set_type edges_;
     id_type goal_;
   };
+};
+
+namespace std
+{
+  inline
+  void swap(rnnp::Forest& x, rnnp::Forest& y)
+  {
+    x.swap(y);
+  }
 };
 
 #endif
