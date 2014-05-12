@@ -104,7 +104,7 @@ namespace rnnp
 		operation_reduce(state, action.label_, theta);
 		break;
 	      case operation_type::UNARY:
-		if(state.unary() >= unary_max || state.operation().closure() >= unary_size_)
+		if (state.unary() >= unary_max || state.operation().closure() >= unary_size_)
 		  throw std::runtime_error("invalid unary!");
 		
 		operation_unary(state, action.label_, theta);

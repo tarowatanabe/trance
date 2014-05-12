@@ -273,7 +273,7 @@ namespace rnnp
     karma::generate(iter, ']');
     
     // Third, output goal
-    if (forest.is_valid())
+    if (forest.valid())
       karma::generate(iter, karma::lit(", \"goal\": ") << karma::uint_generator<Forest::id_type>(), forest.goal_);
     
     karma::generate(iter, '}');

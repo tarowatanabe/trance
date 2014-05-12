@@ -85,7 +85,7 @@ namespace rnnp
     {
       target = source;
       
-      if (! source.is_valid())
+      if (! source.valid())
 	return;
       
       removed_type remove_edges(target.edges_.size(), false);

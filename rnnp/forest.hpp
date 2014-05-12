@@ -36,14 +36,14 @@ namespace rnnp
     typedef Tree tree_type;
     
   public:
-    static const id_type invalid = id_type(-1);
+    static const id_type Invalid = id_type(-1);
 
   public:
     struct Node
     {
       typedef std::vector<id_type, std::allocator<id_type> > edge_set_type;
 
-      Node() : id_(invalid) {}
+      Node() : id_(Invalid) {}
       
       edge_set_type edges_;
       id_type       id_;
@@ -54,10 +54,10 @@ namespace rnnp
       typedef utils::small_vector<id_type, std::allocator<id_type> > node_set_type;
 
       Edge()
-	: rule_(), score_(0), tail_(), head_(invalid), id_(invalid) {}
+	: rule_(), score_(0), tail_(), head_(Invalid), id_(Invalid) {}
       template <typename Iterator>
       Edge(Iterator first, Iterator last)
-	: rule_(), score_(0), tail_(first, last), head_(invalid), id_(invalid) {}
+	: rule_(), score_(0), tail_(first, last), head_(Invalid), id_(Invalid) {}
       
       rule_type  rule_;
       score_type score_;
@@ -76,7 +76,7 @@ namespace rnnp
     typedef utils::chunk_vector<edge_type, 4096 / sizeof(edge_type), std::allocator<edge_type> > edge_set_type;
 
   public:
-    Forest() : nodes_(), edges_(), goal_(invalid) {}
+    Forest() : nodes_(), edges_(), goal_(Invalid) {}
     Forest(const tree_type& tree) { assign(tree); }
     Forest(const utils::piece& x) { assign(x); }
 
@@ -92,7 +92,7 @@ namespace rnnp
     {
       nodes_.clear();
       edges_.clear();
-      goal_ = invalid;
+      goal_ = Invalid;
     }
 
     void swap(Forest& x)
@@ -102,9 +102,9 @@ namespace rnnp
       std::swap(goal_, x.goal_);
     }
 
-    bool is_valid() const
+    bool valid() const
     {
-      return goal_ != invalid;
+      return goal_ != Invalid;
     }
 
   public:

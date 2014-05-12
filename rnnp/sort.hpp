@@ -88,7 +88,7 @@ namespace rnnp
     {
       sorted.clear();
       
-      if (! forest.is_valid()) return;
+      if (! forest.valid()) return;
       
       id_unique_type edges_cycle;
       id_unique_type nodes_empty;
