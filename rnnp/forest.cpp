@@ -190,6 +190,15 @@ namespace rnnp
     boost::spirit::karma::rule<Iterator, rule_type()> rule;
   };
 
+  template <typename Float>
+  struct real_precision10 : boost::spirit::karma::real_policies<Float>
+  {
+    static unsigned int precision(Float) 
+    { 
+      return 10;
+    }
+  };
+  
   template <typename Iterator>
   bool forest_generator(Iterator iter, const Forest& forest)
   {
@@ -203,6 +212,7 @@ namespace rnnp
     namespace standard = boost::spirit::standard;
     
     rule_generator<Iterator> rule;
+    karma::real_generator<double, real_precision10<double> > double10;
     
     karma::generate(iter, '{');
     
@@ -249,7 +259,7 @@ namespace rnnp
 	  karma::generate(iter, karma::lit("\"tail\":[") << (karma::uint_generator<Forest::id_type>() % ',') << "],", edge.tail_);
 	
 	// score
-	karma::generate(iter, karma::lit("\"feature\":{") << karma::lit("\"score\":") << karma::double_ << "},", edge.score_);
+	karma::generate(iter, karma::lit("\"feature\":{") << karma::lit("\"score\":") << double10 << "},", edge.score_);
 	
 	// rule
 	karma::generate(iter, karma::lit("\"rule\":") << karma::uint_generator<Forest::id_type>(), edge.id_ + 1);

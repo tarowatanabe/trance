@@ -91,11 +91,11 @@ int main(int argc, char** argv)
     if (unary_size < 0)
       throw std::runtime_error("invalid unary size: " + utils::lexical_cast<std::string>(unary_size));
 
-    if (simple_mode && kbest_size > 1)
-      throw std::runtime_error("--simple assumes --kbest 1");
-
     if (simple_mode && forest_mode)
       throw std::runtime_error("either one of --simple or --forest");
+
+    if (simple_mode && kbest_size > 1)
+      throw std::runtime_error("--simple assumes --kbest 1");
 
     if (grammar_file  != "-" && ! boost::filesystem::exists(grammar_file))
       throw std::runtime_error("no grammar file? " + grammar_file.string());
