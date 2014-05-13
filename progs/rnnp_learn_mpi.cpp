@@ -340,7 +340,7 @@ struct Task
       bool found = false;
       
       if (! merge_finished && ! batch_learn)
-	while (gradient_reducer_.pop(encoded, true)) {
+	while (gradient_reducer_.pop_swap(encoded, true)) {
 	  if (encoded.empty()) 
 	    merge_finished = true;
 	  else {
@@ -668,6 +668,11 @@ void learn_root(const Optimizer& optimizer,
 	found = true;
       }
       
+      if (! tree_finished && id == working.size()) {
+	tree_mapper.push(tree_type());
+	tree_finished = true;
+      }
+      
       // terminate tree mapping
       if (tree_finished)
 	for (int rank = 1; rank != mpi_size; ++ rank)
@@ -680,7 +685,7 @@ void learn_root(const Optimizer& optimizer,
 	    found = true;
 	  }
       
-            // reduce gradients
+      // reduce gradients
       for (int rank = 0; rank != mpi_size; ++ rank)
 	if (rank != mpi_rank && gradient_istream[rank] && gradient_istream[rank]->test()) {
 	  if (gradient_istream[rank]->read(buffer))
@@ -901,7 +906,7 @@ void learn_others(const Optimizer& optimizer,
       if (tree_istream && tree_istream->test() && tree_mapper.empty()) {
 	if (tree_istream->read(line)) {
 	  tree.assign(line);
-	  
+
 	  tree_mapper.push_swap(tree);
 	} else {
 	  tree_istream.reset();
@@ -1064,7 +1069,7 @@ void learn(const option_type& option,
 	   model_type& theta,
 	   Gen& gen)
 {
-  if (debug)
+  if (MPI::COMM_WORLD.Get_rank() == 0 && debug)
     std::cerr << "learning: " << option << std::endl;
 
   if (option.optimize_adagrad())

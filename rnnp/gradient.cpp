@@ -69,7 +69,7 @@ namespace rnnp
     for (typename Embedding::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
       if (rows == size_t(-1)) {
 	rows = eiter->second.rows();
-	cols = eiter->second.rows();
+	cols = eiter->second.cols();
 	
 	os.write((char*) &rows, sizeof(size_t));
 	os.write((char*) &cols, sizeof(size_t));
@@ -106,7 +106,7 @@ namespace rnnp
     is.read((char*) &rows, sizeof(size_t));
     is.read((char*) &cols, sizeof(size_t));
     
-    for (size_t i = 0; i != cols; ++ i) {
+    for (size_t i = 0; i != size; ++ i) {
       size_t word_size = 0;
       is.read((char*) &word_size, sizeof(size_t));
       
