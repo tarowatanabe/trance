@@ -16,6 +16,7 @@ bin_PROGRAMS = \
 	rnnp_grammar \
 	rnnp_graphviz \
 	rnnp_learn \
+	rnnp_learn_mpi \
 	rnnp_parse \
 	rnnp_oracle \
 	rnnp_treebank
@@ -31,6 +32,10 @@ rnnp_learn_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
 rnnp_parse_SOURCES = rnnp_parse.cpp
 rnnp_parse_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
+
+rnnp_learn_mpi_SOURCES = rnnp_learn_mpi.cpp
+rnnp_learn_mpi_CPPFLAGS = $(MPI_CPPFLAGS) $(AM_CPPFLAGS)
+rnnp_learn_mpi_LDADD   = $(MPI_LDFLAGS) $(LIBRNNP) $(LIBUTILS) $(LIBCODEC) $(boost_LDADD) $(perftools_LDADD)
 
 rnnp_oracle_SOURCES = rnnp_oracle.cpp
 rnnp_oracle_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
