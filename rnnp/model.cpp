@@ -544,7 +544,10 @@ namespace rnnp
     is.read((char*) &rows,      sizeof(size_type));
     is.read((char*) &cols,      sizeof(size_type));
     is.read((char*) &num_words, sizeof(size_type));
-
+    
+    if (embedding.rows() != rows)
+      embedding.conservativeResize(rows, embedding.cols());
+    
     words.clear();
     
     for (size_type i = 0; i != num_words; ++ i) {
