@@ -137,7 +137,7 @@ namespace rnnp
 	  const state_type& state = *hiter;
 	  
 	  if (state.operation().finished())
-	    operation_idle(state, grammar.goal_, theta);
+	    operation_idle(state, theta);
 	  else {
 	    // we perform shift..
 	    if (state.next() < input.size()) {
@@ -162,7 +162,7 @@ namespace rnnp
 		&& state.stack().label() == symbol_type::EPSILON
 		&& state.label() == grammar.goal_
 		&& state.next() == input.size())
-	      operation_final(state, grammar.goal_, theta);
+	      operation_final(state, theta);
 	    
 	    // we will perform reduce
 	    if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
@@ -198,7 +198,7 @@ namespace rnnp
 	    const state_type& state = *hiter;
 	    
 	    if (state.operation().finished())
-	      operation_idle(state, grammar.goal_, theta);
+	      operation_idle(state, theta);
 	    else {
 	      // we perform shift.... this should not happen, though..
 	      if (state.next() < input.size()) {
@@ -221,7 +221,7 @@ namespace rnnp
 		  && state.stack().label() == symbol_type::EPSILON
 		  && state.label() == grammar.goal_
 		  && state.next() == input.size())
-		operation_final(state, grammar.goal_, theta);
+		operation_final(state, theta);
 	      
 	      // we will perform reduce
 	      if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
@@ -301,13 +301,12 @@ namespace rnnp
       state_new.derivation() = state;
       state_new.reduced()    = state_type();
       
-      const size_type offset_grammar        = theta.offset_grammar(label);
       const size_type offset_classification = theta.offset_classification(label);
       
-      state_new.layer(theta.hidden_) = (theta.Bsh_.block(offset_grammar, 0, theta.hidden_, 1)
-					+ (theta.Wsh_.block(offset_grammar, offset1, theta.hidden_, theta.hidden_)
+      state_new.layer(theta.hidden_) = (theta.Bsh_
+					+ (theta.Wsh_.block(0, offset1, theta.hidden_, theta.hidden_)
 					   * state.layer(theta.hidden_))
-					+ (theta.Wsh_.block(offset_grammar, offset2, theta.hidden_, theta.embedding_)
+					+ (theta.Wsh_.block(0, offset2, theta.hidden_, theta.embedding_)
 					   * theta.terminal_.col(theta.terminal(head)))
 					).array().unaryExpr(model_type::activation());
       
@@ -343,13 +342,13 @@ namespace rnnp
       state_new.derivation() = state;
       state_new.reduced()    = state_reduced;
       
-      const size_type offset_grammar        = theta.offset_grammar(label);
+      const size_type offset_binary         = theta.offset_binary(state_reduced.label(), state.label());
       const size_type offset_classification = theta.offset_classification(label);
       
-      state_new.layer(theta.hidden_) = (theta.Bre_.block(offset_grammar, 0, theta.hidden_, 1)
-					+ (theta.Wre_.block(offset_grammar, offset1, theta.hidden_, theta.hidden_)
+      state_new.layer(theta.hidden_) = (theta.Bre_.block(offset_binary, 0, theta.hidden_, 1)
+					+ (theta.Wre_.block(offset_binary, offset1, theta.hidden_, theta.hidden_)
 					   * state.layer(theta.hidden_))
-					+ (theta.Wre_.block(offset_grammar, offset2, theta.hidden_, theta.hidden_)
+					+ (theta.Wre_.block(offset_binary, offset2, theta.hidden_, theta.hidden_)
 					   * state_reduced.layer(theta.hidden_))
 					).array().unaryExpr(model_type::activation());
       
@@ -379,11 +378,11 @@ namespace rnnp
       state_new.derivation() = state;
       state_new.reduced()    = state_type();
       
-      const size_type offset_grammar        = theta.offset_grammar(label);
+      const size_type offset_unary          = theta.offset_unary(state.label());
       const size_type offset_classification = theta.offset_classification(label);
       
-      state_new.layer(theta.hidden_) = (theta.Bu_.block(offset_grammar, 0, theta.hidden_, 1)
-					+ (theta.Wu_.block(offset_grammar, 0, theta.hidden_, theta.hidden_)
+      state_new.layer(theta.hidden_) = (theta.Bu_.block(offset_unary, 0, theta.hidden_, 1)
+					+ (theta.Wu_.block(offset_unary, 0, theta.hidden_, theta.hidden_)
 					   * state.layer(theta.hidden_))
 					).array().unaryExpr(model_type::activation());
       
@@ -395,7 +394,6 @@ namespace rnnp
     }
     
     void operation_final(const state_type& state,
-			 const symbol_type& goal,
 			 const model_type& theta)
     {
       state_type state_new = state_allocator_.allocate();
@@ -405,19 +403,20 @@ namespace rnnp
       state_new.unary() = state.unary();
       
       state_new.operation() = operation_type::FINAL;
-      state_new.label()     = goal;
+      state_new.label()     = symbol_type::FINAL;
       state_new.head()      = symbol_type::EPSILON;
       state_new.span()      = state.span();
       
       state_new.stack()      = state.stack();
       state_new.derivation() = state;
       state_new.reduced()    = state_type();
+
+      const size_type offset_classification = theta.offset_classification(symbol_type::FINAL);
       
       state_new.layer(theta.hidden_) = (theta.Bf_
 					+ theta.Wf_ * state.layer(theta.hidden_)
 					).array().unaryExpr(model_type::activation());
       
-      const size_type offset_classification = theta.offset_classification(goal);
       const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
       
       state_new.score() = state.score() + score;
@@ -426,7 +425,6 @@ namespace rnnp
     }
 
     void operation_idle(const state_type& state,
-			const symbol_type& goal,
 			const model_type& theta)
     {
       state_type state_new = state_allocator_.allocate();
@@ -436,19 +434,20 @@ namespace rnnp
       state_new.unary() = state.unary();
       
       state_new.operation() = operation_type::IDLE;
-      state_new.label()     = goal;
+      state_new.label()     = symbol_type::IDLE;
       state_new.head()      = symbol_type::EPSILON;
       state_new.span()      = state.span();
       
       state_new.stack()      = state.stack();
       state_new.derivation() = state;
       state_new.reduced()    = state_type();
+
+      const size_type offset_classification = theta.offset_classification(symbol_type::IDLE);
       
       state_new.layer(theta.hidden_) = (theta.Bi_
 					+ theta.Wi_ * state.layer(theta.hidden_)
 					).array().unaryExpr(model_type::activation());
       
-      const size_type offset_classification = theta.offset_classification(goal);
       const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
       
       state_new.score() = state.score() + score;

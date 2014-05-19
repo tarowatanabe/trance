@@ -37,28 +37,28 @@ namespace rnnp
 	model_type& G = const_cast<model_type&>(G_);
       
 	if (option.learn_embedding())
-	  update_embedding(theta.terminal_, G.terminal_, gradient.terminal_, scale);
+	  update(theta, theta.terminal_, G.terminal_, gradient.terminal_, scale, false);
 	
 	if (option.learn_classification())
-	  update(theta.Wc_, G.Wc_, gradient.Wc_, scale, lambda_ != 0.0);
+	  update(theta, theta.Wc_, G.Wc_, gradient.Wc_, scale, lambda_ != 0.0);
 	
 	if (option.learn_hidden()) {
-	  update(theta.Wsh_, G.Wsh_, gradient.Wsh_, scale, lambda_ != 0.0);
-	  update(theta.Bsh_, G.Bsh_, gradient.Bsh_, scale, false);
+	  update(theta, theta.Wsh_, G.Wsh_, gradient.Wsh_, scale, lambda_ != 0.0);
+	  update(theta, theta.Bsh_, G.Bsh_, gradient.Bsh_, scale, false);
 	
-	  update(theta.Wre_, G.Wre_, gradient.Wre_, scale, lambda_ != 0.0);
-	  update(theta.Bre_, G.Bre_, gradient.Bre_, scale, false);
+	  update(theta, theta.Wre_, G.Wre_, gradient.Wre_, scale, lambda_ != 0.0);
+	  update(theta, theta.Bre_, G.Bre_, gradient.Bre_, scale, false);
 	
-	  update(theta.Wu_, G.Wu_, gradient.Wu_, scale, lambda_ != 0.0);
-	  update(theta.Bu_, G.Bu_, gradient.Bu_, scale, false);
+	  update(theta, theta.Wu_, G.Wu_, gradient.Wu_, scale, lambda_ != 0.0);
+	  update(theta, theta.Bu_, G.Bu_, gradient.Bu_, scale, false);
 
-	  update(theta.Wf_, G.Wf_, gradient.Wf_, scale, lambda_ != 0.0);
-	  update(theta.Bf_, G.Bf_, gradient.Bf_, scale, false);
+	  update(theta, theta.Wf_, G.Wf_, gradient.Wf_, scale, lambda_ != 0.0);
+	  update(theta, theta.Bf_, G.Bf_, gradient.Bf_, scale, false);
 
-	  update(theta.Wi_, G.Wi_, gradient.Wi_, scale, lambda_ != 0.0);
-	  update(theta.Bi_, G.Bi_, gradient.Bi_, scale, false);
+	  update(theta, theta.Wi_, G.Wi_, gradient.Wi_, scale, lambda_ != 0.0);
+	  update(theta, theta.Bi_, G.Bi_, gradient.Bi_, scale, false);
 	
-	  update(theta.Ba_, G.Ba_, gradient.Ba_, scale, false);
+	  update(theta, theta.Ba_, G.Ba_, gradient.Ba_, scale, false);
 	}
       }
 
@@ -68,11 +68,10 @@ namespace rnnp
 	return std::min(1.0, eta0 / std::sqrt(1.0 + g));
       }
       
-      template <typename Theta, typename GVar>
       struct update_visitor_regularize
       {
-	update_visitor_regularize(Eigen::MatrixBase<Theta>& theta,
-				  Eigen::MatrixBase<GVar>& G,
+	update_visitor_regularize(tensor_type& theta,
+				  tensor_type& G,
 				  const tensor_type&  g,
 				  const double& scale,
 				  const double& lambda,
@@ -96,20 +95,19 @@ namespace rnnp
 	  theta_(i, j) = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
 	}
       
-	Eigen::MatrixBase<Theta>& theta_;
-	Eigen::MatrixBase<GVar>&  G_;
-	const tensor_type&        g_;
+	tensor_type&       theta_;
+	tensor_type&       G_;
+	const tensor_type& g_;
       
 	const double scale_;
 	const double lambda_;
 	const double eta0_;
       };
 
-      template <typename Theta, typename GVar>
       struct update_visitor
       {
-	update_visitor(Eigen::MatrixBase<Theta>& theta,
-		       Eigen::MatrixBase<GVar>& G,
+	update_visitor(tensor_type& theta,
+		       tensor_type& G,
 		       const tensor_type&  g,
 		       const double& scale,
 		       const double& eta0)
@@ -129,30 +127,33 @@ namespace rnnp
 	  theta_(i, j) -= learning_rate(eta0_, G_(i, j)) * scale_ * g_(i, j);
 	}
       
-	Eigen::MatrixBase<Theta>& theta_;
-	Eigen::MatrixBase<GVar>&  G_;
-	const tensor_type&        g_;
+	tensor_type&       theta_;
+	tensor_type&       G_;
+	const tensor_type& g_;
       
 	const double scale_;
 	const double eta0_;
       };
       
-      template <typename Theta, typename GVar, typename Embedding>
-      void update_embedding(Eigen::MatrixBase<Theta>& theta,
-			    Eigen::MatrixBase<GVar>& G,
-			    const Embedding& embedding,
-			    const double scale) const
+      void update(model_type& model,
+		  tensor_type& theta,
+		  tensor_type& G,
+		  const gradient_type::embedding_type& embedding,
+		  const double scale,
+		  const bool regularize) const
       {
+	typedef gradient_type::embedding_type embedding_type;
+	
 	if (lambda_ != 0.0) {
-	  typename Embedding::const_iterator eiter_end = embedding.end();
-	  for (typename Embedding::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
+	  embedding_type::const_iterator eiter_end = embedding.end();
+	  for (embedding_type::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
 	    const size_type col = eiter->first.id();
 	    const tensor_type& g = eiter->second;
 	  
 	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
 	      if (g(row, 0) != 0.0) {
 		G(row, col) = G(row, col) * 0.95 + (g(row, 0) * scale) * (g(row, 0) * scale);
-	      
+		
 		const double rate = learning_rate(eta0_, G(row, col));
 		const double x1 = theta(row, col) - rate * scale * g(row, 0);
 	      
@@ -160,8 +161,8 @@ namespace rnnp
 	      }
 	  }
 	} else {
-	  typename Embedding::const_iterator eiter_end = embedding.end();
-	  for (typename Embedding::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
+	  embedding_type::const_iterator eiter_end = embedding.end();
+	  for (embedding_type::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
 	    const size_type col = eiter->first.id();
 	    const tensor_type& g = eiter->second;
 	  
@@ -175,16 +176,18 @@ namespace rnnp
 	}
       }
       
-      template <typename Theta, typename GVar, typename Grad>
-      void update(Eigen::MatrixBase<Theta>& theta,
-		  Eigen::MatrixBase<GVar>& G,
-		  const Grad& grad,
+      void update(model_type& model,
+		  tensor_type& theta,
+		  tensor_type& G,
+		  const gradient_type::matrix_unary_type& grad,
 		  const double scale,
-		  const bool regularize=true) const
+		  const bool regularize) const
       {
+	typedef gradient_type::matrix_unary_type matrix_unary_type;
+	
 	if (regularize) {
-	  typename Grad::const_iterator giter_end = grad.end();
-	  for (typename Grad::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
+	  matrix_unary_type::const_iterator giter_end = grad.end();
+	  for (matrix_unary_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
 	    const size_type rows = giter->second.rows();
 	    const size_type cols = giter->second.cols();
 	    const size_type offset = rows * giter->first.non_terminal_id();
@@ -206,8 +209,8 @@ namespace rnnp
 		}
 	  }
 	} else {
-	  typename Grad::const_iterator giter_end = grad.end();
-	  for (typename Grad::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
+	  matrix_unary_type::const_iterator giter_end = grad.end();
+	  for (matrix_unary_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
 	    const size_type rows = giter->second.rows();
 	    const size_type cols = giter->second.cols();
 	    const size_type offset = rows * giter->first.non_terminal_id();
@@ -227,20 +230,75 @@ namespace rnnp
 	  }
 	}
       }
+      
+      void update(model_type& model,
+		  tensor_type& theta,
+		  tensor_type& G,
+		  const gradient_type::matrix_binary_type& grad,
+		  const double scale,
+		  const bool regularize) const
+      {
+	typedef gradient_type::matrix_binary_type matrix_binary_type;
+	
+	if (regularize) {
+	  matrix_binary_type::const_iterator giter_end = grad.end();
+	  for (matrix_binary_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
+	    const size_type rows = giter->second.rows();
+	    const size_type cols = giter->second.cols();
+	    const size_type offset = model.offset_binary(giter->first.first, giter->first.second);
+	    
+	    const tensor_type& g = giter->second;
+	    
+	    for (tensor_type::Index col = 0; col != g.cols(); ++ col) 
+	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
+		if (g(row, col) != 0) {
+		  G.block(offset, 0, rows, cols)(row, col) =
+		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + (g(row, col) * scale) * (g(row, col) * scale);
+		  
+		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
+		  
+		  const double rate = learning_rate(eta0_, G.block(offset, 0, rows, cols)(row, col));
+		  const double x1 = x - rate * scale * g(row, col);
+		  
+		  x = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
+		}
+	  }
+	} else {
+	  matrix_binary_type::const_iterator giter_end = grad.end();
+	  for (matrix_binary_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
+	    const size_type rows = giter->second.rows();
+	    const size_type cols = giter->second.cols();
+	    const size_type offset = model.offset_binary(giter->first.first, giter->first.second);
+	    
+	    const tensor_type& g = giter->second;
+	    
+	    for (tensor_type::Index col = 0; col != g.cols(); ++ col) 
+	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
+		if (g(row, col) != 0) {
+		  G.block(offset, 0, rows, cols)(row, col) =
+		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + (g(row, col) * scale) * (g(row, col) * scale);
+		  
+		  const double rate = learning_rate(eta0_, G.block(offset, 0, rows, cols)(row, col));
+		  
+		  theta.block(offset, 0, rows, cols)(row, col) -= rate * scale * g(row, col);
+		}
+	  }
+	}
+      }
     
-      template <typename Theta, typename GVar>
-      void update(Eigen::MatrixBase<Theta>& theta,
-		  Eigen::MatrixBase<GVar>& G,
+      void update(model_type& model,
+		  tensor_type& theta,
+		  tensor_type& G,
 		  const tensor_type& g,
 		  const double scale,
-		  const bool regularize=true) const
+		  const bool regularize) const
       {
 	if (regularize) {
-	  update_visitor_regularize<Theta, GVar> visitor(theta, G, g, scale, lambda_, eta0_);
+	  update_visitor_regularize visitor(theta, G, g, scale, lambda_, eta0_);
 	
 	  theta.visit(visitor);
 	} else {
-	  update_visitor<Theta, GVar> visitor(theta, G, g, scale, eta0_);
+	  update_visitor visitor(theta, G, g, scale, eta0_);
 	  
 	  theta.visit(visitor);
 	}

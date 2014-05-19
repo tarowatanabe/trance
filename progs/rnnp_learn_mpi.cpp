@@ -198,8 +198,8 @@ int main(int argc, char** argv)
     
     if (mpi_rank == 0 && debug) {
       const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
-      const size_t non_terminals = (theta.vocab_non_terminal_.size()
-				    - std::count(theta.vocab_non_terminal_.begin(), theta.vocab_non_terminal_.end(),
+      const size_t non_terminals = (theta.vocab_unary_.size()
+				    - std::count(theta.vocab_unary_.begin(), theta.vocab_unary_.end(),
 						 model_type::symbol_type()));
       
       std::cerr << "terminals: " << terminals

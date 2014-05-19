@@ -37,8 +37,8 @@ namespace rnnp
     // initialize matrix    
     Wc_.clear();
     
-    Wsh_.clear();
-    Bsh_.clear();
+    Wsh_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
+    Bsh_ = tensor_type::Zero(hidden_, 1);
     
     Wre_.clear();
     Bre_.clear();
@@ -55,18 +55,76 @@ namespace rnnp
     Ba_ = tensor_type::Zero(hidden_, 1);
   }
   
-  template <typename Embedding>
   inline
-  void write_embedding(std::ostream& os, const Embedding& embedding)
+  void write_matrix(std::ostream& os, const Gradient::embedding_type& embedding)
   {
     size_t size = embedding.size();
+    size_t rows = size_t(-1);
+    
+    os.write((char*) &size, sizeof(size_t));
+    
+    Gradient::embedding_type::const_iterator eiter_end = embedding.end();
+    for (Gradient::embedding_type::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
+      if (rows == size_t(-1)) {
+	rows = eiter->second.rows();
+	
+	os.write((char*) &rows, sizeof(size_t));
+      }
+      
+      const size_t word_size = eiter->first.size();
+      
+      os.write((char*) &word_size, sizeof(size_t));
+      os.write((char*) &(*eiter->first.begin()), word_size);
+      os.write((char*) eiter->second.data(), sizeof(Gradient::tensor_type::Scalar) * rows);
+    }
+  }
+  
+  inline
+  void read_matrix(std::istream& is, Gradient::embedding_type& embedding)
+  {
+    typedef Gradient::word_type word_type;
+    typedef Gradient::tensor_type tensor_type;
+    typedef std::vector<char, std::allocator<char> > buffer_type;
+    
+    embedding.clear();
+    
+    buffer_type buffer;
+    
+    size_t size;
+    size_t rows;
+    
+    is.read((char*) &size, sizeof(size_t));
+    
+    if (! size) return;
+    
+    is.read((char*) &rows, sizeof(size_t));
+    
+    for (size_t i = 0; i != size; ++ i) {
+      size_t word_size = 0;
+      is.read((char*) &word_size, sizeof(size_t));
+      
+      buffer.resize(word_size);
+      is.read((char*) &(*buffer.begin()), word_size);
+      
+      tensor_type& tensor = embedding[word_type(buffer.begin(), buffer.end())];
+      
+      tensor.resize(rows, 1);
+      
+      is.read((char*) tensor.data(), sizeof(tensor_type::Scalar) * rows);
+    }
+  }
+
+  inline
+  void write_matrix(std::ostream& os, const Gradient::matrix_unary_type& matrix)
+  {
+    size_t size = matrix.size();
     size_t rows = size_t(-1);
     size_t cols = size_t(-1);
     
     os.write((char*) &size, sizeof(size_t));
     
-    typename Embedding::const_iterator eiter_end = embedding.end();
-    for (typename Embedding::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
+    Gradient::matrix_unary_type::const_iterator eiter_end = matrix.end();
+    for (Gradient::matrix_unary_type::const_iterator eiter = matrix.begin(); eiter != eiter_end; ++ eiter) {
       if (rows == size_t(-1)) {
 	rows = eiter->second.rows();
 	cols = eiter->second.cols();
@@ -79,19 +137,18 @@ namespace rnnp
       
       os.write((char*) &word_size, sizeof(size_t));
       os.write((char*) &(*eiter->first.begin()), word_size);
-      os.write((char*) eiter->second.data(), sizeof(typename Embedding::mapped_type::Scalar) * rows * cols);
+      os.write((char*) eiter->second.data(), sizeof(Gradient::tensor_type::Scalar) * rows * cols);
     }
   }
   
-  template <typename Embedding>
   inline
-  void read_embedding(std::istream& is, Embedding& embedding)
+  void read_matrix(std::istream& is, Gradient::matrix_unary_type& matrix)
   {
-    typedef typename Embedding::key_type    word_type;
-    typedef typename Embedding::mapped_type tensor_type;
+    typedef Gradient::word_type word_type;
+    typedef Gradient::tensor_type tensor_type;
     typedef std::vector<char, std::allocator<char> > buffer_type;
     
-    embedding.clear();
+    matrix.clear();
     
     buffer_type buffer;
     
@@ -113,63 +170,139 @@ namespace rnnp
       buffer.resize(word_size);
       is.read((char*) &(*buffer.begin()), word_size);
       
-      tensor_type& matrix = embedding[word_type(buffer.begin(), buffer.end())];
+      tensor_type& tensor = matrix[word_type(buffer.begin(), buffer.end())];
       
-      matrix.resize(rows, cols);
+      tensor.resize(rows, cols);
       
-      is.read((char*) matrix.data(), sizeof(typename tensor_type::Scalar) * rows * cols);
+      is.read((char*) tensor.data(), sizeof(tensor_type::Scalar) * rows * cols);
     }
   }
   
-  template <typename Tensor>
   inline
-  void write_matrix(std::ostream& os, const Tensor& matrix)
+  void write_matrix(std::ostream& os, const Gradient::matrix_binary_type& matrix)
   {
-    const typename Tensor::Index rows = matrix.rows();
-    const typename Tensor::Index cols = matrix.cols();
+    size_t size = matrix.size();
+    size_t rows = size_t(-1);
+    size_t cols = size_t(-1);
     
-    os.write((char*) &rows, sizeof(typename Tensor::Index));
-    os.write((char*) &cols, sizeof(typename Tensor::Index));
+    os.write((char*) &size, sizeof(size_t));
     
-    os.write((char*) matrix.data(), sizeof(typename Tensor::Scalar) * rows * cols);
+    Gradient::matrix_binary_type::const_iterator eiter_end = matrix.end();
+    for (Gradient::matrix_binary_type::const_iterator eiter = matrix.begin(); eiter != eiter_end; ++ eiter) {
+      if (rows == size_t(-1)) {
+	rows = eiter->second.rows();
+	cols = eiter->second.cols();
+	
+	os.write((char*) &rows, sizeof(size_t));
+	os.write((char*) &cols, sizeof(size_t));
+      }
+
+      const size_t left_size  = eiter->first.first.size();
+      const size_t right_size = eiter->first.second.size();
+      
+      os.write((char*) &left_size, sizeof(size_t));
+      os.write((char*) &(*eiter->first.first.begin()), left_size);
+
+      os.write((char*) &right_size, sizeof(size_t));
+      os.write((char*) &(*eiter->first.second.begin()), right_size);
+      
+      os.write((char*) eiter->second.data(), sizeof(Gradient::tensor_type::Scalar) * rows * cols);
+    }
+  }
+  
+  inline
+  void read_matrix(std::istream& is, Gradient::matrix_binary_type& matrix)
+  {
+    typedef Gradient::word_type word_type;
+    typedef Gradient::tensor_type tensor_type;
+    typedef std::vector<char, std::allocator<char> > buffer_type;
+    
+    matrix.clear();
+    
+    buffer_type buffer;
+    
+    size_t size;
+    size_t rows;
+    size_t cols;
+    
+    is.read((char*) &size, sizeof(size_t));
+    
+    if (! size) return;
+    
+    is.read((char*) &rows, sizeof(size_t));
+    is.read((char*) &cols, sizeof(size_t));
+    
+    for (size_t i = 0; i != size; ++ i) {
+      size_t word_size = 0;
+      is.read((char*) &word_size, sizeof(size_t));
+      
+      buffer.resize(word_size);
+      is.read((char*) &(*buffer.begin()), word_size);
+
+      const word_type left(buffer.begin(), buffer.end());
+      
+      is.read((char*) &word_size, sizeof(size_t));
+      
+      buffer.resize(word_size);
+      is.read((char*) &(*buffer.begin()), word_size);
+      
+      const word_type right(buffer.begin(), buffer.end());
+      
+      tensor_type& tensor = matrix[std::make_pair(left, right)];
+      
+      tensor.resize(rows, cols);
+      
+      is.read((char*) tensor.data(), sizeof(tensor_type::Scalar) * rows * cols);
+    }
+  }  
+  
+  inline
+  void write_matrix(std::ostream& os, const Gradient::tensor_type& matrix)
+  {
+    const Gradient::tensor_type::Index rows = matrix.rows();
+    const Gradient::tensor_type::Index cols = matrix.cols();
+    
+    os.write((char*) &rows, sizeof(Gradient::tensor_type::Index));
+    os.write((char*) &cols, sizeof(Gradient::tensor_type::Index));
+    
+    os.write((char*) matrix.data(), sizeof(Gradient::tensor_type::Scalar) * rows * cols);
   }
 
-  template <typename Tensor>
   inline
-  void read_matrix(std::istream& is, Tensor& matrix)
+  void read_matrix(std::istream& is, Gradient::tensor_type& matrix)
   {
-    typename Tensor::Index rows;
-    typename Tensor::Index cols;
+    Gradient::tensor_type::Index rows;
+    Gradient::tensor_type::Index cols;
     
-    is.read((char*) &rows, sizeof(typename Tensor::Index));
-    is.read((char*) &cols, sizeof(typename Tensor::Index));
+    is.read((char*) &rows, sizeof(Gradient::tensor_type::Index));
+    is.read((char*) &cols, sizeof(Gradient::tensor_type::Index));
     
     matrix.resize(rows, cols);
     
-    is.read((char*) matrix.data(), sizeof(typename Tensor::Scalar) * rows * cols);
+    is.read((char*) matrix.data(), sizeof(Gradient::tensor_type::Scalar) * rows * cols);
   }
 
-#define GRADIENT_STREAM_OPERATOR(Op1, Op2, Stream) \
-  Op1(Stream, theta.terminal_); \
+#define GRADIENT_STREAM_OPERATOR(Op, Stream) \
+  Op(Stream, theta.terminal_); \
   \
-  Op1(Stream, theta.Wc_); \
+  Op(Stream, theta.Wc_); \
   \
-  Op1(Stream, theta.Wsh_); \
-  Op1(Stream, theta.Bsh_); \
+  Op(Stream, theta.Wsh_); \
+  Op(Stream, theta.Bsh_); \
   \
-  Op1(Stream, theta.Wre_); \
-  Op1(Stream, theta.Bre_); \
+  Op(Stream, theta.Wre_); \
+  Op(Stream, theta.Bre_); \
   \
-  Op1(Stream, theta.Wu_); \
-  Op1(Stream, theta.Bu_); \
+  Op(Stream, theta.Wu_); \
+  Op(Stream, theta.Bu_); \
   \
-  Op2(Stream, theta.Wf_); \
-  Op2(Stream, theta.Bf_); \
+  Op(Stream, theta.Wf_); \
+  Op(Stream, theta.Bf_); \
   \
-  Op2(Stream, theta.Wi_); \
-  Op2(Stream, theta.Bi_); \
+  Op(Stream, theta.Wi_); \
+  Op(Stream, theta.Bi_); \
   \
-  Op2(Stream, theta.Bi_);
+  Op(Stream, theta.Bi_);
 
   std::ostream& operator<<(std::ostream& os, const Gradient& theta)
   {
@@ -177,7 +310,7 @@ namespace rnnp
     os.write((char*) &theta.embedding_, sizeof(theta.embedding_));
     os.write((char*) &theta.count_,     sizeof(theta.count_));
 
-    GRADIENT_STREAM_OPERATOR(write_embedding, write_matrix, os);
+    GRADIENT_STREAM_OPERATOR(write_matrix, os);
     
     return os;
   }
@@ -188,20 +321,20 @@ namespace rnnp
     is.read((char*) &theta.embedding_, sizeof(theta.embedding_));
     is.read((char*) &theta.count_,     sizeof(theta.count_));
 
-    GRADIENT_STREAM_OPERATOR(read_embedding, read_matrix, is);
+    GRADIENT_STREAM_OPERATOR(read_matrix, is);
     
     return is;
   }
 
 #undef GRADIENT_STREAM_OPERATOR
 
-  template <typename Embedding>
+  template <typename Matrix>
   inline 
-  void plus_equal_embedding(Embedding& x, const Embedding& y)
+  void plus_equal(Matrix& x, const Matrix& y)
   {
-    typename Embedding::const_iterator iter_end = y.end();
-    for (typename Embedding::const_iterator iter = y.begin(); iter != iter_end; ++ iter) {
-      typename Embedding::mapped_type& matrix = x[iter->first];
+    typename Matrix::const_iterator iter_end = y.end();
+    for (typename Matrix::const_iterator iter = y.begin(); iter != iter_end; ++ iter) {
+      typename Matrix::mapped_type& matrix = x[iter->first];
 
       if (! matrix.rows())
 	matrix = iter->second;
@@ -210,13 +343,13 @@ namespace rnnp
     }
   }
 
-  template <typename Embedding>
+  template <typename Matrix>
   inline 
-  void minus_equal_embedding(Embedding& x, const Embedding& y)
+  void minus_equal(Matrix& x, const Matrix& y)
   {
-    typename Embedding::const_iterator iter_end = y.end();
-    for (typename Embedding::const_iterator iter = y.begin(); iter != iter_end; ++ iter) {
-      typename Embedding::mapped_type& matrix = x[iter->first];
+    typename Matrix::const_iterator iter_end = y.end();
+    for (typename Matrix::const_iterator iter = y.begin(); iter != iter_end; ++ iter) {
+      typename Matrix::mapped_type& matrix = x[iter->first];
 
       if (! matrix.rows())
 	matrix = - iter->second;
@@ -225,53 +358,51 @@ namespace rnnp
     }    
   }
 
-  template <typename Tensor>
   inline 
-  void plus_equal(Tensor& x, const Tensor& y)
+  void plus_equal(Gradient::tensor_type& x, const Gradient::tensor_type& y)
   {
     x += y;
   }
 
-  template <typename Tensor>
   inline 
-  void minus_equal(Tensor& x, const Tensor& y)
+  void minus_equal(Gradient::tensor_type& x, const Gradient::tensor_type& y)
   {
     x -= y;
   }
 
-#define GRADIENT_BINARY_OPERATOR(Op1, Op2)	\
-  Op1(terminal_, x.terminal_); \
+#define GRADIENT_BINARY_OPERATOR(Op) \
+  Op(terminal_, x.terminal_); \
   \
-  Op1(Wc_, x.Wc_); \
+  Op(Wc_, x.Wc_); \
   \
-  Op1(Wsh_, x.Wsh_); \
-  Op1(Bsh_, x.Bsh_); \
+  Op(Wsh_, x.Wsh_); \
+  Op(Bsh_, x.Bsh_); \
   \
-  Op1(Wre_, x.Wre_); \
-  Op1(Bre_, x.Bre_); \
+  Op(Wre_, x.Wre_); \
+  Op(Bre_, x.Bre_); \
   \
-  Op1(Wu_, x.Wu_); \
-  Op1(Bu_, x.Bu_); \
+  Op(Wu_, x.Wu_); \
+  Op(Bu_, x.Bu_); \
   \
-  Op2(Wf_, x.Wf_); \
-  Op2(Bf_, x.Bf_); \
+  Op(Wf_, x.Wf_); \
+  Op(Bf_, x.Bf_); \
   \
-  Op2(Wi_, x.Wi_); \
-  Op2(Bi_, x.Bi_); \
+  Op(Wi_, x.Wi_); \
+  Op(Bi_, x.Bi_); \
   \
-  Op2(Ba_, x.Ba_);
+  Op(Ba_, x.Ba_);
 
   
   Gradient& Gradient::operator+=(const Gradient& x)
   {
-    GRADIENT_BINARY_OPERATOR(plus_equal_embedding, plus_equal);
+    GRADIENT_BINARY_OPERATOR(plus_equal);
 
     return *this;
   }
   
   Gradient& Gradient::operator-=(const Gradient& x)
   {
-    GRADIENT_BINARY_OPERATOR(minus_equal_embedding, minus_equal);
+    GRADIENT_BINARY_OPERATOR(minus_equal);
 
     return *this;
   }

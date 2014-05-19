@@ -14,6 +14,8 @@
 #include <rnnp/signature.hpp>
 
 #include <utils/bithack.hpp>
+#include <utils/indexed_set.hpp>
+#include <utils/hashmurmur3.hpp>
 
 #include <Eigen/Core>
 
@@ -34,14 +36,29 @@ namespace rnnp
 
     typedef Grammar   grammar_type;
     typedef Signature signature_type;
-
-    typedef std::vector<word_type, std::allocator<word_type> > word_set_type;
-    typedef std::vector<bool, std::allocator<bool> >           word_map_type;
     
     typedef boost::filesystem::path path_type;
     
     typedef Eigen::Matrix<parameter_type, Eigen::Dynamic, Eigen::Dynamic> tensor_type;
     typedef Eigen::Map<tensor_type>                                       matrix_type;
+
+    typedef symbol_type unary_type;
+    typedef std::pair<symbol_type, symbol_type> binary_type;
+    
+    typedef std::vector<bool, std::allocator<bool> >             word_map_type;
+    typedef std::vector<unary_type, std::allocator<unary_type> > unary_set_type;
+
+    struct binary_hash : public utils::hashmurmur3<size_t>
+    {
+      typedef utils::hashmurmur3<size_t> hasher_type;
+      
+      size_t operator()(const binary_type& x) const
+      {
+	return hasher_type::operator()(x.first.non_terminal_id(), x.second.non_terminal_id());
+      }
+    };
+    
+    typedef utils::indexed_set<binary_type, binary_hash, std::equal_to<binary_type>, std::allocator<binary_type> > binary_set_type;
     
     struct activation
     {
@@ -125,9 +142,11 @@ namespace rnnp
       Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
       
       Wu_ = Wu_.array().unaryExpr(__randomize<Gen>(gen, range_u));
+      
       Wf_ = Wf_.array().unaryExpr(__randomize<Gen>(gen, range_f));
       Wi_ = Wi_.array().unaryExpr(__randomize<Gen>(gen, range_i));
     }
+    
     
     void swap(Model& x)
     {
@@ -135,7 +154,8 @@ namespace rnnp
       std::swap(embedding_, x.embedding_);
       
       vocab_terminal_.swap(x.vocab_terminal_);
-      vocab_non_terminal_.swap(x.vocab_non_terminal_);
+      vocab_unary_.swap(x.vocab_unary_);
+      vocab_binary_.swap(x.vocab_binary_);
       
       terminal_.swap(x.terminal_);
       
@@ -182,7 +202,7 @@ namespace rnnp
 
       Ba_.setZero();
     }
-
+    
   public:
     double l1() const
     {
@@ -237,14 +257,34 @@ namespace rnnp
       }
     }
     
+    binary_type binary(const symbol_type& left, const symbol_type& right) const
+    {
+      binary_set_type::const_iterator biter = vocab_binary_.find(binary_type(left, right));
+      
+      return (biter != vocab_binary_.end() ? *biter : binary_type(symbol_type::ANY, symbol_type::ANY));
+    }
+    
     size_type offset_classification(const symbol_type& x) const
     {
       return x.non_terminal_id();
     }
 
-    size_type offset_grammar(const symbol_type& x) const
+    size_type offset_unary(const symbol_type& x) const
     {
       return x.non_terminal_id() * hidden_;
+    }
+
+    size_type offset_binary(const symbol_type& left, const symbol_type& right) const
+    {
+      binary_set_type::const_iterator biter = vocab_binary_.find(binary_type(left, right));
+      
+      if (biter != vocab_binary_.end())
+	return (biter - vocab_binary_.begin()) * hidden_;
+
+      if (vocab_binary_[0].first != symbol_type::ANY || vocab_binary_[0].second != symbol_type::ANY)
+	throw std::runtime_error("invalid binary offset?");
+
+      return 0;
     }
     
   public:
@@ -253,8 +293,9 @@ namespace rnnp
     size_type embedding_;
     
     // word set
-    word_map_type vocab_terminal_;
-    word_set_type vocab_non_terminal_;
+    word_map_type   vocab_terminal_;
+    unary_set_type  vocab_unary_;
+    binary_set_type vocab_binary_;
     
     // terminal embedding
     tensor_type terminal_;

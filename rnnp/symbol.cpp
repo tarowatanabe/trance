@@ -77,6 +77,10 @@ namespace rnnp
   const Symbol Symbol::EMPTY   = Symbol("");
   const Symbol Symbol::EPSILON = Symbol("<epsilon>");
   const Symbol Symbol::UNK     = Symbol("<unk>");
+
+  const Symbol Symbol::ANY     = Symbol("[-ANY-]");
+  const Symbol Symbol::FINAL   = Symbol("[-FINAL-]");
+  const Symbol Symbol::IDLE    = Symbol("[-IDLE-]");
   
   Symbol::symbol_map_type& Symbol::__symbol_maps()
   {

@@ -85,7 +85,7 @@ namespace rnnp
 	  const state_type& state = *hiter;
 
 	  if (state.operation().finished())
-	    operation_idle(state, grammar.goal_, theta);
+	    operation_idle(state, theta);
 	  else {
 	    if (step + 1 < oracle_.actions_.size()) {
 	      const oracle_type::action_type& action = oracle_.actions_[step + 1];
@@ -118,7 +118,7 @@ namespace rnnp
 		  && state.stack().label() == symbol_type::EPSILON
 		  && state.label() == grammar.goal_
 		  && state.next() == oracle_.sentence_.size())
-		operation_final(state, grammar.goal_, theta);
+		operation_final(state, theta);
 	      else
 		throw std::runtime_error("invalid final!");
 	    }

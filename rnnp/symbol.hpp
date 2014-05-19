@@ -58,6 +58,10 @@ namespace rnnp
     static const Symbol EMPTY;
     static const Symbol EPSILON;
     static const Symbol UNK;
+
+    static const Symbol ANY;
+    static const Symbol FINAL;
+    static const Symbol IDLE;
     
   public:
     Symbol() : id_(__allocate_empty()) { }

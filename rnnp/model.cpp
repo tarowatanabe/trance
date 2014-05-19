@@ -34,8 +34,10 @@ namespace rnnp
     
     // assign vocabulary
     vocab_terminal_.clear();
-    vocab_non_terminal_.clear();
+    vocab_unary_.clear();
+    vocab_binary_.clear();
     
+    // terminal index
     grammar_type::label_set_type::const_iterator titer_end = grammar.terminal_.end();
     for (grammar_type::label_set_type::const_iterator titer = grammar.terminal_.begin(); titer != titer_end; ++ titer) {
       if (titer->id() >= vocab_terminal_.size())
@@ -44,27 +46,44 @@ namespace rnnp
       vocab_terminal_[titer->id()] = true;
     }
     
+    // unary index
+    if (symbol_type::FINAL.non_terminal_id() >= vocab_unary_.size())
+      vocab_unary_.resize(symbol_type::FINAL.non_terminal_id() + 1);
+    if (symbol_type::IDLE.non_terminal_id() >= vocab_unary_.size())
+      vocab_unary_.resize(symbol_type::IDLE.non_terminal_id() + 1);
+    if (symbol_type::ANY.non_terminal_id() >= vocab_unary_.size())
+      vocab_unary_.resize(symbol_type::ANY.non_terminal_id() + 1);
+    
+    vocab_unary_[symbol_type::FINAL.non_terminal_id()] = symbol_type::FINAL;
+    vocab_unary_[symbol_type::IDLE.non_terminal_id()]  = symbol_type::IDLE;
+    
     grammar_type::label_set_type::const_iterator niter_end = grammar.non_terminal_.end();
     for (grammar_type::label_set_type::const_iterator niter = grammar.non_terminal_.begin(); niter != niter_end; ++ niter) {
-      if (niter->non_terminal_id() >= vocab_non_terminal_.size())
-	vocab_non_terminal_.resize(niter->non_terminal_id() + 1);
+      if (niter->non_terminal_id() >= vocab_unary_.size())
+	vocab_unary_.resize(niter->non_terminal_id() + 1);
       
-      vocab_non_terminal_[niter->non_terminal_id()] = *niter;
+      vocab_unary_[niter->non_terminal_id()] = *niter;
     }
+    
+    // binary index
+    vocab_binary_.insert(binary_type(symbol_type::ANY, symbol_type::ANY));
+    grammar_type::rule_set_binary_type::const_iterator biter_end = grammar.binary_.end();
+    for (grammar_type::rule_set_binary_type::const_iterator biter = grammar.binary_.begin(); biter != biter_end; ++ biter)
+      vocab_binary_.insert(binary_type(biter->first.first, biter->first.second));
     
     // initialize matrixx
     terminal_ = tensor_type::Zero(embedding_, vocab_terminal_.size());
     
-    Wc_  = tensor_type::Zero(1 * vocab_non_terminal_.size(), hidden_);
+    Wc_  = tensor_type::Zero(1 * vocab_unary_.size(), hidden_);
     
-    Wsh_ = tensor_type::Zero(hidden_ * vocab_non_terminal_.size(), hidden_ + embedding_);
-    Bsh_ = tensor_type::Zero(hidden_ * vocab_non_terminal_.size(), 1);
+    Wsh_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
+    Bsh_ = tensor_type::Zero(hidden_, 1);
     
-    Wre_ = tensor_type::Zero(hidden_ * vocab_non_terminal_.size(), hidden_ + hidden_);
-    Bre_ = tensor_type::Zero(hidden_ * vocab_non_terminal_.size(), 1);
-
-    Wu_  = tensor_type::Zero(hidden_ * vocab_non_terminal_.size(), hidden_);
-    Bu_  = tensor_type::Zero(hidden_ * vocab_non_terminal_.size(), 1);
+    Wre_ = tensor_type::Zero(hidden_ * vocab_binary_.size(), hidden_ + hidden_);
+    Bre_ = tensor_type::Zero(hidden_ * vocab_binary_.size(), 1);
+    
+    Wu_  = tensor_type::Zero(hidden_ * vocab_unary_.size(), hidden_);
+    Bu_  = tensor_type::Zero(hidden_ * vocab_unary_.size(), 1);
     
     Wf_ = tensor_type::Zero(hidden_, hidden_);
     Bf_ = tensor_type::Zero(hidden_, 1);
@@ -86,10 +105,10 @@ namespace rnnp
   
   template <typename Path, typename Tensor, typename WordMap>
   inline
-  void write_embedding(const Path& path_txt,
-		       const Path& path_bin,
-		       const Tensor& embedding,
-		       const WordMap& words)
+  void inline_write_embedding(const Path& path_txt,
+			      const Path& path_bin,
+			      const Tensor& embedding,
+			      const WordMap& words)
   {
     namespace karma = boost::spirit::karma;
     namespace standard = boost::spirit::standard;
@@ -125,7 +144,7 @@ namespace rnnp
   
   template <typename Path, typename Tensor, typename WordSet>
   inline
-  void write_label_matrix(const Path& path_txt,
+  void write_unary_matrix(const Path& path_txt,
 			  const Path& path_bin,
 			  const Tensor& matrix,
 			  const WordSet& words,
@@ -140,7 +159,7 @@ namespace rnnp
     typedef rnnp::Model::word_type      word_type;
     
     const size_type num_labels = utils::bithack::min(words.size(), static_cast<size_type>(matrix.rows() / rows));
-
+    
     utils::compress_ostream os_txt(path_txt, 1024 * 1024);
     utils::compress_ostream os_bin(path_bin, 1024 * 1024);
     std::ostream_iterator<char> iter(os_txt);
@@ -151,7 +170,7 @@ namespace rnnp
       if (words[i] != word_type()) {
 	
 	karma::generate(iter, standard::string, words[i]);
-
+	
 	for (size_type col = 0; col != cols; ++ col) {
 	  const parameter_type* data = matrix.block(rows * i, 0, rows, cols).col(col).data();
 	  
@@ -162,6 +181,45 @@ namespace rnnp
 	karma::generate(iter, '\n');
       }
   }
+  
+  template <typename Path, typename Tensor, typename WordSet>
+  inline
+  void write_binary_matrix(const Path& path_txt,
+			   const Path& path_bin,
+			   const Tensor& matrix,
+			   const WordSet& words,
+			   const Model::size_type rows,
+			   const Model::size_type cols)
+  {
+    namespace karma = boost::spirit::karma;
+    namespace standard = boost::spirit::standard;
+    
+    typedef rnnp::Model::size_type      size_type;
+    typedef rnnp::Model::parameter_type parameter_type;
+    typedef rnnp::Model::word_type      word_type;
+    
+    const size_type num_labels = utils::bithack::min(words.size(), static_cast<size_type>(matrix.rows() / rows));
+    
+    utils::compress_ostream os_txt(path_txt, 1024 * 1024);
+    utils::compress_ostream os_bin(path_bin, 1024 * 1024);
+    std::ostream_iterator<char> iter(os_txt);
+    
+    karma::real_generator<parameter_type, real_policy<parameter_type> > float10;
+    
+    for (size_type i = 0; i != num_labels; ++ i) {
+      karma::generate(iter, standard::string << ' ' << standard::string, words[i].first, words[i].second);
+      
+      for (size_type col = 0; col != cols; ++ col) {
+	const parameter_type* data = matrix.block(rows * i, 0, rows, cols).col(col).data();
+	
+	karma::generate(iter, +(' ' << float10), boost::make_iterator_range(data, data + rows));
+	os_bin.write((char*) data, sizeof(typename Tensor::Scalar) * rows);
+      }
+      
+      karma::generate(iter, '\n');
+    }
+  }
+  
   
   template <typename Path, typename Tensor>
   inline
@@ -193,19 +251,19 @@ namespace rnnp
     
     rep["embedding"] = utils::lexical_cast<std::string>(embedding_);
     rep["hidden"]    = utils::lexical_cast<std::string>(hidden_);
-
-    write_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_, vocab_terminal_);
     
-    write_label_matrix(rep.path("Wc.txt.gz"),  rep.path("Wc.bin"),  Wc_,  vocab_non_terminal_, 1, hidden_);
+    inline_write_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_, vocab_terminal_);
     
-    write_label_matrix(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, vocab_non_terminal_, hidden_, hidden_ + embedding_);
-    write_label_matrix(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, vocab_non_terminal_, hidden_, 1);
+    write_unary_matrix(rep.path("Wc.txt.gz"),  rep.path("Wc.bin"),  Wc_,  vocab_unary_, 1, hidden_);
     
-    write_label_matrix(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, vocab_non_terminal_, hidden_, hidden_ + hidden_);
-    write_label_matrix(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, vocab_non_terminal_, hidden_, 1);
+    write_matrix(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_);
+    write_matrix(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_);
     
-    write_label_matrix(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_,  vocab_non_terminal_, hidden_, hidden_);
-    write_label_matrix(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_,  vocab_non_terminal_, hidden_, 1);
+    write_binary_matrix(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, vocab_binary_, hidden_, hidden_ + hidden_);
+    write_binary_matrix(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, vocab_binary_, hidden_, 1);
+    
+    write_unary_matrix(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_,  vocab_unary_, hidden_, hidden_);
+    write_unary_matrix(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_,  vocab_unary_, hidden_, 1);
     
     write_matrix(rep.path("Wf.txt.gz"), rep.path("Wf.bin"), Wf_);
     write_matrix(rep.path("Bf.txt.gz"), rep.path("Bf.bin"), Bf_);
@@ -297,7 +355,7 @@ namespace rnnp
   
   template <typename Path, typename Tensor, typename WordSet>
   inline
-  void read_label_matrix(const Path& path_txt,
+  void read_unary_matrix(const Path& path_txt,
 			 const Path& path_bin,
 			 Tensor& matrix,
 			 WordSet& labels,
@@ -377,6 +435,88 @@ namespace rnnp
       throw std::runtime_error("file size does not match: " + path_bin.string());
   }
 
+  template <typename Path, typename Tensor, typename WordSet>
+  inline
+  void read_binary_matrix(const Path& path_txt,
+			  const Path& path_bin,
+			  Tensor& matrix,
+			  WordSet& labels,
+			  const Model::size_type rows,
+			  const Model::size_type cols)
+  {
+    namespace qi = boost::spirit::qi;
+    namespace standard = boost::spirit::standard;
+    
+    typedef rnnp::Model::parameter_type parameter_type;
+    typedef rnnp::Model::word_type      word_type;
+    typedef rnnp::Model::size_type      size_type;
+    
+    typedef std::vector<parameter_type, std::allocator<parameter_type> > parameter_set_type;
+    typedef boost::fusion::tuple<std::string, std::string, parameter_set_type > matrix_parsed_type;
+    typedef boost::spirit::istream_iterator iterator_type;
+    
+    if (path_txt != "-" && ! boost::filesystem::exists(path_txt))
+      throw std::runtime_error("no text matrix: " + path_txt.string());
+    
+    if (path_bin != "-" && ! boost::filesystem::exists(path_bin))
+      throw std::runtime_error("no binary matrix: " + path_bin.string());
+
+    if (matrix.cols() != cols)
+      matrix.conservativeResize(matrix.rows(), cols);
+
+    qi::rule<iterator_type, std::string(), standard::blank_type>        word;
+    qi::rule<iterator_type, matrix_parsed_type(), standard::blank_type> parser; 
+    
+    word   %= qi::lexeme[+(standard::char_ - standard::space)];
+    parser %= word >> word >> *qi::double_ >> (qi::eol | qi::eoi);
+    
+    utils::compress_istream is_txt(path_txt, 1024 * 1024);
+    utils::compress_istream is_bin(path_bin, 1024 * 1024);
+    
+    is_txt.unsetf(std::ios::skipws);
+    
+    iterator_type iter(is_txt);
+    iterator_type iter_end;
+    
+    matrix_parsed_type parsed;
+
+    size_t num_parsed = 0;
+
+    while (iter != iter_end) {
+      boost::fusion::get<0>(parsed).clear();
+      boost::fusion::get<1>(parsed).clear();
+      boost::fusion::get<2>(parsed).clear();
+      
+      if (! boost::spirit::qi::phrase_parse(iter, iter_end, parser, standard::blank, parsed))
+	if (iter != iter_end)
+	  throw std::runtime_error("matrix parsing failed");
+      
+      if (boost::fusion::get<2>(parsed).size() != rows * cols)
+	throw std::runtime_error("invalid matrix size");
+      
+      const word_type left  = boost::fusion::get<0>(parsed);
+      const word_type right = boost::fusion::get<1>(parsed);
+      
+      typename WordSet::iterator liter = labels.insert(std::make_pair(left, right)).first;
+      const size_type label_id = liter - labels.begin();
+      
+      if (rows * (label_id + 1) > matrix.rows())
+	matrix.conservativeResize(rows * (label_id + 1), cols);
+      
+      for (size_type col = 0; col != cols; ++ col)
+	is_bin.read((char*) matrix.block(rows * label_id, 0, rows, cols).col(col).data(),
+		    sizeof(typename Tensor::Scalar) * rows);
+      
+      ++ num_parsed;
+    }
+    
+    const size_t file_size = boost::filesystem::file_size(path_bin);
+    
+    if (file_size != sizeof(typename Tensor::Scalar) * rows * cols * num_parsed)
+      throw std::runtime_error("file size does not match: " + path_bin.string());
+  }
+  
+
   template <typename Path, typename Tensor>
   inline
   void read_matrix(const Path& path_txt,
@@ -422,16 +562,19 @@ namespace rnnp
     
     inline_read_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_, vocab_terminal_, embedding_);
     
-    read_label_matrix(rep.path("Wc.txt.gz"),  rep.path("Wc.bin"),  Wc_,  vocab_non_terminal_, 1, hidden_);
+    read_unary_matrix(rep.path("Wc.txt.gz"),  rep.path("Wc.bin"),  Wc_,  vocab_unary_, 1, hidden_);
     
-    read_label_matrix(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, vocab_non_terminal_, hidden_, hidden_ + embedding_);
-    read_label_matrix(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, vocab_non_terminal_, hidden_, 1);
+    Wsh_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
+    Bsh_ = tensor_type::Zero(hidden_, 1);
     
-    read_label_matrix(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, vocab_non_terminal_, hidden_, hidden_ + hidden_);
-    read_label_matrix(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, vocab_non_terminal_, hidden_, 1);
+    read_matrix(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_);
+    read_matrix(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_);
     
-    read_label_matrix(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_,  vocab_non_terminal_, hidden_, hidden_);
-    read_label_matrix(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_,  vocab_non_terminal_, hidden_, 1);
+    read_binary_matrix(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, vocab_binary_, hidden_, hidden_ + hidden_);
+    read_binary_matrix(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, vocab_binary_, hidden_, 1);
+    
+    read_unary_matrix(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_,  vocab_unary_, hidden_, hidden_);
+    read_unary_matrix(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_,  vocab_unary_, hidden_, 1);
     
     Wf_ = tensor_type::Zero(hidden_, hidden_);
     Bf_ = tensor_type::Zero(hidden_, 1);
@@ -503,17 +646,19 @@ namespace rnnp
   
   template <typename Tensor, typename WordSet>
   inline
-  void write_embedding(std::ostream& os, const Tensor& embedding, const WordSet& words)
+  void inline_write_embedding(std::ostream& os, const Tensor& embedding, const WordSet& words)
   {
     typedef Model::size_type size_type;
     typedef Model::word_type word_type;
 
-    const size_type rows      = embedding.rows();
-    const size_type cols      = utils::bithack::min(static_cast<size_t>(embedding.cols()), words.size());
-    const size_type num_words = std::count(words.begin(), words.end(), true);
+    const size_type rows = embedding.rows();
+    const size_type cols = utils::bithack::min(static_cast<size_t>(embedding.cols()), words.size());
+    
+    size_type num_words = 0;
+    for (typename word_type::id_type id = 0; id != cols; ++ id) 
+      num_words += words[id];
     
     os.write((char*) &rows,      sizeof(size_type));
-    os.write((char*) &cols,      sizeof(size_type));
     os.write((char*) &num_words, sizeof(size_type));
     
     for (typename word_type::id_type id = 0; id != cols; ++ id) 
@@ -539,10 +684,8 @@ namespace rnnp
     buffer_type buffer;
     
     size_type rows      = 0;
-    size_type cols      = 0;
     size_type num_words = 0;
     is.read((char*) &rows,      sizeof(size_type));
-    is.read((char*) &cols,      sizeof(size_type));
     is.read((char*) &num_words, sizeof(size_type));
     
     if (embedding.rows() != rows)
@@ -572,7 +715,7 @@ namespace rnnp
   
   template <typename Tensor, typename WordSet>
   inline
-  void write_label_matrix(std::ostream& os,
+  void write_unary_matrix(std::ostream& os,
 			  const Tensor& matrix,
 			  const WordSet& words,
 			  const Model::size_type rows,
@@ -580,14 +723,17 @@ namespace rnnp
   {
     typedef Model::size_type size_type;
     typedef Model::word_type word_type;
+
+    const size_type id_max = utils::bithack::min(words.size(), static_cast<size_type>(matrix.rows() / rows));
     
-    const size_type num_labels = words.size() - std::count(words.begin(), words.end(), word_type());
+    size_type num_labels = 0;
+    for (size_type id = 0; id != id_max; ++ id) 
+      num_labels += (words[id] != word_type());
     
     os.write((char*) &rows,       sizeof(size_type));
     os.write((char*) &cols,       sizeof(size_type));
     os.write((char*) &num_labels, sizeof(size_type));
     
-    const size_type id_max = utils::bithack::min(words.size(), static_cast<size_type>(matrix.rows() / rows));
     for (size_type id = 0; id != id_max; ++ id) 
       if (words[id] != word_type()) {
 	const word_type& word = words[id];
@@ -604,7 +750,7 @@ namespace rnnp
   
   template <typename Tensor, typename WordSet>
   inline
-  void read_label_matrix(std::istream& is,
+  void read_unary_matrix(std::istream& is,
 			 Tensor& matrix,
 			 WordSet& labels,
 			 Model::size_type rows_hint,
@@ -629,6 +775,9 @@ namespace rnnp
       throw std::runtime_error("invlaid rows for read label-matrix");
     if (cols != cols_hint)
       throw std::runtime_error("invlaid cols for read label-matrix");
+
+    if (matrix.cols() != cols)
+      matrix.conservativeResize(matrix.rows(), cols);
     
     for (size_type i = 0; i != num_labels; ++ i) {
       size_type label_size = 0;
@@ -650,6 +799,102 @@ namespace rnnp
 		sizeof(typename Tensor::Scalar) * rows);
       
       labels[label_id] = label;
+    }
+  }
+
+  template <typename Tensor, typename WordSet>
+  inline
+  void write_binary_matrix(std::ostream& os,
+			   const Tensor& matrix,
+			   const WordSet& words,
+			   const Model::size_type rows,
+			   const Model::size_type cols)
+  {
+    typedef Model::size_type size_type;
+    typedef Model::word_type word_type;
+    
+    const size_type num_labels = words.size();
+    
+    os.write((char*) &rows,       sizeof(size_type));
+    os.write((char*) &cols,       sizeof(size_type));
+    os.write((char*) &num_labels, sizeof(size_type));
+    
+    const size_type id_max = utils::bithack::min(words.size(), static_cast<size_type>(matrix.rows() / rows));
+    for (size_type id = 0; id != id_max; ++ id) {
+      const word_type& left  = words[id].first;
+      const word_type& right = words[id].second;
+      
+      const size_type  left_size  = left.size();
+      const size_type  right_size = right.size();
+      
+      os.write((char*) &left_size, sizeof(size_type));
+      os.write((char*) &(*left.begin()), left_size);
+      
+      os.write((char*) &right_size, sizeof(size_type));
+      os.write((char*) &(*right.begin()), right_size);
+      
+      for (size_type col = 0; col != cols; ++ col)
+	os.write((char*) matrix.block(rows * id, 0, rows, cols).col(col).data(),
+		 sizeof(typename Tensor::Scalar) * rows);
+    }
+  }
+  
+  template <typename Tensor, typename WordSet>
+  inline
+  void read_binary_matrix(std::istream& is,
+			  Tensor& matrix,
+			  WordSet& labels,
+			  Model::size_type rows_hint,
+			  Model::size_type cols_hint)
+  {
+    typedef Model::size_type size_type;
+    typedef Model::word_type word_type;
+   
+    typedef std::vector<char, std::allocator<char> > buffer_type;
+    
+    buffer_type buffer;
+ 
+    size_type rows       = 0;
+    size_type cols       = 0;
+    size_type num_labels = 0;
+
+    is.read((char*) &rows,       sizeof(size_type));
+    is.read((char*) &cols,       sizeof(size_type));
+    is.read((char*) &num_labels, sizeof(size_type));
+
+    if (rows != rows_hint)
+      throw std::runtime_error("invlaid rows for read label-matrix");
+    if (cols != cols_hint)
+      throw std::runtime_error("invlaid cols for read label-matrix");
+
+    if (matrix.cols() != cols)
+      matrix.conservativeResize(matrix.rows(), cols);
+    
+    for (size_type i = 0; i != num_labels; ++ i) {
+      size_type label_size = 0;
+      is.read((char*) &label_size, sizeof(size_type));
+      
+      buffer.resize(label_size);
+      is.read((char*) &(*buffer.begin()), label_size);
+      
+      const word_type left(buffer.begin(), buffer.end());
+      
+      is.read((char*) &label_size, sizeof(size_type));
+      
+      buffer.resize(label_size);
+      is.read((char*) &(*buffer.begin()), label_size);
+
+      const word_type right(buffer.begin(), buffer.end());
+      
+      typename WordSet::iterator liter = labels.insert(std::make_pair(left, right)).first;
+      const size_type label_id = liter - labels.begin();
+      
+      if (rows * (label_id + 1) > matrix.rows())
+	matrix.conservativeResize(rows * (label_id + 1), cols);
+      
+      for (size_type col = 0; col != cols; ++ col)
+	is.read((char*) matrix.block(rows * label_id, 0, rows, cols).col(col).data(), 
+		sizeof(typename Tensor::Scalar) * rows);
     }
   }
   
@@ -681,34 +926,34 @@ namespace rnnp
     is.read((char*) matrix.data(), sizeof(typename Tensor::Scalar) * rows * cols);
   }
 
-#define MODEL_STREAM_OPERATOR(Op1, Op2, Stream)	\
-  Op1(Stream, theta.Wc_,  theta.vocab_non_terminal_, 1, theta.hidden_); \
+#define MODEL_STREAM_OPERATOR(Op1, Op2, Op3, Stream)		 \
+  Op1(Stream, theta.Wc_,  theta.vocab_unary_, 1, theta.hidden_); \
   \
-  Op1(Stream, theta.Wsh_, theta.vocab_non_terminal_, theta.hidden_, theta.hidden_ + theta.embedding_); \
-  Op1(Stream, theta.Bsh_, theta.vocab_non_terminal_, theta.hidden_, 1); \
+  Op3(Stream, theta.Wsh_); \
+  Op3(Stream, theta.Bsh_); \
   \
-  Op1(Stream, theta.Wre_, theta.vocab_non_terminal_, theta.hidden_, theta.hidden_ + theta.hidden_); \
-  Op1(Stream, theta.Bre_, theta.vocab_non_terminal_, theta.hidden_, 1); \
+  Op2(Stream, theta.Wre_, theta.vocab_binary_, theta.hidden_, theta.hidden_ + theta.hidden_); \
+  Op2(Stream, theta.Bre_, theta.vocab_binary_, theta.hidden_, 1); \
   \
-  Op1(Stream, theta.Wu_,  theta.vocab_non_terminal_, theta.hidden_, theta.hidden_); \
-  Op1(Stream, theta.Bu_,  theta.vocab_non_terminal_, theta.hidden_, 1); \
+  Op1(Stream, theta.Wu_,  theta.vocab_unary_, theta.hidden_, theta.hidden_); \
+  Op1(Stream, theta.Bu_,  theta.vocab_unary_, theta.hidden_, 1); \
   \
-  Op2(Stream, theta.Wf_); \
-  Op2(Stream, theta.Bf_); \
+  Op3(Stream, theta.Wf_); \
+  Op3(Stream, theta.Bf_); \
   \
-  Op2(Stream, theta.Wi_); \
-  Op2(Stream, theta.Bi_); \
+  Op3(Stream, theta.Wi_); \
+  Op3(Stream, theta.Bi_); \
   \
-  Op2(Stream, theta.Ba_);
+  Op3(Stream, theta.Ba_);
 
   std::ostream& operator<<(std::ostream& os, const Model& theta)
   {
     os.write((char*) &theta.hidden_,    sizeof(theta.hidden_));
     os.write((char*) &theta.embedding_, sizeof(theta.embedding_));
     
-    write_embedding(os, theta.terminal_, theta.vocab_terminal_);
+    inline_write_embedding(os, theta.terminal_, theta.vocab_terminal_);
         
-    MODEL_STREAM_OPERATOR(write_label_matrix, write_matrix, os);
+    MODEL_STREAM_OPERATOR(write_unary_matrix, write_binary_matrix, write_matrix, os);
     
     return os;
   }
@@ -720,7 +965,7 @@ namespace rnnp
     
     inline_read_embedding(is, theta.terminal_, theta.vocab_terminal_);
     
-    MODEL_STREAM_OPERATOR(read_label_matrix, read_matrix, is);
+    MODEL_STREAM_OPERATOR(read_unary_matrix, read_binary_matrix, read_matrix, is);
     
     return is;
   }

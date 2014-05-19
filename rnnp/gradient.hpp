@@ -38,7 +38,35 @@ namespace rnnp
     typedef utils::unordered_map<word_type, tensor_type,
 				 boost::hash<word_type>, std::equal_to<word_type>,
 				 std::allocator<std::pair<const word_type, tensor_type> > >::type embedding_type;
-    typedef embedding_type label_matrix_type;
+
+    typedef symbol_type unary_type;
+    typedef std::pair<symbol_type, symbol_type> binary_type;
+    
+    struct unary_hash
+    {
+      size_t operator()(const symbol_type& x) const
+      {
+	return x.non_terminal_id();
+      }
+    };
+    
+    struct binary_hash : public utils::hashmurmur3<size_t>
+    {
+      typedef utils::hashmurmur3<size_t> hasher_type;
+      
+      size_t operator()(const binary_type& x) const
+      {
+	return hasher_type::operator()(x.first.non_terminal_id(), x.second.non_terminal_id());
+      }
+    };
+    
+    typedef utils::unordered_map<unary_type, tensor_type,
+				 unary_hash, std::equal_to<unary_type>,
+				 std::allocator<std::pair<const unary_type, tensor_type> > >::type matrix_unary_type;
+
+    typedef utils::unordered_map<binary_type, tensor_type,
+				 binary_hash, std::equal_to<binary_type>,
+				 std::allocator<std::pair<const binary_type, tensor_type> > >::type matrix_binary_type;
     
   public:
     Gradient() : hidden_(0), embedding_(0), count_(0), shared_(0) {}
@@ -99,8 +127,8 @@ namespace rnnp
 
       Wc_.clear();
       
-      Wsh_.clear();
-      Bsh_.clear();
+      Wsh_.setZero();
+      Bsh_.setZero();
 
       Wre_.clear();
       Bre_.clear();
@@ -133,33 +161,27 @@ namespace rnnp
       return tensor;
     }
 
-    tensor_type& Wsh(const word_type& label)
+    tensor_type& Wre(const binary_type& x)
     {
-      tensor_type& tensor = Wsh_[label];
-      if (! tensor.rows())
-	tensor = tensor_type::Zero(hidden_, hidden_ + embedding_);
-      return tensor;
+      return Wre(x.first, x.second);
     }
-
-    tensor_type& Bsh(const word_type& label)
+    
+    tensor_type& Bre(const binary_type& x)
     {
-      tensor_type& tensor = Bsh_[label];
-      if (! tensor.rows())
-	tensor = tensor_type::Zero(hidden_, 1);
-      return tensor;
+      return Bre(x.first, x.second);
     }
-
-    tensor_type& Wre(const word_type& label)
+    
+    tensor_type& Wre(const word_type& left, const word_type& right)
     {
-      tensor_type& tensor = Wre_[label];
+      tensor_type& tensor = Wre_[binary_type(left, right)];
       if (! tensor.rows())
 	tensor = tensor_type::Zero(hidden_, hidden_ + hidden_);
       return tensor;
     }
-
-    tensor_type& Bre(const word_type& label)
+    
+    tensor_type& Bre(const word_type& left, const word_type& right)
     {
-      tensor_type& tensor = Bre_[label];
+      tensor_type& tensor = Bre_[binary_type(left, right)];
       if (! tensor.rows())
 	tensor = tensor_type::Zero(hidden_, 1);
       return tensor;
@@ -204,21 +226,21 @@ namespace rnnp
     
     // source/target embedding
     embedding_type terminal_;
-
+    
     // classification
-    label_matrix_type Wc_;
+    matrix_unary_type Wc_;
     
     // shift
-    label_matrix_type Wsh_;
-    label_matrix_type Bsh_;
+    tensor_type Wsh_;
+    tensor_type Bsh_;
     
     // reduce
-    label_matrix_type Wre_;
-    label_matrix_type Bre_;
+    matrix_binary_type Wre_;
+    matrix_binary_type Bre_;
     
     // unary
-    label_matrix_type Wu_;
-    label_matrix_type Bu_;
+    matrix_unary_type Wu_;
+    matrix_unary_type Bu_;
     
     // final
     tensor_type Wf_;
