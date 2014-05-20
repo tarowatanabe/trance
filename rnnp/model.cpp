@@ -382,11 +382,11 @@ namespace rnnp
     if (matrix.cols() != cols)
       matrix.conservativeResize(matrix.rows(), cols);
 
-    qi::rule<iterator_type, std::string(), standard::blank_type>        word;
-    qi::rule<iterator_type, matrix_parsed_type(), standard::blank_type> parser; 
+    qi::rule<iterator_type, std::string(), standard::blank_type>        label;
+    qi::rule<iterator_type, matrix_parsed_type(), standard::blank_type> parser;
     
-    word   %= qi::lexeme[+(standard::char_ - standard::space)];
-    parser %= word >> *qi::double_ >> (qi::eol | qi::eoi);
+    label  %= qi::lexeme[standard::char_('[') >> +(standard::char_ - standard::space - ']') >> standard::char_(']')];
+    parser %= label >> *qi::double_ >> (qi::eol | qi::eoi);
     
     utils::compress_istream is_txt(path_txt, 1024 * 1024);
     utils::compress_istream is_bin(path_bin, 1024 * 1024);
@@ -464,11 +464,11 @@ namespace rnnp
     if (matrix.cols() != cols)
       matrix.conservativeResize(matrix.rows(), cols);
 
-    qi::rule<iterator_type, std::string(), standard::blank_type>        word;
+    qi::rule<iterator_type, std::string(), standard::blank_type>        label;
     qi::rule<iterator_type, matrix_parsed_type(), standard::blank_type> parser; 
     
-    word   %= qi::lexeme[+(standard::char_ - standard::space)];
-    parser %= word >> word >> *qi::double_ >> (qi::eol | qi::eoi);
+    label  %= qi::lexeme[standard::char_('[') >> +(standard::char_ - standard::space - ']') >> standard::char_(']')];
+    parser %= label >> label >> *qi::double_ >> (qi::eol | qi::eoi);
     
     utils::compress_istream is_txt(path_txt, 1024 * 1024);
     utils::compress_istream is_bin(path_bin, 1024 * 1024);
