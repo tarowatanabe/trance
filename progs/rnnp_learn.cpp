@@ -148,8 +148,21 @@ int main(int argc, char** argv)
       
       if (int(model_model1) + model_model2 + model_model3 == 0)
 	model_model2 = true;
-    } else if (int(model_model1) + model_model2 + model_model3)
-      throw std::runtime_error("model file is specified via --model, but with --model{1,2,3}?");
+    } else {
+      if (int(model_model1) + model_model2 + model_model3)
+	throw std::runtime_error("model file is specified via --model, but with --model{1,2,3}?");
+      
+      if (! boost::filesystem::exists(model_file))
+	throw std::runtime_error("no model file? " + model_file.string());
+      
+      switch (model_type::model(model_file)) {
+      case 1: model_model1 = true; break;
+      case 2: model_model2 = true; break;
+      case 3: model_model3 = true; break;
+      default:
+	throw std::runtime_error("invalid model file");
+      }
+    }
 
     if (output_file.empty())
       throw std::runtime_error("no output?");
@@ -181,64 +194,21 @@ int main(int argc, char** argv)
 
     signature_type::signature_ptr_type signature(signature_type::create(signature_name));
     
-    if (! model_file.empty()) {
-      if (! boost::filesystem::exists(model_file))
-	throw std::runtime_error("no model file? " + model_file.string());
+    if (model_model1) {
+      rnnp::model::Model1 theta(hidden_size, embedding_size, grammar);
       
-      switch (model_type::model(model_file)) {
-      case 1: {
-	rnnp::model::Model1 theta(model_file);
-	
-	learn(optimizations, trees, grammar, *signature, theta, generator);
-      } break;
-      case 2: {
-	rnnp::model::Model2 theta(model_file);
-	
-	learn(optimizations, trees, grammar, *signature, theta, generator);
-      } break;
-      case 3: {
-	rnnp::model::Model3 theta(model_file);
-	
-	learn(optimizations, trees, grammar, *signature, theta, generator);
-      } break;
-      default:
-	throw std::runtime_error("invalid model file");
-      }
-    } else {
-      if (model_model1) {
-	rnnp::model::Model1 theta(hidden_size, embedding_size, grammar);
-	
-	if (randomize)
-	  theta.random(generator);
-	
-	if (! embedding_file.empty())
-	  theta.embedding(embedding_file);
-	
-	learn(optimizations, trees, grammar, *signature, theta, generator);
-      } else if (model_model2) {
-	rnnp::model::Model2 theta(hidden_size, embedding_size, grammar);
-	
-	if (randomize)
-	  theta.random(generator);
-	
-	if (! embedding_file.empty())
-	  theta.embedding(embedding_file);
-	
-	learn(optimizations, trees, grammar, *signature, theta, generator);
-      } else if (model_model3) {
-	rnnp::model::Model3 theta(hidden_size, embedding_size, grammar);
-	
-	if (randomize)
-	  theta.random(generator);
-	
-	if (! embedding_file.empty())
-	  theta.embedding(embedding_file);
-	
-	learn(optimizations, trees, grammar, *signature, theta, generator);
-      } else
-	throw std::runtime_error("no model?");
-    }
-        
+      learn(optimizations, trees, grammar, *signature, theta, generator);
+    } else if (model_model2) {
+      rnnp::model::Model2 theta(hidden_size, embedding_size, grammar);
+      
+      learn(optimizations, trees, grammar, *signature, theta, generator);
+    } else if (model_model3) {
+      rnnp::model::Model3 theta(hidden_size, embedding_size, grammar);
+      
+      learn(optimizations, trees, grammar, *signature, theta, generator);
+    } else
+      throw std::runtime_error("no model?");
+    
   } catch (const std::exception& err) {
     std::cerr << "error: " << err.what() << std::endl;
     return 1;
@@ -539,6 +509,16 @@ void learn(const option_set_type& optimizations,
 	   Theta& theta,
 	   Gen& gen)
 {
+  if (! model_file.empty())
+    theta.read(model_file);
+  else {
+    if (randomize)
+      theta.random(gen);
+    
+    if (! embedding_file.empty())
+      theta.embedding(embedding_file);
+  }
+  
   if (debug) {
     const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
     const size_t non_terminals = (theta.vocab_category_.size()

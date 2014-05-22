@@ -80,7 +80,7 @@ int debug = 0;
 template <typename Theta>
 void parse(const grammar_type& grammar,
 	   const signature_type& signature,
-	   const Theta& theta,
+	   Theta& theta,
 	   const path_type& input_path,
 	   const path_type& output_path);
 void options(int argc, char** argv);
@@ -99,15 +99,6 @@ int main(int argc, char** argv)
     if (unary_size < 0)
       throw std::runtime_error("invalid unary size: " + utils::lexical_cast<std::string>(unary_size));
     
-    if (model_file.empty()) {
-      if (int(model_model1) + model_model2 + model_model3 > 1)
-	throw std::runtime_error("either one of --model{1,2,3}");
-      
-      if (int(model_model1) + model_model2 + model_model3 == 0)
-	model_model2 = true;
-    } else if (int(model_model1) + model_model2 + model_model3)
-      throw std::runtime_error("model file is specified via --model, but with --model{1,2,3}?");
-
     if (simple_mode && kbest_size > 1)
       throw std::runtime_error("--simple assumes --kbest 1");
     
@@ -120,6 +111,28 @@ int main(int argc, char** argv)
     if (int(binarize_left) + binarize_right == 0)
       binarize_left = true;
 
+    if (model_file.empty()) {
+      if (int(model_model1) + model_model2 + model_model3 > 1)
+	throw std::runtime_error("either one of --model{1,2,3}");
+      
+      if (int(model_model1) + model_model2 + model_model3 == 0)
+	model_model2 = true;
+    } else {
+      if (int(model_model1) + model_model2 + model_model3)
+	throw std::runtime_error("model file is specified via --model, but with --model{1,2,3}?");
+      
+      if (! boost::filesystem::exists(model_file))
+	throw std::runtime_error("no model file? " + model_file.string());
+      
+      switch (model_type::model(model_file)) {
+      case 1: model_model1 = true; break;
+      case 2: model_model2 = true; break;
+      case 3: model_model3 = true; break;
+      default:
+	throw std::runtime_error("invalid model file");
+      }
+    }
+    
     grammar_type grammar(grammar_file);
     
     if (debug)
@@ -133,75 +146,21 @@ int main(int argc, char** argv)
 
     signature_type::signature_ptr_type signature(signature_type::create(signature_name));
     
-    if (! model_file.empty()) {
-      if (! boost::filesystem::exists(model_file))
-	throw std::runtime_error("no model file? " + model_file.string());
+    if (model_model1) {
+      rnnp::model::Model1 theta(hidden_size, embedding_size, grammar);
       
-      switch (model_type::model(model_file)) {
-      case 1: {
-	rnnp::model::Model1 theta(model_file);
-	
-	parse(grammar, *signature, theta, input_file, output_file);
-      } break;
-      case 2: {
-	rnnp::model::Model2 theta(model_file);
-	
-	parse(grammar, *signature, theta, input_file, output_file);
-      } break;
-      case 3: {
-	rnnp::model::Model3 theta(model_file);
-	
-	parse(grammar, *signature, theta, input_file, output_file);
-      } break;
-      default:
-	throw std::runtime_error("invalid model file");
-      }
-    } else {
-      if (model_model1) {
-	rnnp::model::Model1 theta(hidden_size, embedding_size, grammar);
-	
-	if (randomize) {
-	  boost::mt19937 generator;
-	  generator.seed(utils::random_seed());
-	  
-	  theta.random(generator);
-	}
-	
-	if (! embedding_file.empty())
-	  theta.embedding(embedding_file);
-	
-	parse(grammar, *signature, theta, input_file, output_file);
-      } else if (model_model2) {
-	rnnp::model::Model2 theta(hidden_size, embedding_size, grammar);
-
-	if (randomize) {
-	  boost::mt19937 generator;
-	  generator.seed(utils::random_seed());
-	  
-	  theta.random(generator);
-	}
-	
-	if (! embedding_file.empty())
-	  theta.embedding(embedding_file);
-	
-	parse(grammar, *signature, theta, input_file, output_file);
-      } else if (model_model3) {
-	rnnp::model::Model3 theta(hidden_size, embedding_size, grammar);
-
-	if (randomize) {
-	  boost::mt19937 generator;
-	  generator.seed(utils::random_seed());
-	  
-	  theta.random(generator);
-	}
-	
-	if (! embedding_file.empty())
-	  theta.embedding(embedding_file);
-	
-	parse(grammar, *signature, theta, input_file, output_file);
-      } else
-	throw std::runtime_error("no model?");
-    }
+      parse(grammar, *signature, theta, input_file, output_file);
+    } else if (model_model2) {
+      rnnp::model::Model2 theta(hidden_size, embedding_size, grammar);
+      
+      parse(grammar, *signature, theta, input_file, output_file);
+    } else if (model_model3) {
+      rnnp::model::Model3 theta(hidden_size, embedding_size, grammar);
+      
+      parse(grammar, *signature, theta, input_file, output_file);
+    } else
+      throw std::runtime_error("no model?");
+    
   } catch (const std::exception& err) {
     std::cerr << "error: " << err.what() << std::endl;
     return 1;
@@ -431,13 +390,27 @@ struct Reducer : public MapReduce
 template <typename Theta>
 void parse(const grammar_type& grammar,
 	   const signature_type& signature,
-	   const Theta& theta,
+	   Theta& theta,
 	   const path_type& input_path,
 	   const path_type& output_path)
 {
   typedef MapReduce     map_reduce_type;
   typedef Mapper<Theta> mapper_type;
   typedef Reducer       reducer_type;
+  
+  if (! model_file.empty())
+    theta.read(model_file);
+  else {
+    if (randomize) {
+      boost::mt19937 generator;
+      generator.seed(utils::random_seed());
+      
+      theta.random(generator);
+    }
+    
+    if (! embedding_file.empty())
+      theta.embedding(embedding_file);
+  }
   
   if (debug) {
     const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
