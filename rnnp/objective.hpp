@@ -80,6 +80,8 @@ namespace rnnp
     derivation_type   derivation_;
     backward_set_type backward_;
     state_map_type    states_;
+    
+    tensor_type queue_;
   };
   
 };

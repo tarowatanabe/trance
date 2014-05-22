@@ -20,7 +20,9 @@
 
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
-#include <rnnp/model.hpp>
+#include <rnnp/model/model1.hpp>
+#include <rnnp/model/model2.hpp>
+#include <rnnp/model/model3.hpp>
 #include <rnnp/parser_oracle.hpp>
 #include <rnnp/derivation.hpp>
 #include <rnnp/tree.hpp>
@@ -52,6 +54,10 @@ bool simple_mode = false;
 path_type grammar_file;
 std::string signature_name = "none";
 
+bool model_model1 = false;
+bool model_model2 = false;
+bool model_model3 = false;
+
 path_type model_file;
 int hidden_size = 64;
 int embedding_size = 32;
@@ -71,9 +77,10 @@ int threads = 1;
 
 int debug = 0;
 
+template <typename Theta>
 void parse(const grammar_type& grammar,
 	   const signature_type& signature,
-	   const model_type& theta,
+	   const Theta& theta,
 	   const path_type& input_path,
 	   const path_type& output_path);
 void options(int argc, char** argv);
@@ -92,6 +99,15 @@ int main(int argc, char** argv)
     if (unary_size < 0)
       throw std::runtime_error("invalid unary size: " + utils::lexical_cast<std::string>(unary_size));
     
+    if (model_file.empty()) {
+      if (int(model_model1) + model_model2 + model_model3 > 1)
+	throw std::runtime_error("either one of --model{1,2,3}");
+      
+      if (int(model_model1) + model_model2 + model_model3 == 0)
+	model_model2 = true;
+    } else if (int(model_model1) + model_model2 + model_model3)
+      throw std::runtime_error("model file is specified via --model, but with --model{1,2,3}?");
+
     if (simple_mode && kbest_size > 1)
       throw std::runtime_error("--simple assumes --kbest 1");
     
@@ -117,38 +133,75 @@ int main(int argc, char** argv)
 
     signature_type::signature_ptr_type signature(signature_type::create(signature_name));
     
-    model_type theta(hidden_size, embedding_size, grammar);
-
     if (! model_file.empty()) {
       if (! boost::filesystem::exists(model_file))
-	throw std::runtime_error("no model file?");
+	throw std::runtime_error("no model file? " + model_file.string());
       
-      theta.read(model_file);
-    } else {
-      if (randomize) {
-	boost::mt19937 generator;
-	generator.seed(utils::random_seed());
+      switch (model_type::model(model_file)) {
+      case 1: {
+	rnnp::model::Model1 theta(model_file);
 	
-	theta.random(generator);
+	parse(grammar, *signature, theta, input_file, output_file);
+      } break;
+      case 2: {
+	rnnp::model::Model2 theta(model_file);
+	
+	parse(grammar, *signature, theta, input_file, output_file);
+      } break;
+      case 3: {
+	rnnp::model::Model3 theta(model_file);
+	
+	parse(grammar, *signature, theta, input_file, output_file);
+      } break;
+      default:
+	throw std::runtime_error("invalid model file");
       }
-      
-      if (! embedding_file.empty())
-	theta.read_embedding(embedding_file);
+    } else {
+      if (model_model1) {
+	rnnp::model::Model1 theta(hidden_size, embedding_size, grammar);
+	
+	if (randomize) {
+	  boost::mt19937 generator;
+	  generator.seed(utils::random_seed());
+	  
+	  theta.random(generator);
+	}
+	
+	if (! embedding_file.empty())
+	  theta.embedding(embedding_file);
+	
+	parse(grammar, *signature, theta, input_file, output_file);
+      } else if (model_model2) {
+	rnnp::model::Model2 theta(hidden_size, embedding_size, grammar);
+
+	if (randomize) {
+	  boost::mt19937 generator;
+	  generator.seed(utils::random_seed());
+	  
+	  theta.random(generator);
+	}
+	
+	if (! embedding_file.empty())
+	  theta.embedding(embedding_file);
+	
+	parse(grammar, *signature, theta, input_file, output_file);
+      } else if (model_model3) {
+	rnnp::model::Model3 theta(hidden_size, embedding_size, grammar);
+
+	if (randomize) {
+	  boost::mt19937 generator;
+	  generator.seed(utils::random_seed());
+	  
+	  theta.random(generator);
+	}
+	
+	if (! embedding_file.empty())
+	  theta.embedding(embedding_file);
+	
+	parse(grammar, *signature, theta, input_file, output_file);
+      } else
+	throw std::runtime_error("no model?");
     }
-    
-    if (debug) {
-      const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
-      const size_t non_terminals = (theta.vocab_unary_.size()
-				    - std::count(theta.vocab_unary_.begin(), theta.vocab_unary_.end(),
-						 model_type::symbol_type()));
-      
-      std::cerr << "terminals: " << terminals
-		<< " non-terminals: " << non_terminals
-		<< std::endl;
-    }
-    
-    parse(grammar, *signature, theta, input_file, output_file);
-    
   } catch (const std::exception& err) {
     std::cerr << "error: " << err.what() << std::endl;
     return 1;
@@ -197,12 +250,12 @@ namespace std
   }
 };
 
-
+template <typename Theta>
 struct Mapper : public MapReduce
 {
   Mapper(const grammar_type& grammar,
 	 const signature_type& signature,
-	 const model_type&   theta,
+	 const Theta&   theta,
 	 queue_type& mapper,
 	 queue_type& reducer)
     : grammar_(grammar),
@@ -292,7 +345,7 @@ struct Mapper : public MapReduce
 
   const grammar_type&   grammar_;
   const signature_type& signature_;
-  const model_type&     theta_;
+  const Theta&          theta_;
   
   queue_type& mapper_;
   queue_type& reducer_;
@@ -375,16 +428,28 @@ struct Reducer : public MapReduce
   queue_type& reducer_;
 };
 
+template <typename Theta>
 void parse(const grammar_type& grammar,
 	   const signature_type& signature,
-	   const model_type& theta,
+	   const Theta& theta,
 	   const path_type& input_path,
 	   const path_type& output_path)
 {
-  typedef MapReduce map_reduce_type;
-  typedef Mapper    mapper_type;
-  typedef Reducer   reducer_type;
+  typedef MapReduce     map_reduce_type;
+  typedef Mapper<Theta> mapper_type;
+  typedef Reducer       reducer_type;
   
+  if (debug) {
+    const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
+    const size_t non_terminals = (theta.vocab_category_.size()
+				  - std::count(theta.vocab_category_.begin(), theta.vocab_category_.end(),
+					       model_type::symbol_type()));
+    
+    std::cerr << "terminals: " << terminals
+	      << " non-terminals: " << non_terminals
+	      << std::endl;
+  }
+
   map_reduce_type::queue_type queue_mapper(threads);
   map_reduce_type::queue_type queue_reducer;
   
@@ -436,6 +501,10 @@ void options(int argc, char** argv)
     ("grammar",    po::value<path_type>(&grammar_file),                                    "grammar file")
     ("signature",  po::value<std::string>(&signature_name)->default_value(signature_name), "language specific signature")
     
+    ("model1",    po::bool_switch(&model_model1), "parsing by model1")
+    ("model2",    po::bool_switch(&model_model2), "parsing by model2 (default)")
+    ("model3",    po::bool_switch(&model_model3), "parsing by model3")
+
     ("model",     po::value<path_type>(&model_file),                              "model file")
     ("hidden",    po::value<int>(&hidden_size)->default_value(hidden_size),       "hidden dimension")
     ("embedding", po::value<int>(&embedding_size)->default_value(embedding_size), "embedding dimension")

@@ -8,19 +8,17 @@
 
 #include <cmath>
 #include <vector>
+#include <iostream>
 
 #include <rnnp/symbol.hpp>
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
 
 #include <utils/bithack.hpp>
-#include <utils/indexed_set.hpp>
-#include <utils/hashmurmur3.hpp>
 
 #include <Eigen/Core>
 
 #include <boost/filesystem/path.hpp>
-#include <boost/random/uniform_real_distribution.hpp>
 
 namespace rnnp
 {
@@ -42,23 +40,10 @@ namespace rnnp
     typedef Eigen::Matrix<parameter_type, Eigen::Dynamic, Eigen::Dynamic> tensor_type;
     typedef Eigen::Map<tensor_type>                                       matrix_type;
 
-    typedef symbol_type unary_type;
-    typedef std::pair<symbol_type, symbol_type> binary_type;
+    typedef symbol_type category_type;
     
-    typedef std::vector<bool, std::allocator<bool> >             word_map_type;
-    typedef std::vector<unary_type, std::allocator<unary_type> > unary_set_type;
-
-    struct binary_hash : public utils::hashmurmur3<size_t>
-    {
-      typedef utils::hashmurmur3<size_t> hasher_type;
-      
-      size_t operator()(const binary_type& x) const
-      {
-	return hasher_type::operator()(x.first.non_terminal_id(), x.second.non_terminal_id());
-      }
-    };
-    
-    typedef utils::indexed_set<binary_type, binary_hash, std::equal_to<binary_type>, std::allocator<binary_type> > binary_set_type;
+    typedef std::vector<bool, std::allocator<bool> >                   terminal_set_type;
+    typedef std::vector<category_type, std::allocator<category_type> > category_set_type;
     
     struct activation
     {
@@ -81,160 +66,85 @@ namespace rnnp
     };
 
   public:
+    static int model(const path_type& path);
+
+  public:
     Model() : hidden_(0), embedding_(0) {}
-    Model(const path_type& path) { read(path); }
+    Model(const size_type& hidden,
+	  const size_type& embedding)
+      : hidden_(hidden), embedding_(embedding) {}
     Model(const size_type& hidden,
 	  const size_type& embedding,
-	  const grammar_type& grammar) { initialize(hidden, embedding, grammar); }
-    
+	  const grammar_type& grammar)
+      : hidden_(hidden), embedding_(embedding)
+    {
+      initialize(hidden, embedding, grammar);
+    }
+
     void initialize(const size_type& hidden,
 		    const size_type& embedding,
 		    const grammar_type& grammar);
-    
-    // IO
-    void write(const path_type& path) const;
-    void read(const path_type& path);
-    void read_embedding(const path_type& path);
-    
-    friend
-    std::ostream& operator<<(std::ostream& os, const Model& x);
-    friend
-    std::istream& operator>>(std::istream& is, Model& x);
-    
-    Model& operator+=(const Model& x);
-    Model& operator-=(const Model& x);
-    Model& operator*=(const double& x);
-    Model& operator/=(const double& x);
-    
-  private:
-    template <typename Gen>
-    struct __randomize
-    {
-      __randomize(Gen& gen, const double range=0.01) : gen_(gen), range_(range) {}
-      
-      template <typename Tp>
-      Tp operator()(const Tp& x) const
-      {
-	return boost::random::uniform_real_distribution<Tp>(-range_, range_)(const_cast<Gen&>(gen_));
-      }
-      
-      Gen& gen_;
-      double range_;
-    };
 
-  public:
-    template <typename Gen>
-    void random(Gen& gen)
-    {
-      const double range_embed = std::sqrt(6.0 / (embedding_ + 1));
-      const double range_c  = std::sqrt(6.0 / (hidden_ + 1));
-      const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
-      const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_));
-      const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_));
-      const double range_f  = std::sqrt(6.0 / (hidden_ + hidden_));
-      const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
-      
-      terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
-      
-      Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
-      
-      Wsh_ = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
-      Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
-      
-      Wu_ = Wu_.array().unaryExpr(__randomize<Gen>(gen, range_u));
-      
-      Wf_ = Wf_.array().unaryExpr(__randomize<Gen>(gen, range_f));
-      Wi_ = Wi_.array().unaryExpr(__randomize<Gen>(gen, range_i));
-    }
-    
-    
     void swap(Model& x)
     {
       std::swap(hidden_,    x.hidden_);
       std::swap(embedding_, x.embedding_);
       
       vocab_terminal_.swap(x.vocab_terminal_);
-      vocab_unary_.swap(x.vocab_unary_);
-      vocab_binary_.swap(x.vocab_binary_);
-      
-      terminal_.swap(x.terminal_);
-      
-      Wc_.swap(x.Wc_);
-      
-      Wsh_.swap(x.Wsh_);
-      Bsh_.swap(x.Bsh_);
-      
-      Wre_.swap(x.Wre_);
-      Bre_.swap(x.Bre_);
-      
-      Wu_.swap(x.Wu_);
-      Bu_.swap(x.Bu_);
-
-      Wf_.swap(x.Wf_);
-      Bf_.swap(x.Bf_);
-      
-      Wi_.swap(x.Wi_);
-      Bi_.swap(x.Bi_);
-      
-      Ba_.swap(x.Ba_);
+      vocab_category_.swap(x.vocab_category_);
     }
-    
-    void clear()
-    {
-      terminal_.setZero();
-      
-      Wc_.setZero();
-      
-      Wsh_.setZero();
-      Bsh_.setZero();
 
-      Wre_.setZero();
-      Bre_.setZero();
-      
-      Wu_.setZero();
-      Bu_.setZero();
-      
-      Wf_.setZero();
-      Bf_.setZero();
-      
-      Wi_.setZero();
-      Bi_.setZero();
-
-      Ba_.setZero();
-    }
+    void clear() { }
     
+    // path based interface
+    void write_embedding(const path_type& path_txt,
+			 const path_type& path_bin,
+			 const tensor_type& matrix) const;
+    void read_embedding(const path_type& path_txt,
+			const path_type& path_bin,
+			tensor_type& matrix);
+    
+    void write_category(const path_type& path_txt,
+			const path_type& path_bin,
+			const tensor_type& matrix,
+			const size_type rows,
+			const size_type cols) const;
+    void read_category(const path_type& path_txt,
+		       const path_type& path_bin,
+		       tensor_type& matrix,
+		       const size_type rows,
+		       const size_type cols);
+    
+    void write_matrix(const path_type& path_txt,
+		      const path_type& path_bin,
+		      const tensor_type& matrix) const;
+    void read_matrix(const path_type& path_txt,
+		     const path_type& path_bin,
+		     tensor_type& matrix);
+
+    // iostream based interface
+    void write_embedding(std::ostream& os,
+			 const tensor_type& matrix) const;
+    void read_embedding(std::istream& is,
+			tensor_type& matrix);
+    
+    void write_category(std::ostream& os,
+			const tensor_type& matrix,
+			const size_type rows,
+			const size_type cols) const;
+    void read_category(std::istream& is,
+		       tensor_type& matrix,
+		       const size_type rows,
+		       const size_type cols);
+    
+    void write_matrix(std::ostream& os,
+		      const tensor_type& matrix) const;
+    void read_matrix(std::istream& is,
+		     tensor_type& matrix);
+
   public:
-    double l1() const
-    {
-      double norm = 0.0;
-      
-      norm += Wc_.lpNorm<1>();
-      
-      norm += Wsh_.lpNorm<1>();
-      norm += Wre_.lpNorm<1>();
-      
-      norm += Wu_.lpNorm<1>();
-      norm += Wf_.lpNorm<1>();
-      norm += Wi_.lpNorm<1>();
-            
-      return norm;
-    }
-    
-    double l2() const
-    {
-      double norm = 0.0;
-      
-      norm += Wc_.squaredNorm();
-      
-      norm += Wsh_.squaredNorm();
-      norm += Wre_.squaredNorm();
-      
-      norm += Wu_.squaredNorm();
-      norm += Wf_.squaredNorm();
-      norm += Wi_.squaredNorm();
-      
-      return std::sqrt(norm);
-    }
+    tensor_type& plus_equal(tensor_type& x, const tensor_type& y);
+    tensor_type& minus_equal(tensor_type& x, const tensor_type& y);
     
   public:
     word_type::id_type terminal(const word_type& x) const
@@ -257,34 +167,14 @@ namespace rnnp
       }
     }
     
-    binary_type binary(const symbol_type& left, const symbol_type& right) const
+    size_type offset_classification(const category_type& cat) const
     {
-      binary_set_type::const_iterator biter = vocab_binary_.find(binary_type(left, right));
-      
-      return (biter != vocab_binary_.end() ? *biter : binary_type(symbol_type::ANY, symbol_type::ANY));
+      return cat.non_terminal_id();
     }
     
-    size_type offset_classification(const symbol_type& x) const
+    size_type offset_category(const category_type& cat) const
     {
-      return x.non_terminal_id();
-    }
-
-    size_type offset_unary(const symbol_type& x) const
-    {
-      return x.non_terminal_id() * hidden_;
-    }
-
-    size_type offset_binary(const symbol_type& left, const symbol_type& right) const
-    {
-      binary_set_type::const_iterator biter = vocab_binary_.find(binary_type(left, right));
-      
-      if (biter != vocab_binary_.end())
-	return (biter - vocab_binary_.begin()) * hidden_;
-
-      if (vocab_binary_[0].first != symbol_type::ANY || vocab_binary_[0].second != symbol_type::ANY)
-	throw std::runtime_error("invalid binary offset?");
-
-      return 0;
+      return cat.non_terminal_id() * hidden_;
     }
     
   public:
@@ -293,38 +183,8 @@ namespace rnnp
     size_type embedding_;
     
     // word set
-    word_map_type   vocab_terminal_;
-    unary_set_type  vocab_unary_;
-    binary_set_type vocab_binary_;
-    
-    // terminal embedding
-    tensor_type terminal_;
-    
-    // classification
-    tensor_type Wc_;
-    
-    // shift
-    tensor_type Wsh_;
-    tensor_type Bsh_;
-    
-    // reduce
-    tensor_type Wre_;
-    tensor_type Bre_;
-    
-    // unary
-    tensor_type Wu_;
-    tensor_type Bu_;
-
-    // final
-    tensor_type Wf_;
-    tensor_type Bf_;
-
-    // idle
-    tensor_type Wi_;
-    tensor_type Bi_;
-    
-    // axiom
-    tensor_type Ba_;
+    terminal_set_type vocab_terminal_;
+    category_set_type vocab_category_;
   };
 };
 

@@ -10,32 +10,27 @@
 #include <vector>
 #include <queue>
 
-#include <rnnp/sentence.hpp>
-#include <rnnp/signature.hpp>
-#include <rnnp/symbol.hpp>
-#include <rnnp/model.hpp>
-#include <rnnp/grammar.hpp>
-#include <rnnp/operation.hpp>
-#include <rnnp/span.hpp>
+#include <rnnp/parser/parser.hpp>
+
 #include <rnnp/state.hpp>
 #include <rnnp/allocator.hpp>
+#include <rnnp/model_traits.hpp>
 
 namespace rnnp
 {
   class Parser
   {
   public:
-    typedef size_t    size_type;
-    typedef ptrdiff_t difference_type;
+    typedef parser::Parser::size_type       size_type;
+    typedef parser::Parser::difference_type difference_type;
 
-    typedef Span span_type;
+    typedef parser::Parser::span_type     span_type;
+    typedef parser::Parser::sentence_type sentence_type;
+
+    typedef parser::Parser::grammar_type   grammar_type;
+    typedef parser::Parser::signature_type signature_type;
     
-    typedef Sentence  sentence_type;
-    
-    typedef Grammar   grammar_type;
-    typedef Signature signature_type;
-    
-    typedef Model model_type;
+    typedef parser::Parser::model_type model_type;
     
     typedef model_type::symbol_type    symbol_type;
     typedef model_type::word_type      word_type;
@@ -43,9 +38,8 @@ namespace rnnp
     typedef model_type::tensor_type    tensor_type;
     typedef model_type::matrix_type    matrix_type;
     
-    typedef Operation operation_type;
-    
-    typedef State state_type;
+    typedef parser::Parser::operation_type operation_type;
+    typedef parser::Parser::state_type     state_type;
 
     typedef Allocator<state_type> state_allocator_type;
     
@@ -79,21 +73,22 @@ namespace rnnp
       }
     };
     
+    template <typename Theta>
     void operator()(const sentence_type& input,
 		    const grammar_type& grammar,
 		    const signature_type& signature,
-		    const model_type& theta,
+		    const Theta& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations)
     {
       parse(input, grammar, signature, theta, kbest, derivations, best_action_none());
     }
 
-    template <typename BestAction>
+    template <typename Theta, typename BestAction>
     void operator()(const sentence_type& input,
 		    const grammar_type& grammar,
 		    const signature_type& signature,
-		    const model_type& theta,
+		    const Theta& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations,
 		    const BestAction& best_action)
@@ -101,11 +96,11 @@ namespace rnnp
       parse(input, grammar, signature, theta, kbest, derivations, best_action);
     }
     
-    template <typename BestAction>
+    template <typename Theta, typename BestAction>
     void parse(const sentence_type& input,
 	       const grammar_type& grammar,
 	       const signature_type& signature,
-	       const model_type& theta,
+	       const Theta& theta,
 	       const size_type kbest,
 	       derivation_set_type& derivations,
 	       const BestAction& best_action)
@@ -115,8 +110,10 @@ namespace rnnp
       if (input.empty()) return;
       
       initialize(input, theta);
+
+      typename model_traits<Theta>::parser_type impl;
       
-      operation_axiom(theta);
+      impl.operation_axiom(*this, input, theta);
       
       const size_type unary_max = input.size() * unary_size_;
       const size_type step_last = input.size() * 2 + unary_max;
@@ -137,7 +134,7 @@ namespace rnnp
 	  const state_type& state = *hiter;
 	  
 	  if (state.operation().finished())
-	    operation_idle(state, theta);
+	    impl.operation_idle(*this, theta, state);
 	  else {
 	    // we perform shift..
 	    if (state.next() < input.size()) {
@@ -145,7 +142,7 @@ namespace rnnp
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_shift(state, input[state.next()], riter->lhs_, theta);
+		impl.operation_shift(*this, theta, state, input[state.next()], riter->lhs_);
 	    }
 	    
 	    // we perform unary
@@ -154,7 +151,7 @@ namespace rnnp
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_unary(state, riter->lhs_, theta);
+		impl.operation_unary(*this, theta, state, riter->lhs_);
 	    }
 	    
 	    // final...
@@ -162,7 +159,7 @@ namespace rnnp
 		&& state.stack().label() == symbol_type::EPSILON
 		&& state.label() == grammar.goal_
 		&& state.next() == input.size())
-	      operation_final(state, theta);
+	      impl.operation_final(*this, theta, state);
 	    
 	    // we will perform reduce
 	    if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
@@ -170,7 +167,7 @@ namespace rnnp
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		operation_reduce(state, riter->lhs_, theta);
+		impl.operation_reduce(*this, theta, state, riter->lhs_);
 	    }
 	  }
 	}
@@ -198,7 +195,7 @@ namespace rnnp
 	    const state_type& state = *hiter;
 	    
 	    if (state.operation().finished())
-	      operation_idle(state, theta);
+	      impl.operation_idle(*this, theta, state);
 	    else {
 	      // we perform shift.... this should not happen, though..
 	      if (state.next() < input.size()) {
@@ -206,7 +203,7 @@ namespace rnnp
 		
 		grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 		for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		  operation_shift(state, input[state.next()], riter->lhs_, theta);
+		  impl.operation_shift(*this, theta, state, input[state.next()], riter->lhs_);
 	      }
 	      
 	      // perform root
@@ -214,21 +211,21 @@ namespace rnnp
 		  && state.stack().label() == symbol_type::EPSILON
 		  && state.label() != grammar.goal_
 		  && state.next() == input.size())
-		operation_unary(state, grammar.goal_, theta);
+		impl.operation_unary(*this, theta, state, grammar.goal_);
 	      
 	      // final...
 	      if (state.stack()
 		  && state.stack().label() == symbol_type::EPSILON
 		  && state.label() == grammar.goal_
 		  && state.next() == input.size())
-		operation_final(state, theta);
+		impl.operation_final(*this, theta, state);
 	      
 	      // we will perform reduce
 	      if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
 		if (state.stack().stack() && state.stack().stack().label() == symbol_type::EPSILON)
-		  operation_reduce(state, grammar.sentence_, theta);
+		  impl.operation_reduce(*this, theta, state, grammar.sentence_);
 		else
-		  operation_reduce(state, grammar.sentence_binarized_, theta);
+		  impl.operation_reduce(*this, theta, state, grammar.sentence_binarized_);
 	      }
 	    }
 	  }
@@ -253,6 +250,7 @@ namespace rnnp
       agenda_.clear();
       agenda_.resize(input.size() * 2 + input.size() * unary_size_ + 1);
 
+      // state allocator
       state_allocator_.clear();
       state_allocator_.assign(state_type::size(theta.hidden_));
     }
@@ -277,206 +275,6 @@ namespace rnnp
       // erase deallocated states
       heap.erase(hiter_begin, hiter);
     }
-    
-    void operation_shift(const state_type& state,
-			 const word_type& head,
-			 const symbol_type& label,
-			 const model_type& theta)
-    {
-      const size_type offset1 = 0;
-      const size_type offset2 = theta.hidden_;
-
-      state_type state_new = state_allocator_.allocate();
-      
-      state_new.step()  = state.step() + 1;
-      state_new.next()  = state.next() + 1;
-      state_new.unary() = state.unary();
-      
-      state_new.operation() = operation_type::SHIFT;
-      state_new.label()     = label;
-      state_new.head()      = head;
-      state_new.span()      = span_type(state.next(), state.next() + 1);
-      
-      state_new.stack()      = state;
-      state_new.derivation() = state;
-      state_new.reduced()    = state_type();
-      
-      const size_type offset_classification = theta.offset_classification(label);
-      
-      state_new.layer(theta.hidden_) = (theta.Bsh_
-					+ (theta.Wsh_.block(0, offset1, theta.hidden_, theta.hidden_)
-					   * state.layer(theta.hidden_))
-					+ (theta.Wsh_.block(0, offset2, theta.hidden_, theta.embedding_)
-					   * theta.terminal_.col(theta.terminal(head)))
-					).array().unaryExpr(model_type::activation());
-      
-      const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
-      
-      state_new.score() = state.score() + score;
-      
-      agenda_[state_new.step()].push_back(state_new);
-    }
-    
-    void operation_reduce(const state_type& state,
-			  const symbol_type& label,
-			  const model_type& theta)
-    {
-      const size_type offset1 = 0;
-      const size_type offset2 = theta.hidden_;
-      
-      const state_type state_reduced = state.stack();
-      const state_type state_stack   = state_reduced.stack();
-
-      state_type state_new = state_allocator_.allocate();
-      
-      state_new.step()  = state.step() + 1;
-      state_new.next()  = state.next();
-      state_new.unary() = state.unary();
-      
-      state_new.operation() = operation_type::REDUCE;
-      state_new.label()     = label;
-      state_new.head()      = symbol_type::EPSILON;
-      state_new.span()      = span_type(state_reduced.span().first_, state.span().last_);
-      
-      state_new.stack()      = state_stack;
-      state_new.derivation() = state;
-      state_new.reduced()    = state_reduced;
-      
-      const size_type offset_binary         = theta.offset_binary(state_reduced.label(), state.label());
-      const size_type offset_classification = theta.offset_classification(label);
-      
-      state_new.layer(theta.hidden_) = (theta.Bre_.block(offset_binary, 0, theta.hidden_, 1)
-					+ (theta.Wre_.block(offset_binary, offset1, theta.hidden_, theta.hidden_)
-					   * state.layer(theta.hidden_))
-					+ (theta.Wre_.block(offset_binary, offset2, theta.hidden_, theta.hidden_)
-					   * state_reduced.layer(theta.hidden_))
-					).array().unaryExpr(model_type::activation());
-      
-      const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
-      
-      state_new.score() = state.score() + score;
-      
-      agenda_[state_new.step()].push_back(state_new);
-    }
-    
-    void operation_unary(const state_type& state,
-			 const symbol_type& label,
-			 const model_type& theta)
-    {
-      state_type state_new = state_allocator_.allocate();
-      
-      state_new.step()  = state.step() + 1;
-      state_new.next()  = state.next();
-      state_new.unary() = state.unary() + 1;
-      
-      state_new.operation() = operation_type(operation_type::UNARY, state.operation().closure() + 1);
-      state_new.label()     = label;
-      state_new.head()      = symbol_type::EPSILON;
-      state_new.span()      = state.span();
-      
-      state_new.stack()      = state.stack();
-      state_new.derivation() = state;
-      state_new.reduced()    = state_type();
-      
-      const size_type offset_unary          = theta.offset_unary(state.label());
-      const size_type offset_classification = theta.offset_classification(label);
-      
-      state_new.layer(theta.hidden_) = (theta.Bu_.block(offset_unary, 0, theta.hidden_, 1)
-					+ (theta.Wu_.block(offset_unary, 0, theta.hidden_, theta.hidden_)
-					   * state.layer(theta.hidden_))
-					).array().unaryExpr(model_type::activation());
-      
-      const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
-      
-      state_new.score() = state.score() + score;
-      
-      agenda_[state_new.step()].push_back(state_new);
-    }
-    
-    void operation_final(const state_type& state,
-			 const model_type& theta)
-    {
-      state_type state_new = state_allocator_.allocate();
-      
-      state_new.step()  = state.step() + 1;
-      state_new.next()  = state.next();
-      state_new.unary() = state.unary();
-      
-      state_new.operation() = operation_type::FINAL;
-      state_new.label()     = symbol_type::FINAL;
-      state_new.head()      = symbol_type::EPSILON;
-      state_new.span()      = state.span();
-      
-      state_new.stack()      = state.stack();
-      state_new.derivation() = state;
-      state_new.reduced()    = state_type();
-
-      const size_type offset_classification = theta.offset_classification(symbol_type::FINAL);
-      
-      state_new.layer(theta.hidden_) = (theta.Bf_
-					+ theta.Wf_ * state.layer(theta.hidden_)
-					).array().unaryExpr(model_type::activation());
-      
-      const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
-      
-      state_new.score() = state.score() + score;
-      
-      agenda_[state_new.step()].push_back(state_new);
-    }
-
-    void operation_idle(const state_type& state,
-			const model_type& theta)
-    {
-      state_type state_new = state_allocator_.allocate();
-      
-      state_new.step()  = state.step() + 1;
-      state_new.next()  = state.next();
-      state_new.unary() = state.unary();
-      
-      state_new.operation() = operation_type::IDLE;
-      state_new.label()     = symbol_type::IDLE;
-      state_new.head()      = symbol_type::EPSILON;
-      state_new.span()      = state.span();
-      
-      state_new.stack()      = state.stack();
-      state_new.derivation() = state;
-      state_new.reduced()    = state_type();
-
-      const size_type offset_classification = theta.offset_classification(symbol_type::IDLE);
-      
-      state_new.layer(theta.hidden_) = (theta.Bi_
-					+ theta.Wi_ * state.layer(theta.hidden_)
-					).array().unaryExpr(model_type::activation());
-      
-      const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
-      
-      state_new.score() = state.score() + score;
-      
-      agenda_[state_new.step()].push_back(state_new);
-    }
-
-    void operation_axiom(const model_type& theta)
-    {
-      state_type state_new = state_allocator_.allocate();
-      
-      state_new.step()  = 0;
-      state_new.next()  = 0;
-      state_new.unary() = 0;
-      
-      state_new.operation() = operation_type::AXIOM;
-      state_new.label()     = symbol_type::EPSILON;
-      state_new.head()      = symbol_type::EPSILON;
-      state_new.span()      = span_type(-1, 0);
-      
-      state_new.stack()      = state_type();
-      state_new.derivation() = state_type();
-      state_new.reduced()    = state_type();
-
-      state_new.score() = 0;
-      state_new.layer(theta.hidden_) = theta.Ba_.array().unaryExpr(model_type::activation());
-      
-      agenda_[state_new.step()].push_back(state_new);
-    }
 
   public:
     size_type beam_size_;
@@ -486,6 +284,9 @@ namespace rnnp
     
     // allocator
     state_allocator_type state_allocator_;
+    
+    // additional information required by some models...
+    tensor_type queue_;
   };
 };
 

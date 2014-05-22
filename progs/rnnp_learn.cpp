@@ -8,7 +8,9 @@
 #include <rnnp/tree.hpp>
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
-#include <rnnp/model.hpp>
+#include <rnnp/model/model1.hpp>
+#include <rnnp/model/model2.hpp>
+#include <rnnp/model/model3.hpp>
 #include <rnnp/parser.hpp>
 #include <rnnp/parser_oracle.hpp>
 #include <rnnp/loss.hpp>
@@ -71,6 +73,10 @@ path_type output_file;
 path_type grammar_file;
 std::string signature_name = "none";
 
+bool model_model1 = false;
+bool model_model2 = false;
+bool model_model3 = false;
+
 path_type model_file;
 path_type embedding_file;
 int hidden_size = 64;
@@ -95,12 +101,12 @@ int threads = 1;
 
 int debug = 0;
 
-template <typename Gen>
-void learn(const option_type& option,
+template <typename Theta, typename Gen>
+void learn(const option_set_type& options,
 	   const tree_set_type& trees,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
-	   model_type& theta,
+	   Theta& theta,
 	   Gen& gen);
 
 void read_data(const path_type& path_input,
@@ -136,6 +142,15 @@ int main(int argc, char** argv)
     if (int(mix_none_mode) + mix_average_mode + mix_select_mode == 0)
       mix_none_mode = true;
     
+    if (model_file.empty()) {
+      if (int(model_model1) + model_model2 + model_model3 > 1)
+	throw std::runtime_error("either one of --model{1,2,3}");
+      
+      if (int(model_model1) + model_model2 + model_model3 == 0)
+	model_model2 = true;
+    } else if (int(model_model1) + model_model2 + model_model3)
+      throw std::runtime_error("model file is specified via --model, but with --model{1,2,3}?");
+
     if (output_file.empty())
       throw std::runtime_error("no output?");
 
@@ -165,40 +180,65 @@ int main(int argc, char** argv)
 		<< std::endl;
 
     signature_type::signature_ptr_type signature(signature_type::create(signature_name));
-
-    model_type theta(hidden_size, embedding_size, grammar);
     
     if (! model_file.empty()) {
       if (! boost::filesystem::exists(model_file))
 	throw std::runtime_error("no model file? " + model_file.string());
       
-      theta.read(model_file);
+      switch (model_type::model(model_file)) {
+      case 1: {
+	rnnp::model::Model1 theta(model_file);
+	
+	learn(optimizations, trees, grammar, *signature, theta, generator);
+      } break;
+      case 2: {
+	rnnp::model::Model2 theta(model_file);
+	
+	learn(optimizations, trees, grammar, *signature, theta, generator);
+      } break;
+      case 3: {
+	rnnp::model::Model3 theta(model_file);
+	
+	learn(optimizations, trees, grammar, *signature, theta, generator);
+      } break;
+      default:
+	throw std::runtime_error("invalid model file");
+      }
     } else {
-      if (randomize)
-	theta.random(generator);
-      
-      if (! embedding_file.empty())
-	theta.read_embedding(embedding_file);
+      if (model_model1) {
+	rnnp::model::Model1 theta(hidden_size, embedding_size, grammar);
+	
+	if (randomize)
+	  theta.random(generator);
+	
+	if (! embedding_file.empty())
+	  theta.embedding(embedding_file);
+	
+	learn(optimizations, trees, grammar, *signature, theta, generator);
+      } else if (model_model2) {
+	rnnp::model::Model2 theta(hidden_size, embedding_size, grammar);
+	
+	if (randomize)
+	  theta.random(generator);
+	
+	if (! embedding_file.empty())
+	  theta.embedding(embedding_file);
+	
+	learn(optimizations, trees, grammar, *signature, theta, generator);
+      } else if (model_model3) {
+	rnnp::model::Model3 theta(hidden_size, embedding_size, grammar);
+	
+	if (randomize)
+	  theta.random(generator);
+	
+	if (! embedding_file.empty())
+	  theta.embedding(embedding_file);
+	
+	learn(optimizations, trees, grammar, *signature, theta, generator);
+      } else
+	throw std::runtime_error("no model?");
     }
-    
-    if (debug) {
-      const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
-      const size_t non_terminals = (theta.vocab_unary_.size()
-				    - std::count(theta.vocab_unary_.begin(), theta.vocab_unary_.end(),
-						 model_type::symbol_type()));
-      
-      std::cerr << "terminals: " << terminals
-		<< " non-terminals: " << non_terminals
-		<< std::endl;
-    }
-    
-    option_set_type::const_iterator oiter_end = optimizations.end();
-    for (option_set_type::const_iterator oiter = optimizations.begin(); oiter != oiter_end; ++ oiter)
-      learn(*oiter, trees, grammar, *signature, theta, generator);
-    
-    if (! output_file.empty())
-      theta.write(output_file);
-    
+        
   } catch (const std::exception& err) {
     std::cerr << "error: " << err.what() << std::endl;
     return 1;
@@ -206,14 +246,14 @@ int main(int argc, char** argv)
   return 0;
 }
 
-template <typename Optimizer, typename Objective>
+template <typename Theta, typename Optimizer, typename Objective>
 struct Task
 {
   typedef size_t    size_type;
   typedef ptrdiff_t difference_type;
 
-  typedef rnnp::Model    model_type;
-  typedef rnnp::Gradient gradient_type;
+  typedef typename rnnp::model_traits<Theta>::model_type    model_type;
+  typedef typename rnnp::model_traits<Theta>::gradient_type gradient_type;
 
   typedef rnnp::Loss loss_type;
 
@@ -426,23 +466,23 @@ struct Task
 };
 
 
-template <typename Optimizer, typename Objective, typename Gen>
+template <typename Theta, typename Optimizer, typename Objective, typename Gen>
 void learn(const Optimizer& optimizer,
 	   const Objective& objective,
 	   const option_type& option,
 	   const tree_set_type& trees,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
-	   model_type& theta,
+	   Theta& theta,
 	   Gen& gen);
 
-template <typename Optimizer, typename Gen>
+template <typename Theta, typename Optimizer, typename Gen>
 void learn(const Optimizer& optimizer,
 	   const option_type& option,
 	   const tree_set_type& trees,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
-	   model_type& theta,
+	   Theta& theta,
 	   Gen& gen)
 {
   
@@ -468,41 +508,68 @@ void learn(const Optimizer& optimizer,
     throw std::runtime_error("unsupported objective");
 }
 
-template <typename Gen>
+template <typename Theta, typename Gen>
 void learn(const option_type& option,
 	   const tree_set_type& trees,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
-	   model_type& theta,
+	   Theta& theta,
 	   Gen& gen)
 {
   if (debug)
     std::cerr << "learning: " << option << std::endl;
 
   if (option.optimize_adagrad())
-    learn(rnnp::optimize::AdaGrad(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
+    learn(rnnp::optimize::AdaGrad<Theta>(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
   else if (option.optimize_adadec())
-    learn(rnnp::optimize::AdaDec(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
+    learn(rnnp::optimize::AdaDec<Theta>(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
   else if (option.optimize_adadelta())
-    learn(rnnp::optimize::AdaDelta(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
+    learn(rnnp::optimize::AdaDelta<Theta>(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
   else if (option.optimize_sgd())
-    learn(rnnp::optimize::SGD(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
+    learn(rnnp::optimize::SGD<Theta>(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
   else
     throw std::runtime_error("unknown optimizer");
 }
 
+template <typename Theta, typename Gen>
+void learn(const option_set_type& optimizations,
+	   const tree_set_type& trees,
+	   const grammar_type& grammar,
+	   const signature_type& signature,
+	   Theta& theta,
+	   Gen& gen)
+{
+  if (debug) {
+    const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
+    const size_t non_terminals = (theta.vocab_category_.size()
+				  - std::count(theta.vocab_category_.begin(), theta.vocab_category_.end(),
+					       model_type::symbol_type()));
+    
+    std::cerr << "terminals: " << terminals
+	      << " non-terminals: " << non_terminals
+	      << std::endl;
+  }
+  
+  option_set_type::const_iterator oiter_end = optimizations.end();
+  for (option_set_type::const_iterator oiter = optimizations.begin(); oiter != oiter_end; ++ oiter)
+    learn(*oiter, trees, grammar, signature, theta, gen);
 
-template <typename Optimizer, typename Objective, typename Gen>
+  if (! output_file.empty())
+    theta.write(output_file);
+}
+
+
+template <typename Theta, typename Optimizer, typename Objective, typename Gen>
 void learn(const Optimizer& optimizer,
 	   const Objective& objective,
 	   const option_type& option,
 	   const tree_set_type& trees,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
-	   model_type& theta,
+	   Theta& theta,
 	   Gen& gen)
 {
-  typedef Task<Optimizer, Objective> task_type;
+  typedef Task<Theta, Optimizer, Objective> task_type;
   typedef std::vector<task_type, std::allocator<task_type> > task_set_type;
   
   typedef typename task_type::queue_mapper_type     queue_mapper_type;
@@ -680,6 +747,10 @@ void options(int argc, char** argv)
     ("grammar",    po::value<path_type>(&grammar_file),                                    "grammar file")
     ("signature",  po::value<std::string>(&signature_name)->default_value(signature_name), "language specific signature")
     
+    ("model1",    po::bool_switch(&model_model1), "parsing by model1")
+    ("model2",    po::bool_switch(&model_model2), "parsing by model2 (default)")
+    ("model3",    po::bool_switch(&model_model3), "parsing by model3")
+
     ("model",     po::value<path_type>(&model_file),                              "model file")
     ("hidden",    po::value<int>(&hidden_size)->default_value(hidden_size),       "hidden dimension")
     ("embedding", po::value<int>(&embedding_size)->default_value(embedding_size), "embedding dimension")

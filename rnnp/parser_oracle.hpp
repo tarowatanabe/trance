@@ -23,21 +23,22 @@ namespace rnnp
       : Parser(beam_size, unary_size), left_(left) {}
     
   public:
+    template <typename Theta>
     void operator()(const tree_type& input,
 		    const grammar_type& grammar,
 		    const signature_type& signature,
-		    const model_type& theta,
+		    const Theta& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations)
     {
       parse(input, grammar, signature, theta, kbest, derivations, best_action_none());
     }
 
-    template <typename BestAction>
+    template <typename Theta, typename BestAction>
     void operator()(const tree_type& input,
 		    const grammar_type& grammar,
 		    const signature_type& signature,
-		    const model_type& theta,
+		    const Theta& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations,
 		    const BestAction& best_action)
@@ -45,11 +46,11 @@ namespace rnnp
       parse(input, grammar, signature, theta, kbest, derivations, best_action);
     }
     
-    template <typename BestAction>
+    template <typename Theta, typename BestAction>
     void parse(const tree_type& input,
 	       const grammar_type& grammar,
 	       const signature_type& signature,
-	       const model_type& theta,
+	       const Theta& theta,
 	       const size_type kbest,
 	       derivation_set_type& derivations,
 	       const BestAction& best_action)
@@ -64,8 +65,10 @@ namespace rnnp
 
       if (oracle_.actions_.size() >= agenda_.size())
 	throw std::runtime_error("oracle operation sequence is longer than agenda size!");
+
+      typename model_traits<Theta>::parser_type impl;
       
-      operation_axiom(theta);
+      impl.operation_axiom(*this, oracle_.sentence_, theta);
       
       const size_type unary_max = oracle_.sentence_.size() * unary_size_;
       const size_type step_last = oracle_.sentence_.size() * 2 + unary_max;
@@ -85,7 +88,7 @@ namespace rnnp
 	  const state_type& state = *hiter;
 
 	  if (state.operation().finished())
-	    operation_idle(state, theta);
+	    impl.operation_idle(*this, theta, state);
 	  else {
 	    if (step + 1 < oracle_.actions_.size()) {
 	      const oracle_type::action_type& action = oracle_.actions_[step + 1];
@@ -95,19 +98,19 @@ namespace rnnp
 		if (state.next() >= oracle_.sentence_.size())
 		  throw std::runtime_error("invalid shift!");
 		
-		operation_shift(state, action.head_, action.label_, theta);
+		impl.operation_shift(*this, theta, state, action.head_, action.label_);
 		break;
 	      case operation_type::REDUCE:
 		if (! state.stack() || state.stack().label() == symbol_type::EPSILON)
 		  throw std::runtime_error("invalid reduction!");
 		
-		operation_reduce(state, action.label_, theta);
+		impl.operation_reduce(*this, theta, state, action.label_);
 		break;
 	      case operation_type::UNARY:
 		if (state.unary() >= unary_max || state.operation().closure() >= unary_size_)
 		  throw std::runtime_error("invalid unary!");
 		
-		operation_unary(state, action.label_, theta);
+		impl.operation_unary(*this, theta, state, action.label_);
 		break;
 	      default:
 		throw std::runtime_error("invalid operation!");
@@ -118,7 +121,7 @@ namespace rnnp
 		  && state.stack().label() == symbol_type::EPSILON
 		  && state.label() == grammar.goal_
 		  && state.next() == oracle_.sentence_.size())
-		operation_final(state, theta);
+		impl.operation_final(*this, theta, state);
 	      else
 		throw std::runtime_error("invalid final!");
 	    }

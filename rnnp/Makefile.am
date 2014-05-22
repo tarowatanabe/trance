@@ -5,10 +5,17 @@ LIBUTILS=$(top_builddir)/utils/libutils.la
 
 lib_LTLIBRARIES = librnnp.la
 
+noinst_LTLIBRARIES = \
+librnnp-gradient.la \
+librnnp-model.la
+
 librnnpincludedir= $(pkgincludedir)/rnnp
 
 objectivedir = $(pkgincludedir)/rnnp/objective
 optimizedir  = $(pkgincludedir)/rnnp/optimize
+gradientdir  = $(pkgincludedir)/rnnp/gradient
+modeldir     = $(pkgincludedir)/rnnp/model
+parserdir    = $(pkgincludedir)/rnnp/parser
 semiringdir  = $(pkgincludedir)/rnnp/semiring
 signaturedir = $(pkgincludedir)/rnnp/signature
 
@@ -30,6 +37,34 @@ optimize/adadec.hpp \
 optimize/adadelta.hpp \
 optimize/adagrad.hpp \
 optimize/sgd.hpp
+
+dist_gradient_HEADERS = \
+gradient/model1.hpp \
+gradient/model2.hpp \
+gradient/model3.hpp
+
+librnnp_gradient_la_SOURCES = \
+gradient/model1.cpp \
+gradient/model2.cpp \
+gradient/model3.cpp
+librnnp_gradient_la_CPPFLAGS = $(AM_CPPFLAGS)
+
+dist_model_HEADERS = \
+model/model1.hpp \
+model/model2.hpp \
+model/model3.hpp
+
+librnnp_model_la_SOURCES = \
+model/model1.cpp \
+model/model2.cpp \
+model/model3.cpp
+librnnp_model_la_CPPFLAGS = $(AM_CPPFLAGS)
+
+dist_parser_HEADERS = \
+parser/model1.hpp \
+parser/model2.hpp \
+parser/model3.hpp \
+parser/parser.hpp
 
 dist_semiring_HEADERS = \
 semiring/log.hpp \
@@ -57,6 +92,7 @@ graphviz.hpp \
 learn_option.hpp \
 loss.hpp \
 model.hpp \
+model_traits.hpp \
 objective.hpp \
 operation.hpp \
 optimize.hpp \
@@ -98,6 +134,9 @@ librnnp_la_LDFLAGS = \
 	-version-info $(RNNP_LTVERSION)
 
 librnnp_la_LIBADD = \
+	librnnp-gradient.la \
+	librnnp-model.la \
+	\
 	$(LIBUTILS) \
 	$(BOOST_THREAD_LIBS) \
 	$(BOOST_FILESYSTEM_LIBS) \

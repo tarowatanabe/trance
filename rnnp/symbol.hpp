@@ -59,7 +59,6 @@ namespace rnnp
     static const Symbol EPSILON;
     static const Symbol UNK;
 
-    static const Symbol ANY;
     static const Symbol FINAL;
     static const Symbol IDLE;
     

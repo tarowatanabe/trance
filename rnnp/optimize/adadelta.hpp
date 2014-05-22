@@ -11,6 +11,7 @@
 //
 
 #include <rnnp/optimize.hpp>
+#include <rnnp/model_traits.hpp>
 
 #include <utils/mathop.hpp>
 
@@ -18,50 +19,22 @@ namespace rnnp
 {
   namespace optimize
   {
+
+    template <typename Theta>
     struct AdaDelta : public Optimize
     {
-      AdaDelta(const model_type& theta,
+      typedef typename model_traits<Theta>::model_type    model_impl_type;
+      typedef typename model_traits<Theta>::gradient_type gradient_impl_type;
+      
+      AdaDelta(const Theta& theta,
 	       const double& lambda,
 	       const double& eta0)
 	: G_(theta), X_(theta), lambda_(lambda), eta0_(eta0) { G_.clear(); X_.clear(); }
-    
-      void operator()(model_type& theta,
-		      const gradient_type& gradient,
-		      const option_type& option) const
-      {
-	if (! gradient.count_) return;
-
-	const double scale = 1.0 / gradient.count_;
       
-	model_type& G = const_cast<model_type&>(G_);
-	model_type& X = const_cast<model_type&>(X_);
+      void operator()(model_impl_type& theta,
+		      const gradient_impl_type& gradient,
+		      const option_type& option) const;
       
-	if (option.learn_embedding())
-	  update(theta, theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
-	
-	if (option.learn_classification())
-	  update(theta, theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, lambda_ != 0.0);
-	
-	if (option.learn_hidden()) {
-	  update(theta, theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, lambda_ != 0.0);
-	  update(theta, theta.Bsh_, G.Bsh_, X.Bsh_, gradient.Bsh_, scale, false);
-	
-	  update(theta, theta.Wre_, G.Wre_, X.Wre_, gradient.Wre_, scale, lambda_ != 0.0);
-	  update(theta, theta.Bre_, G.Bre_, X.Bre_, gradient.Bre_, scale, false);
-	
-	  update(theta, theta.Wu_, G.Wu_, X.Wu_, gradient.Wu_, scale, lambda_ != 0.0);
-	  update(theta, theta.Bu_, G.Bu_, X.Bu_, gradient.Bu_, scale, false);
-
-	  update(theta, theta.Wf_, G.Wf_, X.Wf_, gradient.Wf_, scale, lambda_ != 0.0);
-	  update(theta, theta.Bf_, G.Bf_, X.Bf_, gradient.Bf_, scale, false);
-	  
-	  update(theta, theta.Wi_, G.Wi_, X.Wi_, gradient.Wi_, scale, lambda_ != 0.0);
-	  update(theta, theta.Bi_, G.Bi_, X.Bi_, gradient.Bi_, scale, false);
-	
-	  update(theta, theta.Ba_, G.Ba_, X.Ba_, gradient.Ba_, scale, false);
-	}
-      }
-
       static inline
       double learning_rate(const double& eta0, const double& x, const double& g)
       {
@@ -147,19 +120,16 @@ namespace rnnp
 	const double eta0_;
       };
 
-      void update(model_type& model,
-		  tensor_type& theta,
+      void update(tensor_type& theta,
 		  tensor_type& G,
 		  tensor_type& X,
-		  const gradient_type::embedding_type& embedding,
+		  const matrix_embedding_type& grad,
 		  const double scale,
 		  const bool regularize) const
       {
-	typedef gradient_type::embedding_type embedding_type;
-
 	if (lambda_ != 0.0) {
-	  embedding_type::const_iterator eiter_end = embedding.end();
-	  for (embedding_type::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
+	  matrix_embedding_type::const_iterator eiter_end = grad.end();
+	  for (matrix_embedding_type::const_iterator eiter = grad.begin(); eiter != eiter_end; ++ eiter) {
 	    const size_type col = eiter->first.id();
 	    const tensor_type& g = eiter->second;
 	    
@@ -177,8 +147,8 @@ namespace rnnp
 	      }
 	  }
 	} else {
-	  embedding_type::const_iterator eiter_end = embedding.end();
-	  for (embedding_type::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter) {
+	  matrix_embedding_type::const_iterator eiter_end = grad.end();
+	  for (matrix_embedding_type::const_iterator eiter = grad.begin(); eiter != eiter_end; ++ eiter) {
 	    const size_type col = eiter->first.id();
 	    const tensor_type& g = eiter->second;
 	    
@@ -197,19 +167,16 @@ namespace rnnp
 	}
       }
       
-      void update(model_type& model,
-		  tensor_type& theta,
+      void update(tensor_type& theta,
 		  tensor_type& G,
 		  tensor_type& X,
-		  const gradient_type::matrix_unary_type& grad,
+		  const matrix_category_type& grad,
 		  const double scale,
 		  const bool regularize) const
       {
-	typedef gradient_type::matrix_unary_type matrix_unary_type;
-	
-	if (regularize) {
-	  matrix_unary_type::const_iterator giter_end = grad.end();
-	  for (matrix_unary_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
+	if (regularize && lambda_ != 0.0) {
+	  matrix_category_type::const_iterator giter_end = grad.end();
+	  for (matrix_category_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
 	    const size_type rows = giter->second.rows();
 	    const size_type cols = giter->second.cols();
 	    const size_type offset = rows * giter->first.non_terminal_id();
@@ -238,8 +205,8 @@ namespace rnnp
 		}
 	  }
 	} else {
-	  matrix_unary_type::const_iterator giter_end = grad.end();
-	  for (matrix_unary_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
+	  matrix_category_type::const_iterator giter_end = grad.end();
+	  for (matrix_category_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
 	    const size_type rows = giter->second.rows();
 	    const size_type cols = giter->second.cols();
 	    const size_type offset = rows * giter->first.non_terminal_id();
@@ -268,86 +235,14 @@ namespace rnnp
 	}
       }
       
-      void update(model_type& model,
-		  tensor_type& theta,
-		  tensor_type& G,
-		  tensor_type& X,
-		  const gradient_type::matrix_binary_type& grad,
-		  const double scale,
-		  const bool regularize) const
-      {
-	typedef gradient_type::matrix_binary_type matrix_binary_type;
-	
-	if (regularize) {
-	  matrix_binary_type::const_iterator giter_end = grad.end();
-	  for (matrix_binary_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
-	    const size_type rows = giter->second.rows();
-	    const size_type cols = giter->second.cols();
-	    const size_type offset = model.offset_binary(giter->first.first, giter->first.second);
-	    
-	    const tensor_type& g = giter->second;
-
-	    for (tensor_type::Index col = 0; col != g.cols(); ++ col) 
-	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
-		if (g(row, col) != 0) {
-		  G.block(offset, 0, rows, cols)(row, col) =
-		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + (g(row, col) * scale) * (g(row, col) * scale);
-
-		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
-		  
-		  const double rate = learning_rate(eta0_,
-						    X.block(offset, 0, rows, cols)(row, col),
-						    G.block(offset, 0, rows, cols)(row, col));
-		  
-		  const double x1 = x - rate * scale * g(row, col);
-		  const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
-		  
-		  X.block(offset, 0, rows, cols)(row, col)
-		    = X.block(offset, 0, rows, cols)(row, col) * 0.95 + (x2 - x) * (x2 - x);
-		  
-		  x = x2;
-		}
-	  }
-	} else {
-	  matrix_binary_type::const_iterator giter_end = grad.end();
-	  for (matrix_binary_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
-	    const size_type rows = giter->second.rows();
-	    const size_type cols = giter->second.cols();
-	    const size_type offset = model.offset_binary(giter->first.first, giter->first.second);
-	    
-	    const tensor_type& g = giter->second;
-
-	    for (tensor_type::Index col = 0; col != g.cols(); ++ col) 
-	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
-		if (g(row, col) != 0) {
-		  G.block(offset, 0, rows, cols)(row, col) =
-		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + (g(row, col) * scale) * (g(row, col) * scale);
-
-		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
-		  
-		  const double rate = learning_rate(eta0_,
-						    X.block(offset, 0, rows, cols)(row, col),
-						    G.block(offset, 0, rows, cols)(row, col));
-		  const double x1 = x - rate * scale * g(row, col);
-		  
-		  X.block(offset, 0, rows, cols)(row, col)
-		    = X.block(offset, 0, rows, cols)(row, col) * 0.95 + (x1 - x) * (x1 - x);
-		  
-		  x = x1;
-		}
-	  }
-	}
-      }
-      
-      void update(model_type& model,
-		  tensor_type& theta,
+      void update(tensor_type& theta,
 		  tensor_type& G,
 		  tensor_type& X,
 		  const tensor_type& g,
 		  const double scale,
 		  const bool regularize) const
       {
-	if (regularize) {
+	if (regularize && lambda_ != 0.0) {
 	  update_visitor_regularize visitor(theta, G, X, g, scale, lambda_, eta0_);
 	  
 	  theta.visit(visitor);
@@ -359,12 +254,135 @@ namespace rnnp
       }
     
     private:
-      model_type G_;
-      model_type X_;
+      Theta G_;
+      Theta X_;
     
       double lambda_;
       double eta0_;
     };
+
+    template <>
+    inline
+    void AdaDelta<model::Model1>::operator()(model::Model1& theta,
+					     const gradient::Model1& gradient,
+					     const option_type& option) const
+    {
+      if (! gradient.count_) return;
+
+      const double scale = 1.0 / gradient.count_;
+      
+      model_impl_type& G = const_cast<model_impl_type&>(G_);
+      model_impl_type& X = const_cast<model_impl_type&>(X_);
+      
+      if (option.learn_embedding())
+	update(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
+	
+      if (option.learn_classification())
+	update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, true);
+	
+      if (option.learn_hidden()) {
+	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, G.Bsh_, X.Bsh_, gradient.Bsh_, scale, false);
+	
+	update(theta.Wre_, G.Wre_, X.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, G.Bre_, X.Bre_, gradient.Bre_, scale, false);
+	
+	update(theta.Wu_, G.Wu_, X.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, G.Bu_, X.Bu_, gradient.Bu_, scale, false);
+
+	update(theta.Wf_, G.Wf_, X.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, G.Bf_, X.Bf_, gradient.Bf_, scale, false);
+	  
+	update(theta.Wi_, G.Wi_, X.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, G.Bi_, X.Bi_, gradient.Bi_, scale, false);
+	
+	update(theta.Ba_, G.Ba_, X.Ba_, gradient.Ba_, scale, false);
+      }
+    }
+
+    template <>
+    inline
+    void AdaDelta<model::Model2>::operator()(model::Model2& theta,
+					     const gradient::Model2& gradient,
+					     const option_type& option) const
+    {
+      if (! gradient.count_) return;
+
+      const double scale = 1.0 / gradient.count_;
+      
+      model_impl_type& G = const_cast<model_impl_type&>(G_);
+      model_impl_type& X = const_cast<model_impl_type&>(X_);
+      
+      if (option.learn_embedding())
+	update(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
+	
+      if (option.learn_classification())
+	update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, true);
+	
+      if (option.learn_hidden()) {
+	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, G.Bsh_, X.Bsh_, gradient.Bsh_, scale, false);
+	
+	update(theta.Wre_, G.Wre_, X.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, G.Bre_, X.Bre_, gradient.Bre_, scale, false);
+	
+	update(theta.Wu_, G.Wu_, X.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, G.Bu_, X.Bu_, gradient.Bu_, scale, false);
+
+	update(theta.Wf_, G.Wf_, X.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, G.Bf_, X.Bf_, gradient.Bf_, scale, false);
+	  
+	update(theta.Wi_, G.Wi_, X.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, G.Bi_, X.Bi_, gradient.Bi_, scale, false);
+	
+	update(theta.Ba_, G.Ba_, X.Ba_, gradient.Ba_, scale, false);
+      }
+    }
+
+    template <>
+    inline
+    void AdaDelta<model::Model3>::operator()(model::Model3& theta,
+					     const gradient::Model3& gradient,
+					     const option_type& option) const
+    {
+      if (! gradient.count_) return;
+
+      const double scale = 1.0 / gradient.count_;
+      
+      model_impl_type& G = const_cast<model_impl_type&>(G_);
+      model_impl_type& X = const_cast<model_impl_type&>(X_);
+      
+      if (option.learn_embedding()) {
+	update(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
+	update(theta.queue_,    G.queue_,    X.queue_,    gradient.queue_,    scale, false);
+      }
+	
+      if (option.learn_classification())
+	update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, true);
+	
+      if (option.learn_hidden()) {
+	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, G.Bsh_, X.Bsh_, gradient.Bsh_, scale, false);
+	
+	update(theta.Wre_, G.Wre_, X.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, G.Bre_, X.Bre_, gradient.Bre_, scale, false);
+	
+	update(theta.Wu_, G.Wu_, X.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, G.Bu_, X.Bu_, gradient.Bu_, scale, false);
+
+	update(theta.Wf_, G.Wf_, X.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, G.Bf_, X.Bf_, gradient.Bf_, scale, false);
+	  
+	update(theta.Wi_, G.Wi_, X.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, G.Bi_, X.Bi_, gradient.Bi_, scale, false);
+	
+	update(theta.Wqu_, G.Wqu_, X.Wqu_, gradient.Wqu_, scale, true);
+	update(theta.Bqu_, G.Bqu_, X.Bqu_, gradient.Bqu_, scale, false);
+	update(theta.Bqe_, G.Bqe_, X.Bqe_, gradient.Bqe_, scale, false);
+	
+	update(theta.Ba_, G.Ba_, X.Ba_, gradient.Ba_, scale, false);
+      }
+    }
   };
 };
 

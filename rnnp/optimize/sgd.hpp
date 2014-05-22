@@ -7,109 +7,59 @@
 #define __RNNP__OPTIMIZE_SGD__HPP__ 1
 
 #include <rnnp/optimize.hpp>
+#include <rnnp/model_traits.hpp>
 
 namespace rnnp
 {
   namespace optimize
   {
+    template <typename Theta>
     struct SGD : public Optimize
     {
-      SGD(const model_type& theta,
+      typedef typename model_traits<Theta>::model_type    model_impl_type;
+      typedef typename model_traits<Theta>::gradient_type gradient_impl_type;
+      
+      SGD(const Theta& theta,
 	  const double& lambda,
 	  const double& eta0)
 	: lambda_(lambda), eta0_(eta0) { }
       
-      void operator()(model_type& theta,
-		      const gradient_type& gradient,
-		      const option_type& option) const
-      {
-	if (! gradient.count_) return;
-	
-	const double scale = 1.0 / gradient.count_;
-	
-	if (option.learn_embedding())
-	  update(theta, theta.terminal_, gradient.terminal_, scale, false);
-	
-	if (option.learn_classification())
-	  update(theta, theta.Wc_, gradient.Wc_, scale, lambda_ != 0.0);
-	
-	if (option.learn_hidden()) {
-	  update(theta, theta.Wsh_, gradient.Wsh_, scale, lambda_ != 0.0);
-	  update(theta, theta.Bsh_, gradient.Bsh_, scale, false);
-	  
-	  update(theta, theta.Wre_, gradient.Wre_, scale, lambda_ != 0.0);
-	  update(theta, theta.Bre_, gradient.Bre_, scale, false);
-	  
-	  update(theta, theta.Wu_, gradient.Wu_, scale, lambda_ != 0.0);
-	  update(theta, theta.Bu_, gradient.Bu_, scale, false);
-	  
-	  update(theta, theta.Wf_, gradient.Wf_, scale, lambda_ != 0.0);
-	  update(theta, theta.Bf_, gradient.Bf_, scale, false);
-	  
-	  update(theta, theta.Wi_, gradient.Wi_, scale, lambda_ != 0.0);
-	  update(theta, theta.Bi_, gradient.Bi_, scale, false);
-	  
-	  update(theta, theta.Ba_, gradient.Ba_, scale, false);
-	}
-      }
+      void operator()(model_impl_type& theta,
+		      const gradient_impl_type& gradient,
+		      const option_type& option) const;
       
-      void update(model_type& model,
-		  tensor_type& theta,
-		  const gradient_type::embedding_type& embedding,
+      void update(tensor_type& theta,
+		  const matrix_embedding_type& grad,
 		  const double scale,
 		  const bool regularize) const
       {
-	typedef gradient_type::embedding_type embedding_type;
-
-	embedding_type::const_iterator eiter_end = embedding.end();
-	for (embedding_type::const_iterator eiter = embedding.begin(); eiter != eiter_end; ++ eiter)
+	matrix_embedding_type::const_iterator eiter_end = grad.end();
+	for (matrix_embedding_type::const_iterator eiter = grad.begin(); eiter != eiter_end; ++ eiter)
 	  theta.col(eiter->first.id()) -= (eta0_ * scale) * eiter->second;
       }
       
-      void update(model_type& model,
-		  tensor_type& theta,
-		  const gradient_type::matrix_unary_type& grad,
+      void update(tensor_type& theta,
+		  const matrix_category_type& grad,
 		  const double scale,
 		  const bool regularize) const
       {
-	typedef gradient_type::matrix_unary_type matrix_unary_type;
+	typedef gradient_type::matrix_category_type matrix_category_type;
 	
-	if (regularize)
+	if (regularize && lambda_ != 0.0)
 	  theta *= 1.0 - eta0_ * lambda_;
 	
-	matrix_unary_type::const_iterator giter_end = grad.end();
-	for (matrix_unary_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter)
+	matrix_category_type::const_iterator giter_end = grad.end();
+	for (matrix_category_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter)
 	  theta.block(giter->second.rows() * giter->first.non_terminal_id(), 0, giter->second.rows(), giter->second.cols())
 	    -= (eta0_ * scale) * giter->second;
       }
       
-      void update(model_type& model,
-		  tensor_type& theta,
-		  const gradient_type::matrix_binary_type& grad,
-		  const double scale,
-		  const bool regularize) const
-      {
-	typedef gradient_type::matrix_binary_type matrix_binary_type;
-	
-	if (regularize)
-	  theta *= 1.0 - eta0_ * lambda_;
-	
-	matrix_binary_type::const_iterator giter_end = grad.end();
-	for (matrix_binary_type::const_iterator giter = grad.begin(); giter != giter_end; ++ giter) {
-	  const size_type offset = model.offset_binary(giter->first.first, giter->first.second);
-	  
-	  theta.block(offset, 0, giter->second.rows(), giter->second.cols())
-	    -= (eta0_ * scale) * giter->second;
-	}
-      }
-      
-      void update(model_type& model,
-		  tensor_type& theta,
+      void update(tensor_type& theta,
 		  const tensor_type& g,
 		  const double scale,
 		  const bool regularize) const
       {
-	if (regularize)
+	if (regularize && lambda_ != 0.0)
 	  theta *= 1.0 - eta0_ * lambda_;
       
 	theta -= eta0_ * scale * g;
@@ -119,6 +69,120 @@ namespace rnnp
       double lambda_;
       double eta0_;
     };
+    
+    template <>
+    inline
+    void SGD<model::Model1>::operator()(model::Model1& theta,
+					const gradient::Model1& gradient,
+					const option_type& option) const
+    {
+      if (! gradient.count_) return;
+	
+      const double scale = 1.0 / gradient.count_;
+	
+      if (option.learn_embedding())
+	update(theta.terminal_, gradient.terminal_, scale, false);
+	
+      if (option.learn_classification())
+	update(theta.Wc_, gradient.Wc_, scale, true);
+	
+      if (option.learn_hidden()) {
+	update(theta.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, gradient.Bsh_, scale, false);
+	  
+	update(theta.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, gradient.Bre_, scale, false);
+	  
+	update(theta.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, gradient.Bu_, scale, false);
+	  
+	update(theta.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, gradient.Bf_, scale, false);
+	  
+	update(theta.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, gradient.Bi_, scale, false);
+	  
+	update(theta.Ba_, gradient.Ba_, scale, false);
+      }
+    }
+
+    template <>
+    inline
+    void SGD<model::Model2>::operator()(model::Model2& theta,
+					const gradient::Model2& gradient,
+					const option_type& option) const
+    {
+      if (! gradient.count_) return;
+	
+      const double scale = 1.0 / gradient.count_;
+	
+      if (option.learn_embedding())
+	update(theta.terminal_, gradient.terminal_, scale, false);
+	
+      if (option.learn_classification())
+	update(theta.Wc_, gradient.Wc_, scale, true);
+	
+      if (option.learn_hidden()) {
+	update(theta.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, gradient.Bsh_, scale, false);
+	  
+	update(theta.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, gradient.Bre_, scale, false);
+	  
+	update(theta.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, gradient.Bu_, scale, false);
+	  
+	update(theta.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, gradient.Bf_, scale, false);
+	  
+	update(theta.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, gradient.Bi_, scale, false);
+	  
+	update(theta.Ba_, gradient.Ba_, scale, false);
+      }
+    }
+
+    template <>
+    inline
+    void SGD<model::Model3>::operator()(model::Model3& theta,
+					const gradient::Model3& gradient,
+					const option_type& option) const
+    {
+      if (! gradient.count_) return;
+	
+      const double scale = 1.0 / gradient.count_;
+	
+      if (option.learn_embedding()) {
+	update(theta.terminal_, gradient.terminal_, scale, false);
+	update(theta.queue_,    gradient.queue_,    scale, false);
+      }
+	
+      if (option.learn_classification())
+	update(theta.Wc_, gradient.Wc_, scale, true);
+	
+      if (option.learn_hidden()) {
+	update(theta.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, gradient.Bsh_, scale, false);
+	  
+	update(theta.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, gradient.Bre_, scale, false);
+	  
+	update(theta.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, gradient.Bu_, scale, false);
+	  
+	update(theta.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, gradient.Bf_, scale, false);
+	
+	update(theta.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, gradient.Bi_, scale, false);
+	
+	update(theta.Wqu_, gradient.Wqu_, scale, true);
+	update(theta.Bqu_, gradient.Bqu_, scale, false);
+	update(theta.Bqe_, gradient.Bqe_, scale, false);
+	
+	update(theta.Ba_, gradient.Ba_, scale, false);
+      }
+    }
   };
 };
 

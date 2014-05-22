@@ -38,11 +38,9 @@ namespace rnnp
       margin_set_type margin_;
       prob_set_type   prob_;
 
-      double margin(const model_type& theta,
-		    const parser_type& candidates,
+      double margin(const parser_type& candidates,
 		    const parser_oracle_type& oracles,
-		    const option_type& option,
-		    gradient_type& g)
+		    const option_type& option)
       {
 	if (candidates.agenda_.size() != oracles.agenda_.size())
 	  throw std::runtime_error("invalid candidate and oracle pair");

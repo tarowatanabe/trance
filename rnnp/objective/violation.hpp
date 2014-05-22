@@ -26,21 +26,18 @@ namespace rnnp
       
     public:
       // virtual function
-      virtual size_type violation(const model_type& theta,
-				  const parser_type& candidates,
+      virtual size_type violation(const parser_type& candidates,
 				  const parser_oracle_type& oracles,
 				  const option_type& option) = 0;
       
-      double margin(const model_type& theta,
-		    const parser_type& candidates,
+      double margin(const parser_type& candidates,
 		    const parser_oracle_type& oracles,
-		    const option_type& option,
-		    gradient_type& g)
+		    const option_type& option)
       {
 	if (candidates.agenda_.size() != oracles.agenda_.size())
 	  throw std::runtime_error("invalid candidate and oracle pair");
 
-	const size_type step = violation(theta, candidates, oracles, option);
+	const size_type step = violation(candidates, oracles, option);
 	
 	if (step == size_type(-1)) return 0.0;
 	

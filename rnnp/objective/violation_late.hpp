@@ -16,8 +16,7 @@ namespace rnnp
   {
     struct ViolationLate : public objective::Violation
     {
-      size_type violation(const model_type& theta,
-			  const parser_type& candidates,
+      size_type violation(const parser_type& candidates,
 			  const parser_oracle_type& oracles,
 			  const option_type& option)
       {

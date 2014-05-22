@@ -14,12 +14,36 @@
 
 #include "model.hpp"
 
-#include "utils/repository.hpp"
 #include "utils/compress_stream.hpp"
-#include "utils/lexical_cast.hpp"
+#include "utils/repository.hpp"
 
 namespace rnnp
 {
+  int Model::model(const path_type& path)
+  {
+    typedef utils::repository repository_type;
+    
+    if (! repository_type::exists(path))
+      return 0;
+    
+    repository_type rep(path, repository_type::read);
+
+    repository_type::const_iterator iter = rep.find("model");
+    if (iter == rep.end())
+      throw std::runtime_error("no model parameter?");
+    
+    const std::string& model_name = iter->second;
+    
+    if (model_name == "model1")
+      return 1;
+    else if (model_name == "model2")
+      return 2;
+    else if (model_name == "model3")
+      return 3;
+    else
+      return 0;
+  }
+
   void Model::initialize(const size_type& hidden,
 			 const size_type& embedding,
 			 const grammar_type& grammar)
@@ -34,8 +58,7 @@ namespace rnnp
     
     // assign vocabulary
     vocab_terminal_.clear();
-    vocab_unary_.clear();
-    vocab_binary_.clear();
+    vocab_category_.clear();
     
     // terminal index
     grammar_type::label_set_type::const_iterator titer_end = grammar.terminal_.end();
@@ -47,246 +70,67 @@ namespace rnnp
     }
     
     // unary index
-    if (symbol_type::FINAL.non_terminal_id() >= vocab_unary_.size())
-      vocab_unary_.resize(symbol_type::FINAL.non_terminal_id() + 1);
-    if (symbol_type::IDLE.non_terminal_id() >= vocab_unary_.size())
-      vocab_unary_.resize(symbol_type::IDLE.non_terminal_id() + 1);
-    if (symbol_type::ANY.non_terminal_id() >= vocab_unary_.size())
-      vocab_unary_.resize(symbol_type::ANY.non_terminal_id() + 1);
+    if (symbol_type::FINAL.non_terminal_id() >= vocab_category_.size())
+      vocab_category_.resize(symbol_type::FINAL.non_terminal_id() + 1);
+    if (symbol_type::IDLE.non_terminal_id() >= vocab_category_.size())
+      vocab_category_.resize(symbol_type::IDLE.non_terminal_id() + 1);
     
-    vocab_unary_[symbol_type::FINAL.non_terminal_id()] = symbol_type::FINAL;
-    vocab_unary_[symbol_type::IDLE.non_terminal_id()]  = symbol_type::IDLE;
+    vocab_category_[symbol_type::FINAL.non_terminal_id()] = symbol_type::FINAL;
+    vocab_category_[symbol_type::IDLE.non_terminal_id()]  = symbol_type::IDLE;
     
     grammar_type::label_set_type::const_iterator niter_end = grammar.non_terminal_.end();
     for (grammar_type::label_set_type::const_iterator niter = grammar.non_terminal_.begin(); niter != niter_end; ++ niter) {
-      if (niter->non_terminal_id() >= vocab_unary_.size())
-	vocab_unary_.resize(niter->non_terminal_id() + 1);
+      if (niter->non_terminal_id() >= vocab_category_.size())
+	vocab_category_.resize(niter->non_terminal_id() + 1);
       
-      vocab_unary_[niter->non_terminal_id()] = *niter;
+      vocab_category_[niter->non_terminal_id()] = *niter;
     }
-    
-    // binary index
-    vocab_binary_.insert(binary_type(symbol_type::ANY, symbol_type::ANY));
-    grammar_type::rule_set_binary_type::const_iterator biter_end = grammar.binary_.end();
-    for (grammar_type::rule_set_binary_type::const_iterator biter = grammar.binary_.begin(); biter != biter_end; ++ biter)
-      vocab_binary_.insert(binary_type(biter->first.first, biter->first.second));
-    
-    // initialize matrixx
-    terminal_ = tensor_type::Zero(embedding_, vocab_terminal_.size());
-    
-    Wc_  = tensor_type::Zero(1 * vocab_unary_.size(), hidden_);
-    
-    Wsh_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
-    Bsh_ = tensor_type::Zero(hidden_, 1);
-    
-    Wre_ = tensor_type::Zero(hidden_ * vocab_binary_.size(), hidden_ + hidden_);
-    Bre_ = tensor_type::Zero(hidden_ * vocab_binary_.size(), 1);
-    
-    Wu_  = tensor_type::Zero(hidden_ * vocab_unary_.size(), hidden_);
-    Bu_  = tensor_type::Zero(hidden_ * vocab_unary_.size(), 1);
-    
-    Wf_ = tensor_type::Zero(hidden_, hidden_);
-    Bf_ = tensor_type::Zero(hidden_, 1);
-
-    Wi_ = tensor_type::Zero(hidden_, hidden_);
-    Bi_ = tensor_type::Zero(hidden_, 1);
-    
-    Ba_ = tensor_type::Zero(hidden_, 1);
   }
   
-  template <typename Tp>
+  template <typename Tp, size_t Precision>
   struct real_policy : boost::spirit::karma::real_policies<Tp>
   {
     static unsigned int precision(Tp)
     {
-      return 10;
+      return Precision;
     }
   };
   
-  template <typename Path, typename Tensor, typename WordMap>
-  inline
-  void inline_write_embedding(const Path& path_txt,
-			      const Path& path_bin,
-			      const Tensor& embedding,
-			      const WordMap& words)
+  void Model::write_embedding(const path_type& path_txt,
+			      const path_type& path_bin,
+			      const tensor_type& matrix) const
   {
     namespace karma = boost::spirit::karma;
     namespace standard = boost::spirit::standard;
     
-    typedef rnnp::Model::parameter_type parameter_type;
-    typedef rnnp::Model::word_type      word_type;
-    
-    const word_type::id_type rows = embedding.rows();
-    const word_type::id_type cols = utils::bithack::min(static_cast<size_t>(embedding.cols()), words.size());
+    const size_type          rows = matrix.rows();
+    const word_type::id_type cols = utils::bithack::min(static_cast<size_t>(matrix.cols()), vocab_terminal_.size());
     
     utils::compress_ostream os_txt(path_txt, 1024 * 1024);
     utils::compress_ostream os_bin(path_bin, 1024 * 1024);
     std::ostream_iterator<char> iter(os_txt);
     
-    karma::real_generator<parameter_type, real_policy<parameter_type> > float10;
+    karma::real_generator<parameter_type, real_policy<parameter_type, 10> > float10;
     
     for (word_type::id_type id = 0; id != cols; ++ id)  
-      if (words[id]) {
-	// text output
+      if (vocab_terminal_[id]) {
 	const word_type word(id);
+
+	const parameter_type* data = matrix.col(id).data();
 	
 	karma::generate(iter, standard::string, word);
+	karma::generate(iter, +(' ' << float10) << '\n', boost::make_iterator_range(data, data + rows));
 	
-	for (size_t j = 0; j != rows; ++ j)
-	  karma::generate(iter, karma::lit(' ') << float10, embedding(j, id));
-	
-	karma::generate(iter, karma::lit('\n'));
-	
-	// binary output
-	os_bin.write((char*) embedding.col(id).data(), sizeof(typename Tensor::Scalar) * rows);
+	os_bin.write((char*) matrix.col(id).data(), sizeof(tensor_type::Scalar) * rows);
       }
   }
-  
-  template <typename Path, typename Tensor, typename WordSet>
-  inline
-  void write_unary_matrix(const Path& path_txt,
-			  const Path& path_bin,
-			  const Tensor& matrix,
-			  const WordSet& words,
-			  const Model::size_type rows,
-			  const Model::size_type cols)
-  {
-    namespace karma = boost::spirit::karma;
-    namespace standard = boost::spirit::standard;
-    
-    typedef rnnp::Model::size_type      size_type;
-    typedef rnnp::Model::parameter_type parameter_type;
-    typedef rnnp::Model::word_type      word_type;
-    
-    const size_type num_labels = utils::bithack::min(words.size(), static_cast<size_type>(matrix.rows() / rows));
-    
-    utils::compress_ostream os_txt(path_txt, 1024 * 1024);
-    utils::compress_ostream os_bin(path_bin, 1024 * 1024);
-    std::ostream_iterator<char> iter(os_txt);
-    
-    karma::real_generator<parameter_type, real_policy<parameter_type> > float10;
 
-    for (size_type i = 0; i != num_labels; ++ i)
-      if (words[i] != word_type()) {
-	
-	karma::generate(iter, standard::string, words[i]);
-	
-	for (size_type col = 0; col != cols; ++ col) {
-	  const parameter_type* data = matrix.block(rows * i, 0, rows, cols).col(col).data();
-	  
-	  karma::generate(iter, +(' ' << float10), boost::make_iterator_range(data, data + rows));
-	  os_bin.write((char*) data, sizeof(typename Tensor::Scalar) * rows);
-	}
-
-	karma::generate(iter, '\n');
-      }
-  }
-  
-  template <typename Path, typename Tensor, typename WordSet>
-  inline
-  void write_binary_matrix(const Path& path_txt,
-			   const Path& path_bin,
-			   const Tensor& matrix,
-			   const WordSet& words,
-			   const Model::size_type rows,
-			   const Model::size_type cols)
-  {
-    namespace karma = boost::spirit::karma;
-    namespace standard = boost::spirit::standard;
-    
-    typedef rnnp::Model::size_type      size_type;
-    typedef rnnp::Model::parameter_type parameter_type;
-    typedef rnnp::Model::word_type      word_type;
-    
-    const size_type num_labels = utils::bithack::min(words.size(), static_cast<size_type>(matrix.rows() / rows));
-    
-    utils::compress_ostream os_txt(path_txt, 1024 * 1024);
-    utils::compress_ostream os_bin(path_bin, 1024 * 1024);
-    std::ostream_iterator<char> iter(os_txt);
-    
-    karma::real_generator<parameter_type, real_policy<parameter_type> > float10;
-    
-    for (size_type i = 0; i != num_labels; ++ i) {
-      karma::generate(iter, standard::string << ' ' << standard::string, words[i].first, words[i].second);
-      
-      for (size_type col = 0; col != cols; ++ col) {
-	const parameter_type* data = matrix.block(rows * i, 0, rows, cols).col(col).data();
-	
-	karma::generate(iter, +(' ' << float10), boost::make_iterator_range(data, data + rows));
-	os_bin.write((char*) data, sizeof(typename Tensor::Scalar) * rows);
-      }
-      
-      karma::generate(iter, '\n');
-    }
-  }
-  
-  
-  template <typename Path, typename Tensor>
-  inline
-  void write_matrix(const Path& path_txt,
-		    const Path& path_bin,
-		    const Tensor& matrix)
-  {
-    {
-      utils::compress_ostream os(path_txt, 1024 * 1024);
-      os.precision(10);
-      os << matrix;
-    }
-    
-    {
-      utils::compress_ostream os(path_bin, 1024 * 1024);
-      
-      const typename Tensor::Index rows = matrix.rows();
-      const typename Tensor::Index cols = matrix.cols();
-      
-      os.write((char*) matrix.data(), sizeof(typename Tensor::Scalar) * rows * cols);
-    }
-  }
-
-  void Model::write(const path_type& path) const
-  {
-    typedef utils::repository repository_type;
-    
-    repository_type rep(path, repository_type::write);
-    
-    rep["embedding"] = utils::lexical_cast<std::string>(embedding_);
-    rep["hidden"]    = utils::lexical_cast<std::string>(hidden_);
-    
-    inline_write_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_, vocab_terminal_);
-    
-    write_unary_matrix(rep.path("Wc.txt.gz"),  rep.path("Wc.bin"),  Wc_,  vocab_unary_, 1, hidden_);
-    
-    write_matrix(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_);
-    write_matrix(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_);
-    
-    write_binary_matrix(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, vocab_binary_, hidden_, hidden_ + hidden_);
-    write_binary_matrix(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, vocab_binary_, hidden_, 1);
-    
-    write_unary_matrix(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_,  vocab_unary_, hidden_, hidden_);
-    write_unary_matrix(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_,  vocab_unary_, hidden_, 1);
-    
-    write_matrix(rep.path("Wf.txt.gz"), rep.path("Wf.bin"), Wf_);
-    write_matrix(rep.path("Bf.txt.gz"), rep.path("Bf.bin"), Bf_);
-    
-    write_matrix(rep.path("Wi.txt.gz"), rep.path("Wi.bin"), Wi_);
-    write_matrix(rep.path("Bi.txt.gz"), rep.path("Bi.bin"), Bi_);
-    
-    write_matrix(rep.path("Ba.txt.gz"), rep.path("Ba.bin"), Ba_);
-  }
-
-  template <typename Path, typename Tensor, typename WordSet>
-  inline
-  void inline_read_embedding(const Path& path_txt,
-			     const Path& path_bin,
-			     Tensor& embedding,
-			     WordSet& words,
-			     size_t rows)
+  void Model::read_embedding(const path_type& path_txt,
+			     const path_type& path_bin,
+			     tensor_type& matrix)
   {
     namespace qi = boost::spirit::qi;
     namespace standard = boost::spirit::standard;
-
-    typedef rnnp::Model::parameter_type parameter_type;
-    typedef rnnp::Model::word_type      word_type;
     
     typedef std::vector<parameter_type, std::allocator<parameter_type> > parameter_set_type;
     typedef boost::fusion::tuple<std::string, parameter_set_type > embedding_parsed_type;
@@ -294,13 +138,12 @@ namespace rnnp
     
     if (path_txt != "-" && ! boost::filesystem::exists(path_txt))
       throw std::runtime_error("no text embedding: " + path_txt.string());
-
+    
     if (path_bin != "-" && ! boost::filesystem::exists(path_bin))
       throw std::runtime_error("no binary embedding: " + path_bin.string());
-
-    if (embedding.rows() != rows)
-      embedding.conservativeResize(rows, embedding.cols());
-
+    
+    const size_type rows = matrix.rows();
+    
     qi::rule<iterator_type, std::string(), standard::blank_type>           word;
     qi::rule<iterator_type, embedding_parsed_type(), standard::blank_type> parser; 
     
@@ -316,9 +159,9 @@ namespace rnnp
     iterator_type iter_end;
     
     embedding_parsed_type parsed;
-
-    size_t num_parsed = 0;
-
+    
+    size_type num_parsed = 0;
+    
     while (iter != iter_end) {
       boost::fusion::get<0>(parsed).clear();
       boost::fusion::get<1>(parsed).clear();
@@ -332,42 +175,73 @@ namespace rnnp
       
       const word_type word = boost::fusion::get<0>(parsed);
       
-      if (word.id() >= embedding.cols())
-	embedding.conservativeResize(rows, word.id() + 1);
-      if (word.id() >= words.size())
-	words.resize(word.id() + 1, false);
+      if (word.id() >= matrix.cols())
+	matrix.conservativeResize(rows, word.id() + 1);
+      if (word.id() >= vocab_terminal_.size())
+	vocab_terminal_.resize(word.id() + 1, false);
       
       // read from binary data
-      if (! is_bin.read((char*) embedding.col(word.id()).data(), sizeof(typename Tensor::Scalar) * rows))
+      if (! is_bin.read((char*) matrix.col(word.id()).data(), sizeof(tensor_type::Scalar) * rows))
 	throw std::runtime_error("invalid read! " + path_bin.string());
       
       // assign words
-      words[word.id()] = true;
-
+      vocab_terminal_[word.id()] = true;
+      
       ++ num_parsed;
     }
-
-    const size_t file_size = boost::filesystem::file_size(path_bin);
     
-    if (file_size != sizeof(typename Tensor::Scalar) * rows * num_parsed)
+    const size_type file_size = boost::filesystem::file_size(path_bin);
+    
+    if (file_size != sizeof(tensor_type::Scalar) * rows * num_parsed)
       throw std::runtime_error("file size does not match: " + path_bin.string());
   }
   
-  template <typename Path, typename Tensor, typename WordSet>
-  inline
-  void read_unary_matrix(const Path& path_txt,
-			 const Path& path_bin,
-			 Tensor& matrix,
-			 WordSet& labels,
-			 const Model::size_type rows,
-			 const Model::size_type cols)
+  void Model::write_category(const path_type& path_txt,
+			     const path_type& path_bin,
+			     const tensor_type& matrix,
+			     const size_type rows,
+			     const size_type cols) const
+  {
+    namespace karma = boost::spirit::karma;
+    namespace standard = boost::spirit::standard;
+
+    if (cols != matrix.cols())
+      throw std::runtime_error("column does not match");
+    if (matrix.rows() % rows != 0)
+      throw std::runtime_error("rows does not match");
+    
+    const size_type num_labels = utils::bithack::min(vocab_category_.size(), static_cast<size_type>(matrix.rows() / rows));
+    
+    utils::compress_ostream os_txt(path_txt, 1024 * 1024);
+    utils::compress_ostream os_bin(path_bin, 1024 * 1024);
+    std::ostream_iterator<char> iter(os_txt);
+    
+    karma::real_generator<parameter_type, real_policy<parameter_type, 10> > float10;
+    
+    for (size_type i = 0; i != num_labels; ++ i)
+      if (vocab_category_[i] != category_type()) {
+	karma::generate(iter, standard::string, vocab_category_[i]);
+	
+	for (size_type col = 0; col != cols; ++ col) {
+	  const parameter_type* data = matrix.block(rows * i, 0, rows, cols).col(col).data();
+	  
+	  karma::generate(iter, +(' ' << float10), boost::make_iterator_range(data, data + rows));
+	  
+	  os_bin.write((char*) data, sizeof(tensor_type::Scalar) * rows);
+	}
+	
+	karma::generate(iter, '\n');
+      }
+  }
+  
+  void Model::read_category(const path_type& path_txt,
+			    const path_type& path_bin,
+			    tensor_type& matrix,
+			    const size_type rows,
+			    const size_type cols)
   {
     namespace qi = boost::spirit::qi;
     namespace standard = boost::spirit::standard;
-    
-    typedef rnnp::Model::parameter_type parameter_type;
-    typedef rnnp::Model::word_type      word_type;
-    typedef rnnp::Model::size_type      size_type;
     
     typedef std::vector<parameter_type, std::allocator<parameter_type> > parameter_set_type;
     typedef boost::fusion::tuple<std::string, parameter_set_type > matrix_parsed_type;
@@ -378,10 +252,10 @@ namespace rnnp
     
     if (path_bin != "-" && ! boost::filesystem::exists(path_bin))
       throw std::runtime_error("no binary matrix: " + path_bin.string());
-
-    if (matrix.cols() != cols)
-      matrix.conservativeResize(matrix.rows(), cols);
-
+    
+    if (cols != matrix.cols())
+      throw std::runtime_error("column does not match");
+    
     qi::rule<iterator_type, std::string(), standard::blank_type>        label;
     qi::rule<iterator_type, matrix_parsed_type(), standard::blank_type> parser;
     
@@ -397,9 +271,9 @@ namespace rnnp
     iterator_type iter_end;
     
     matrix_parsed_type parsed;
-
-    size_t num_parsed = 0;
-
+    
+    size_type num_parsed = 0;
+    
     while (iter != iter_end) {
       boost::fusion::get<0>(parsed).clear();
       boost::fusion::get<1>(parsed).clear();
@@ -416,269 +290,74 @@ namespace rnnp
       
       if (rows * (label_id + 1) > matrix.rows())
 	matrix.conservativeResize(rows * (label_id + 1), cols);
-      if (label_id >= labels.size())
-	labels.resize(label_id + 1, word_type());
+      if (label_id >= vocab_category_.size())
+	vocab_category_.resize(label_id + 1, word_type());
       
       for (size_type col = 0; col != cols; ++ col)
-	is_bin.read((char*) matrix.block(rows * label_id, 0, rows, cols).col(col).data(),
-		    sizeof(typename Tensor::Scalar) * rows);
+	is_bin.read((char*) matrix.block(rows * label_id, 0, rows, cols).col(col).data(), sizeof(tensor_type::Scalar) * rows);
       
       // assign labels
-      labels[label_id] = label;
+      vocab_category_[label_id] = label;
       
       ++ num_parsed;
     }
     
-    const size_t file_size = boost::filesystem::file_size(path_bin);
+    const size_type file_size = boost::filesystem::file_size(path_bin);
     
-    if (file_size != sizeof(typename Tensor::Scalar) * rows * cols * num_parsed)
-      throw std::runtime_error("file size does not match: " + path_bin.string());
-  }
-
-  template <typename Path, typename Tensor, typename WordSet>
-  inline
-  void read_binary_matrix(const Path& path_txt,
-			  const Path& path_bin,
-			  Tensor& matrix,
-			  WordSet& labels,
-			  const Model::size_type rows,
-			  const Model::size_type cols)
-  {
-    namespace qi = boost::spirit::qi;
-    namespace standard = boost::spirit::standard;
-    
-    typedef rnnp::Model::parameter_type parameter_type;
-    typedef rnnp::Model::word_type      word_type;
-    typedef rnnp::Model::size_type      size_type;
-    
-    typedef std::vector<parameter_type, std::allocator<parameter_type> > parameter_set_type;
-    typedef boost::fusion::tuple<std::string, std::string, parameter_set_type > matrix_parsed_type;
-    typedef boost::spirit::istream_iterator iterator_type;
-    
-    if (path_txt != "-" && ! boost::filesystem::exists(path_txt))
-      throw std::runtime_error("no text matrix: " + path_txt.string());
-    
-    if (path_bin != "-" && ! boost::filesystem::exists(path_bin))
-      throw std::runtime_error("no binary matrix: " + path_bin.string());
-
-    if (matrix.cols() != cols)
-      matrix.conservativeResize(matrix.rows(), cols);
-
-    qi::rule<iterator_type, std::string(), standard::blank_type>        label;
-    qi::rule<iterator_type, matrix_parsed_type(), standard::blank_type> parser; 
-    
-    label  %= qi::lexeme[standard::char_('[') >> +(standard::char_ - standard::space - ']') >> standard::char_(']')];
-    parser %= label >> label >> *qi::double_ >> (qi::eol | qi::eoi);
-    
-    utils::compress_istream is_txt(path_txt, 1024 * 1024);
-    utils::compress_istream is_bin(path_bin, 1024 * 1024);
-    
-    is_txt.unsetf(std::ios::skipws);
-    
-    iterator_type iter(is_txt);
-    iterator_type iter_end;
-    
-    matrix_parsed_type parsed;
-
-    size_t num_parsed = 0;
-
-    while (iter != iter_end) {
-      boost::fusion::get<0>(parsed).clear();
-      boost::fusion::get<1>(parsed).clear();
-      boost::fusion::get<2>(parsed).clear();
-      
-      if (! boost::spirit::qi::phrase_parse(iter, iter_end, parser, standard::blank, parsed))
-	if (iter != iter_end)
-	  throw std::runtime_error("matrix parsing failed");
-      
-      if (boost::fusion::get<2>(parsed).size() != rows * cols)
-	throw std::runtime_error("invalid matrix size");
-      
-      const word_type left  = boost::fusion::get<0>(parsed);
-      const word_type right = boost::fusion::get<1>(parsed);
-      
-      typename WordSet::iterator liter = labels.insert(std::make_pair(left, right)).first;
-      const size_type label_id = liter - labels.begin();
-      
-      if (rows * (label_id + 1) > matrix.rows())
-	matrix.conservativeResize(rows * (label_id + 1), cols);
-      
-      for (size_type col = 0; col != cols; ++ col)
-	is_bin.read((char*) matrix.block(rows * label_id, 0, rows, cols).col(col).data(),
-		    sizeof(typename Tensor::Scalar) * rows);
-      
-      ++ num_parsed;
-    }
-    
-    const size_t file_size = boost::filesystem::file_size(path_bin);
-    
-    if (file_size != sizeof(typename Tensor::Scalar) * rows * cols * num_parsed)
+    if (file_size != sizeof(tensor_type::Scalar) * rows * cols * num_parsed)
       throw std::runtime_error("file size does not match: " + path_bin.string());
   }
   
-
-  template <typename Path, typename Tensor>
-  inline
-  void read_matrix(const Path& path_txt,
-		   const Path& path_bin,
-		   Tensor& matrix)
+  void Model::write_matrix(const path_type& path_txt,
+			   const path_type& path_bin,
+			   const tensor_type& matrix) const
   {
-    const size_t file_size = boost::filesystem::file_size(path_bin);
+    utils::compress_ostream os_bin(path_bin, 1024 * 1024);
+    utils::compress_ostream os_txt(path_txt, 1024 * 1024);
+    os_txt.precision(10);
     
-    if (file_size != sizeof(typename Tensor::Scalar) * matrix.rows() * matrix.cols())
+    os_bin.write((char*) matrix.data(), sizeof(tensor_type::Scalar) * matrix.rows() * matrix.cols());
+    os_txt << matrix;
+  }
+  
+  void Model::read_matrix(const path_type& path_txt,
+			  const path_type& path_bin,
+			  tensor_type& matrix)
+  {
+    const size_type file_size = boost::filesystem::file_size(path_bin);
+    
+    if (file_size != sizeof(tensor_type::Scalar) * matrix.rows() * matrix.cols())
       throw std::runtime_error("file size does not match: " + path_bin.string());
     
     utils::compress_istream is(path_bin, 1024 * 1024);
     
     is.read((char*) matrix.data(), file_size);
   }
-
-  template <typename Value>
-  inline
-  Value repository_value(const utils::repository& rep, const std::string& key)
-  {
-    utils::repository::const_iterator iter = rep.find(key);
-    if (iter == rep.end())
-      throw std::runtime_error("no " + key + "?");
-    return utils::lexical_cast<Value>(iter->second);
-  }
   
-  void Model::read(const path_type& path)
+  void Model::write_embedding(std::ostream& os,
+			      const tensor_type& matrix) const
   {
-    typedef utils::repository repository_type;
-
-    if (path.empty() || ! boost::filesystem::exists(path))
-      throw std::runtime_error("no file? " + path.string());
-    
-    repository_type rep(path, repository_type::read);
-    
-    hidden_    = repository_value<size_type>(rep, "hidden");
-    embedding_ = repository_value<size_type>(rep, "embedding");
-    
-    if (hidden_ == 0)
-      throw std::runtime_error("invalid dimension");
-    if (embedding_ == 0)
-      throw std::runtime_error("invalid dimension");
-    
-    inline_read_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_, vocab_terminal_, embedding_);
-    
-    read_unary_matrix(rep.path("Wc.txt.gz"),  rep.path("Wc.bin"),  Wc_,  vocab_unary_, 1, hidden_);
-    
-    Wsh_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
-    Bsh_ = tensor_type::Zero(hidden_, 1);
-    
-    read_matrix(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_);
-    read_matrix(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_);
-    
-    read_binary_matrix(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, vocab_binary_, hidden_, hidden_ + hidden_);
-    read_binary_matrix(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, vocab_binary_, hidden_, 1);
-    
-    read_unary_matrix(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_,  vocab_unary_, hidden_, hidden_);
-    read_unary_matrix(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_,  vocab_unary_, hidden_, 1);
-    
-    Wf_ = tensor_type::Zero(hidden_, hidden_);
-    Bf_ = tensor_type::Zero(hidden_, 1);
-    
-    Wi_ = tensor_type::Zero(hidden_, hidden_);
-    Bi_ = tensor_type::Zero(hidden_, 1);
-    
-    Ba_ = tensor_type::Zero(hidden_, 1);
-    
-    read_matrix(rep.path("Wf.txt.gz"), rep.path("Wf.bin"), Wf_);
-    read_matrix(rep.path("Bf.txt.gz"), rep.path("Bf.bin"), Bf_);
-    
-    read_matrix(rep.path("Wi.txt.gz"), rep.path("Wi.bin"), Wi_);
-    read_matrix(rep.path("Bi.txt.gz"), rep.path("Bi.bin"), Bi_);
-    
-    read_matrix(rep.path("Ba.txt.gz"), rep.path("Ba.bin"), Ba_);
-  }
-  
-  void Model::read_embedding(const path_type& path)
-  {
-    namespace qi = boost::spirit::qi;
-    namespace standard = boost::spirit::standard;
-    
-    typedef std::vector<parameter_type, std::allocator<parameter_type> > parameter_set_type;
-    typedef boost::fusion::tuple<std::string, parameter_set_type > embedding_parsed_type;
-    typedef boost::spirit::istream_iterator iterator_type;
-    
-    if (path != "-" && ! boost::filesystem::exists(path))
-      throw std::runtime_error("no embedding: " + path.string());
-    
-    qi::rule<iterator_type, std::string(), standard::blank_type>           word;
-    qi::rule<iterator_type, embedding_parsed_type(), standard::blank_type> parser; 
-    
-    word   %= qi::lexeme[+(standard::char_ - standard::space)];
-    parser %= word >> *qi::double_ >> (qi::eol | qi::eoi);
-    
-    utils::compress_istream is(path, 1024 * 1024);
-    is.unsetf(std::ios::skipws);
-    
-    iterator_type iter(is);
-    iterator_type iter_end;
-    
-    embedding_parsed_type parsed;
-    
-    while (iter != iter_end) {
-      boost::fusion::get<0>(parsed).clear();
-      boost::fusion::get<1>(parsed).clear();
-      
-      if (! boost::spirit::qi::phrase_parse(iter, iter_end, parser, standard::blank, parsed))
-	if (iter != iter_end)
-	  throw std::runtime_error("embedding parsing failed");
-      
-      if (boost::fusion::get<1>(parsed).size() != embedding_)
-	throw std::runtime_error("invalid embedding size");
-      
-      const word_type word = boost::fusion::get<0>(parsed);
-      
-      if (word.id() >= terminal_.cols())
-	terminal_.conservativeResize(embedding_, word.id() + 1);
-      if (word.id() >= vocab_terminal_.size())
-	vocab_terminal_.resize(word.id() + 1, false);
-      
-      terminal_.col(word.id())
-	= Eigen::Map<const tensor_type>(&(*boost::fusion::get<1>(parsed).begin()), embedding_, 1);
-      
-      vocab_terminal_[word.id()] = true;
-    }
-  }
-  
-  template <typename Tensor, typename WordSet>
-  inline
-  void inline_write_embedding(std::ostream& os, const Tensor& embedding, const WordSet& words)
-  {
-    typedef Model::size_type size_type;
-    typedef Model::word_type word_type;
-
-    const size_type rows = embedding.rows();
-    const size_type cols = utils::bithack::min(static_cast<size_t>(embedding.cols()), words.size());
-    
-    size_type num_words = 0;
-    for (typename word_type::id_type id = 0; id != cols; ++ id) 
-      num_words += words[id];
+    const size_type rows = matrix.rows();
+    const size_type cols = utils::bithack::min(static_cast<size_type>(matrix.cols()), vocab_terminal_.size());
+    const size_type num_words = std::count(vocab_terminal_.begin(), vocab_terminal_.begin() + cols, true);
     
     os.write((char*) &rows,      sizeof(size_type));
     os.write((char*) &num_words, sizeof(size_type));
     
-    for (typename word_type::id_type id = 0; id != cols; ++ id) 
-      if (words[id]) {
+    for (word_type::id_type id = 0; id != cols; ++ id) 
+      if (vocab_terminal_[id]) {
 	const word_type word(id);
 	const size_type word_size = word.size();
 	
 	os.write((char*) &word_size, sizeof(size_type));
 	os.write((char*) &(*word.begin()), word_size);
-	os.write((char*) embedding.col(id).data(), sizeof(typename Tensor::Scalar) * rows);
+	os.write((char*) matrix.col(id).data(), sizeof(tensor_type::Scalar) * rows);
       }
   }
-
-  template <typename Tensor, typename WordSet>
-  inline
-  void inline_read_embedding(std::istream& is, Tensor& embedding, WordSet& words)
+  
+  void Model::read_embedding(std::istream& is,
+			     tensor_type& matrix)
   {
-    typedef Model::size_type size_type;
-    typedef Model::word_type word_type;
-    
     typedef std::vector<char, std::allocator<char> > buffer_type;
     
     buffer_type buffer;
@@ -688,10 +367,8 @@ namespace rnnp
     is.read((char*) &rows,      sizeof(size_type));
     is.read((char*) &num_words, sizeof(size_type));
     
-    if (embedding.rows() != rows)
-      embedding.conservativeResize(rows, embedding.cols());
-    
-    words.clear();
+    if (matrix.rows() != rows)
+      matrix.conservativeResize(rows, matrix.cols());
     
     for (size_type i = 0; i != num_words; ++ i) {
       size_type word_size = 0;
@@ -702,63 +379,55 @@ namespace rnnp
       
       const word_type word(buffer.begin(), buffer.end());
       
-      if (word.id() >= embedding.cols())
-	embedding.conservativeResize(rows, word.id() + 1);
-      if (word.id() >= words.size())
-	words.resize(word.id() + 1, false);
+      if (word.id() >= matrix.cols())
+	matrix.conservativeResize(rows, word.id() + 1);
+      if (word.id() >= vocab_terminal_.size())
+	vocab_terminal_.resize(word.id() + 1, false);
       
-      is.read((char*) embedding.col(word.id()).data(), sizeof(typename Tensor::Scalar) * rows);
-
-      words[word.id()] = true;
+      is.read((char*) matrix.col(word.id()).data(), sizeof(tensor_type::Scalar) * rows);
+      
+      vocab_terminal_[word.id()] = true;
     }
   }
   
-  template <typename Tensor, typename WordSet>
-  inline
-  void write_unary_matrix(std::ostream& os,
-			  const Tensor& matrix,
-			  const WordSet& words,
-			  const Model::size_type rows,
-			  const Model::size_type cols)
+  void Model::write_category(std::ostream& os,
+			     const tensor_type& matrix,
+			     const size_type rows,
+			     const size_type cols) const
   {
-    typedef Model::size_type size_type;
-    typedef Model::word_type word_type;
+    if (cols != matrix.cols())
+      throw std::runtime_error("column does not match");
+    if (matrix.rows() % rows != 0)
+      throw std::runtime_error("rows does not match");
 
-    const size_type id_max = utils::bithack::min(words.size(), static_cast<size_type>(matrix.rows() / rows));
+    const size_type label_max = utils::bithack::min(vocab_category_.size(), static_cast<size_type>(matrix.rows() / rows));
     
     size_type num_labels = 0;
-    for (size_type id = 0; id != id_max; ++ id) 
-      num_labels += (words[id] != word_type());
+    for (size_type id = 0; id != label_max; ++ id) 
+      num_labels += (vocab_category_[id] != category_type());
     
     os.write((char*) &rows,       sizeof(size_type));
     os.write((char*) &cols,       sizeof(size_type));
     os.write((char*) &num_labels, sizeof(size_type));
     
-    for (size_type id = 0; id != id_max; ++ id) 
-      if (words[id] != word_type()) {
-	const word_type& word = words[id];
-	const size_type  word_size = word.size();
+    for (size_type id = 0; id != label_max; ++ id) 
+      if (vocab_category_[id] != category_type()) {
+	const category_type& cat = vocab_category_[id];
+	const size_type      cat_size = cat.size();
 	
-	os.write((char*) &word_size, sizeof(size_type));
-	os.write((char*) &(*word.begin()), word_size);
+	os.write((char*) &cat_size, sizeof(size_type));
+	os.write((char*) &(*cat.begin()), cat_size);
 	
 	for (size_type col = 0; col != cols; ++ col)
-	  os.write((char*) matrix.block(rows * id, 0, rows, cols).col(col).data(),
-		   sizeof(typename Tensor::Scalar) * rows);
+	  os.write((char*) matrix.block(rows * id, 0, rows, cols).col(col).data(), sizeof(tensor_type::Scalar) * rows);
       }
   }
   
-  template <typename Tensor, typename WordSet>
-  inline
-  void read_unary_matrix(std::istream& is,
-			 Tensor& matrix,
-			 WordSet& labels,
-			 Model::size_type rows_hint,
-			 Model::size_type cols_hint)
+  void Model::read_category(std::istream& is,
+			    tensor_type& matrix,
+			    const size_type rows_hint,
+			    const size_type cols_hint)
   {
-    typedef Model::size_type size_type;
-    typedef Model::word_type word_type;
-   
     typedef std::vector<char, std::allocator<char> > buffer_type;
     
     buffer_type buffer;
@@ -766,15 +435,15 @@ namespace rnnp
     size_type rows       = 0;
     size_type cols       = 0;
     size_type num_labels = 0;
-
+    
     is.read((char*) &rows,       sizeof(size_type));
     is.read((char*) &cols,       sizeof(size_type));
     is.read((char*) &num_labels, sizeof(size_type));
-
+    
     if (rows != rows_hint)
-      throw std::runtime_error("invlaid rows for read label-matrix");
+      throw std::runtime_error("invlaid rows for read category");
     if (cols != cols_hint)
-      throw std::runtime_error("invlaid cols for read label-matrix");
+      throw std::runtime_error("invlaid cols for read category");
 
     if (matrix.cols() != cols)
       matrix.conservativeResize(matrix.rows(), cols);
@@ -791,190 +460,43 @@ namespace rnnp
       
       if (rows * (label_id + 1) > matrix.rows())
 	matrix.conservativeResize(rows * (label_id + 1), cols);
-      if (label_id >= labels.size())
-	labels.resize(label_id + 1, word_type());
-
-      for (size_type col = 0; col != cols; ++ col)
-	is.read((char*) matrix.block(rows * label_id, 0, rows, cols).col(col).data(), 
-		sizeof(typename Tensor::Scalar) * rows);
-      
-      labels[label_id] = label;
-    }
-  }
-
-  template <typename Tensor, typename WordSet>
-  inline
-  void write_binary_matrix(std::ostream& os,
-			   const Tensor& matrix,
-			   const WordSet& words,
-			   const Model::size_type rows,
-			   const Model::size_type cols)
-  {
-    typedef Model::size_type size_type;
-    typedef Model::word_type word_type;
-    
-    const size_type num_labels = words.size();
-    
-    os.write((char*) &rows,       sizeof(size_type));
-    os.write((char*) &cols,       sizeof(size_type));
-    os.write((char*) &num_labels, sizeof(size_type));
-    
-    const size_type id_max = utils::bithack::min(words.size(), static_cast<size_type>(matrix.rows() / rows));
-    for (size_type id = 0; id != id_max; ++ id) {
-      const word_type& left  = words[id].first;
-      const word_type& right = words[id].second;
-      
-      const size_type  left_size  = left.size();
-      const size_type  right_size = right.size();
-      
-      os.write((char*) &left_size, sizeof(size_type));
-      os.write((char*) &(*left.begin()), left_size);
-      
-      os.write((char*) &right_size, sizeof(size_type));
-      os.write((char*) &(*right.begin()), right_size);
+      if (label_id >= vocab_category_.size())
+	vocab_category_.resize(label_id + 1, word_type());
       
       for (size_type col = 0; col != cols; ++ col)
-	os.write((char*) matrix.block(rows * id, 0, rows, cols).col(col).data(),
-		 sizeof(typename Tensor::Scalar) * rows);
+	is.read((char*) matrix.block(rows * label_id, 0, rows, cols).col(col).data(), sizeof(tensor_type::Scalar) * rows);
+      
+      vocab_category_[label_id] = label;
     }
   }
   
-  template <typename Tensor, typename WordSet>
-  inline
-  void read_binary_matrix(std::istream& is,
-			  Tensor& matrix,
-			  WordSet& labels,
-			  Model::size_type rows_hint,
-			  Model::size_type cols_hint)
+  void Model::write_matrix(std::ostream& os,
+			   const tensor_type& matrix) const
   {
-    typedef Model::size_type size_type;
-    typedef Model::word_type word_type;
-   
-    typedef std::vector<char, std::allocator<char> > buffer_type;
+    const tensor_type::Index rows = matrix.rows();
+    const tensor_type::Index cols = matrix.cols();
     
-    buffer_type buffer;
- 
-    size_type rows       = 0;
-    size_type cols       = 0;
-    size_type num_labels = 0;
-
-    is.read((char*) &rows,       sizeof(size_type));
-    is.read((char*) &cols,       sizeof(size_type));
-    is.read((char*) &num_labels, sizeof(size_type));
-
-    if (rows != rows_hint)
-      throw std::runtime_error("invlaid rows for read label-matrix");
-    if (cols != cols_hint)
-      throw std::runtime_error("invlaid cols for read label-matrix");
-
-    if (matrix.cols() != cols)
-      matrix.conservativeResize(matrix.rows(), cols);
+    os.write((char*) &rows, sizeof(tensor_type::Index));
+    os.write((char*) &cols, sizeof(tensor_type::Index));
     
-    for (size_type i = 0; i != num_labels; ++ i) {
-      size_type label_size = 0;
-      is.read((char*) &label_size, sizeof(size_type));
-      
-      buffer.resize(label_size);
-      is.read((char*) &(*buffer.begin()), label_size);
-      
-      const word_type left(buffer.begin(), buffer.end());
-      
-      is.read((char*) &label_size, sizeof(size_type));
-      
-      buffer.resize(label_size);
-      is.read((char*) &(*buffer.begin()), label_size);
-
-      const word_type right(buffer.begin(), buffer.end());
-      
-      typename WordSet::iterator liter = labels.insert(std::make_pair(left, right)).first;
-      const size_type label_id = liter - labels.begin();
-      
-      if (rows * (label_id + 1) > matrix.rows())
-	matrix.conservativeResize(rows * (label_id + 1), cols);
-      
-      for (size_type col = 0; col != cols; ++ col)
-	is.read((char*) matrix.block(rows * label_id, 0, rows, cols).col(col).data(), 
-		sizeof(typename Tensor::Scalar) * rows);
-    }
+    os.write((char*) matrix.data(), sizeof(tensor_type::Scalar) * rows * cols);
   }
   
-  template <typename Tensor>
-  inline
-  void write_matrix(std::ostream& os, const Tensor& matrix)
+  void Model::read_matrix(std::istream& is,
+			  tensor_type& matrix)
   {
-    const typename Tensor::Index rows = matrix.rows();
-    const typename Tensor::Index cols = matrix.cols();
+    tensor_type::Index rows = 0;
+    tensor_type::Index cols = 0;
     
-    os.write((char*) &rows, sizeof(typename Tensor::Index));
-    os.write((char*) &cols, sizeof(typename Tensor::Index));
-    
-    os.write((char*) matrix.data(), sizeof(typename Tensor::Scalar) * rows * cols);
-  }
-
-  template <typename Tensor>
-  inline
-  void read_matrix(std::istream& is, Tensor& matrix)
-  {
-    typename Tensor::Index rows;
-    typename Tensor::Index cols;
-    
-    is.read((char*) &rows, sizeof(typename Tensor::Index));
-    is.read((char*) &cols, sizeof(typename Tensor::Index));
+    is.read((char*) &rows, sizeof(tensor_type::Index));
+    is.read((char*) &cols, sizeof(tensor_type::Index));
     
     matrix.resize(rows, cols);
     
-    is.read((char*) matrix.data(), sizeof(typename Tensor::Scalar) * rows * cols);
-  }
-
-#define MODEL_STREAM_OPERATOR(Op1, Op2, Op3, Stream)		 \
-  Op1(Stream, theta.Wc_,  theta.vocab_unary_, 1, theta.hidden_); \
-  \
-  Op3(Stream, theta.Wsh_); \
-  Op3(Stream, theta.Bsh_); \
-  \
-  Op2(Stream, theta.Wre_, theta.vocab_binary_, theta.hidden_, theta.hidden_ + theta.hidden_); \
-  Op2(Stream, theta.Bre_, theta.vocab_binary_, theta.hidden_, 1); \
-  \
-  Op1(Stream, theta.Wu_,  theta.vocab_unary_, theta.hidden_, theta.hidden_); \
-  Op1(Stream, theta.Bu_,  theta.vocab_unary_, theta.hidden_, 1); \
-  \
-  Op3(Stream, theta.Wf_); \
-  Op3(Stream, theta.Bf_); \
-  \
-  Op3(Stream, theta.Wi_); \
-  Op3(Stream, theta.Bi_); \
-  \
-  Op3(Stream, theta.Ba_);
-
-  std::ostream& operator<<(std::ostream& os, const Model& theta)
-  {
-    os.write((char*) &theta.hidden_,    sizeof(theta.hidden_));
-    os.write((char*) &theta.embedding_, sizeof(theta.embedding_));
-    
-    inline_write_embedding(os, theta.terminal_, theta.vocab_terminal_);
-        
-    MODEL_STREAM_OPERATOR(write_unary_matrix, write_binary_matrix, write_matrix, os);
-    
-    return os;
+    is.read((char*) matrix.data(), sizeof(tensor_type::Scalar) * rows * cols);
   }
   
-  std::istream& operator>>(std::istream& is, Model& theta)
-  {
-    is.read((char*) &theta.hidden_,    sizeof(theta.hidden_));
-    is.read((char*) &theta.embedding_, sizeof(theta.embedding_));
-    
-    inline_read_embedding(is, theta.terminal_, theta.vocab_terminal_);
-    
-    MODEL_STREAM_OPERATOR(read_unary_matrix, read_binary_matrix, read_matrix, is);
-    
-    return is;
-  }
-
-#undef MODEL_STREAM_OPERATOR
-
-  template <typename Tensor>
-  inline 
-  void plus_equal(Tensor& x, const Tensor& y)
+  Model::tensor_type& Model::plus_equal(tensor_type& x, const tensor_type& y)
   {
     if (x.rows() == y.rows() && x.cols() == y.cols())
       x += y;
@@ -982,8 +504,7 @@ namespace rnnp
       if (x.cols() > y.cols())
 	x.block(0, 0, y.rows(), y.cols()) += y;
       else {
-	typedef typename Tensor::Index index_type;
-	const index_type cols = x.cols();
+	const tensor_type::Index cols = x.cols();
 	
 	x.conservativeResize(y.rows(), y.cols());
 	x.block(0, cols, x.rows(), y.cols() - cols).setZero();
@@ -994,8 +515,7 @@ namespace rnnp
       if (x.rows() > y.rows())
 	x.block(0, 0, y.rows(), y.cols()) += y;
       else {
-	typedef typename Tensor::Index index_type;
-	const index_type rows = x.rows();
+	const tensor_type::Index rows = x.rows();
 	
 	x.conservativeResize(y.rows(), y.cols());
 	x.block(rows, 0, y.rows() - rows, x.cols()).setZero();
@@ -1004,21 +524,20 @@ namespace rnnp
       }
     } else {
       // both differ...
-      typedef typename Tensor::Index index_type;
-      const index_type rows_new = utils::bithack::max(x.rows(), y.rows());
-      const index_type cols_new = utils::bithack::max(x.cols(), y.cols());
-
-      Tensor x_new = Tensor::Zero(rows_new, cols_new);
+      const tensor_type::Index rows_new = utils::bithack::max(x.rows(), y.rows());
+      const tensor_type::Index cols_new = utils::bithack::max(x.cols(), y.cols());
+      
+      tensor_type x_new = tensor_type::Zero(rows_new, cols_new);
       x_new.block(0, 0, x.rows(), x.cols()) = x;
       x_new.block(0, 0, y.rows(), y.cols()) += y;
-
+      
       x.swap(x_new);
     }
+    
+    return x;
   }
 
-  template <typename Tensor>
-  inline 
-  void minus_equal(Tensor& x, const Tensor& y)
+  Model::tensor_type& Model::minus_equal(tensor_type& x, const tensor_type& y)
   {
     if (x.rows() == y.rows() && x.cols() == y.cols())
       x -= y;
@@ -1026,8 +545,7 @@ namespace rnnp
       if (x.cols() > y.cols())
 	x.block(0, 0, y.rows(), y.cols()) -= y;
       else {
-	typedef typename Tensor::Index index_type;
-	const index_type cols = x.cols();
+	const tensor_type::Index cols = x.cols();
 	
 	x.conservativeResize(y.rows(), y.cols());
 	x.block(0, cols, x.rows(), y.cols() - cols).setZero();
@@ -1038,8 +556,7 @@ namespace rnnp
       if (x.rows() > y.rows())
 	x.block(0, 0, y.rows(), y.cols()) -= y;
       else {
-	typedef typename Tensor::Index index_type;
-	const index_type rows = x.rows();
+	const tensor_type::Index rows = x.rows();
 	
 	x.conservativeResize(y.rows(), y.cols());
 	x.block(rows, 0, y.rows() - rows, x.cols()).setZero();
@@ -1048,92 +565,16 @@ namespace rnnp
       }
     } else {
       // both differ...
-      typedef typename Tensor::Index index_type;
-      const index_type rows_new = utils::bithack::max(x.rows(), y.rows());
-      const index_type cols_new = utils::bithack::max(x.cols(), y.cols());
-
-      Tensor x_new = Tensor::Zero(rows_new, cols_new);
+      const tensor_type::Index rows_new = utils::bithack::max(x.rows(), y.rows());
+      const tensor_type::Index cols_new = utils::bithack::max(x.cols(), y.cols());
+      
+      tensor_type x_new = tensor_type::Zero(rows_new, cols_new);
       x_new.block(0, 0, x.rows(), x.cols()) = x;
       x_new.block(0, 0, y.rows(), y.cols()) -= y;
-
+      
       x.swap(x_new);
-    }    
-  }
-  
-#define MODEL_BINARY_OPERATOR(Op) \
-  Op(terminal_, x.terminal_); \
-  \
-  Op(Wc_,  x.Wc_); \
-  \
-  Op(Wsh_, x.Wsh_); \
-  Op(Bsh_, x.Bsh_); \
-  \
-  Op(Wre_, x.Wre_); \
-  Op(Bre_, x.Bre_); \
-  \
-  Op(Wu_,  x.Wu_); \
-  Op(Bu_,  x.Bu_); \
-  \
-  Op(Wf_, x.Wf_); \
-  Op(Bf_, x.Bf_); \
-  \
-  Op(Wi_, x.Wi_); \
-  Op(Bi_, x.Bi_); \
-  \
-  Op(Ba_, x.Ba_);
-
-  Model& Model::operator+=(const Model& x)
-  {
-    MODEL_BINARY_OPERATOR(plus_equal);
-
-    return *this;
-  }
-  
-  Model& Model::operator-=(const Model& x)
-  {
-
-    MODEL_BINARY_OPERATOR(minus_equal);
-
-    return *this;
-  }
-
-#undef MODEL_BINARY_OPERATOR
-  
-#define MODEL_UNARY_OPERATOR(Op) \
-    terminal_ Op x; \
-    \
-    Wc_  Op x; \
-    \
-    Wsh_ Op x; \
-    Bsh_ Op x; \
-    \
-    Wre_ Op x; \
-    Bre_ Op x; \
-    \
-    Wu_  Op x; \
-    Bu_  Op x; \
-    \
-    Wf_ Op x; \
-    Bf_ Op x; \
-    \
-    Wi_ Op x; \
-    Bi_ Op x; \
-    \
-    Ba_ Op x;
-  
-  Model& Model::operator*=(const double& x)
-  {
-    MODEL_UNARY_OPERATOR(*=);
-
-    return *this;
-  }
-  
-  Model& Model::operator/=(const double& x)
-  {
-    MODEL_UNARY_OPERATOR(/=);
+    }
     
-    return *this;
-  }
-
-#undef MODEL_UNARY_OPERATOR
+    return x;
+  }  
 };
