@@ -19,12 +19,12 @@
 
 namespace rnnp
 {
-  int Model::model(const path_type& path)
+  Model::model_type Model::model(const path_type& path)
   {
     typedef utils::repository repository_type;
     
     if (! repository_type::exists(path))
-      return 0;
+      return model::NONE;
     
     repository_type rep(path, repository_type::read);
 
@@ -35,17 +35,17 @@ namespace rnnp
     const std::string& model_name = iter->second;
     
     if (model_name == "model1")
-      return 1;
+      return model::MODEL1;
     else if (model_name == "model2")
-      return 2;
+      return model::MODEL2;
     else if (model_name == "model3")
-      return 3;
+      return model::MODEL3;
     else if (model_name == "model4")
-      return 4;
+      return model::MODEL4;
     else if (model_name == "model5")
-      return 5;
+      return model::MODEL5;
     else
-      return 0;
+      return model::NONE;
   }
 
   void Model::initialize(const size_type& hidden,

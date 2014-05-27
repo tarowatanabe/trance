@@ -129,11 +129,11 @@ int main(int argc, char** argv)
 	throw std::runtime_error("no model file? " + model_file.string());
       
       switch (model_type::model(model_file)) {
-      case 1: model_model1 = true; break;
-      case 2: model_model2 = true; break;
-      case 3: model_model3 = true; break;
-      case 4: model_model4 = true; break;
-      case 5: model_model5 = true; break;
+      case rnnp::model::MODEL1: model_model1 = true; break;
+      case rnnp::model::MODEL2: model_model2 = true; break;
+      case rnnp::model::MODEL3: model_model3 = true; break;
+      case rnnp::model::MODEL4: model_model4 = true; break;
+      case rnnp::model::MODEL5: model_model5 = true; break;
       default:
 	throw std::runtime_error("invalid model file");
       }

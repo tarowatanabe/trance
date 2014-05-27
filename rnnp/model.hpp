@@ -14,6 +14,8 @@
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
 
+#include <rnnp/model/model_type.hpp>
+
 #include <utils/bithack.hpp>
 
 #include <Eigen/Core>
@@ -44,6 +46,8 @@ namespace rnnp
     
     typedef std::vector<bool, std::allocator<bool> >                   terminal_set_type;
     typedef std::vector<category_type, std::allocator<category_type> > category_set_type;
+
+    typedef model::ModelType model_type;
     
     struct activation
     {
@@ -66,7 +70,7 @@ namespace rnnp
     };
 
   public:
-    static int model(const path_type& path);
+    static model_type model(const path_type& path);
 
   public:
     Model() : hidden_(0), embedding_(0) {}

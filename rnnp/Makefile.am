@@ -54,6 +54,7 @@ gradient/model5.cpp
 librnnp_gradient_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 dist_model_HEADERS = \
+model/model_type.hpp \
 model/model1.hpp \
 model/model2.hpp \
 model/model3.hpp \
