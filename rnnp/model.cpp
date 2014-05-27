@@ -42,6 +42,8 @@ namespace rnnp
       return 3;
     else if (model_name == "model4")
       return 4;
+    else if (model_name == "model5")
+      return 5;
     else
       return 0;
   }
