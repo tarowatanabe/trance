@@ -11,7 +11,7 @@
 
 #include <boost/fusion/tuple.hpp>
 
-#include "model/model1.hpp"
+#include "model/model4.hpp"
 
 #include "utils/repository.hpp"
 #include "utils/compress_stream.hpp"
@@ -21,7 +21,7 @@ namespace rnnp
 {
   namespace model
   {
-    void Model1::initialize(const size_type& hidden,
+    void Model4::initialize(const size_type& hidden,
 			    const size_type& embedding,
 			    const grammar_type& grammar)
     {
@@ -32,13 +32,13 @@ namespace rnnp
     
       Wc_  = tensor_type::Zero(1 * vocab_category_.size(), hidden_);
     
-      Wsh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), embedding_);
+      Wsh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + embedding_);
       Bsh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
     
-      Wre_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + hidden_);
+      Wre_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + hidden_ + hidden_);
       Bre_ = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
     
-      Wu_  = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_);
+      Wu_  = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + hidden_);
       Bu_  = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
     
       Wf_ = tensor_type::Zero(hidden_, hidden_);
@@ -51,27 +51,27 @@ namespace rnnp
     }
   
   
-    void Model1::write(const path_type& path) const
+    void Model4::write(const path_type& path) const
     {
       typedef utils::repository repository_type;
     
       repository_type rep(path, repository_type::write);
     
-      rep["model"]     = "model1";
+      rep["model"]     = "model4";
       rep["embedding"] = utils::lexical_cast<std::string>(embedding_);
       rep["hidden"]    = utils::lexical_cast<std::string>(hidden_);
-      
+    
       Model::write_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_);
     
       Model::write_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_);
     
-      Model::write_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, embedding_);
+      Model::write_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_);
       Model::write_category(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, hidden_, 1);
     
-      Model::write_category(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, hidden_, hidden_ + hidden_);
+      Model::write_category(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, hidden_, hidden_ + hidden_ + hidden_);
       Model::write_category(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, hidden_, 1);
     
-      Model::write_category(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_, hidden_, hidden_);
+      Model::write_category(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_, hidden_, hidden_ + hidden_);
       Model::write_category(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_, hidden_, 1);
     
       Model::write_matrix(rep.path("Wf.txt.gz"), rep.path("Wf.bin"), Wf_);
@@ -93,7 +93,7 @@ namespace rnnp
       return utils::lexical_cast<Value>(iter->second);
     }
   
-    void Model1::read(const path_type& path)
+    void Model4::read(const path_type& path)
     {
       typedef utils::repository repository_type;
 
@@ -102,8 +102,8 @@ namespace rnnp
     
       repository_type rep(path, repository_type::read);
 
-      if (repository_value<std::string>(rep, "model") != "model1")
-	throw std::runtime_error("this is not model1!");
+      if (repository_value<std::string>(rep, "model") != "model4")
+	throw std::runtime_error("this is not model4!");
     
       hidden_    = repository_value<size_type>(rep, "hidden");
       embedding_ = repository_value<size_type>(rep, "embedding");
@@ -121,13 +121,13 @@ namespace rnnp
 
       Wc_  = tensor_type::Zero(Wc_.rows(), hidden_);
     
-      Wsh_ = tensor_type::Zero(Wsh_.rows(), embedding_);
+      Wsh_ = tensor_type::Zero(Wsh_.rows(), hidden_ + embedding_);
       Bsh_ = tensor_type::Zero(Bsh_.rows(), 1);
     
-      Wre_ = tensor_type::Zero(Wre_.rows(), hidden_ + hidden_);
+      Wre_ = tensor_type::Zero(Wre_.rows(), hidden_ + hidden_ + hidden_);
       Bre_ = tensor_type::Zero(Bre_.rows(), 1);
     
-      Wu_  = tensor_type::Zero(Wu_.rows(), hidden_);
+      Wu_  = tensor_type::Zero(Wu_.rows(), hidden_ + hidden_);
       Bu_  = tensor_type::Zero(Bu_.rows(), 1);
 
       Wf_ = tensor_type::Zero(hidden_, hidden_);
@@ -143,13 +143,13 @@ namespace rnnp
     
       Model::read_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_);
     
-      Model::read_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, embedding_);
+      Model::read_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_);
       Model::read_category(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, hidden_, 1);
     
-      Model::read_category(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, hidden_, hidden_ + hidden_);
+      Model::read_category(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, hidden_, hidden_ + hidden_ + hidden_);
       Model::read_category(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, hidden_, 1);
     
-      Model::read_category(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_, hidden_, hidden_);
+      Model::read_category(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_, hidden_, hidden_ + hidden_);
       Model::read_category(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_, hidden_, 1);
     
       Model::read_matrix(rep.path("Wf.txt.gz"), rep.path("Wf.bin"), Wf_);
@@ -161,7 +161,7 @@ namespace rnnp
       Model::read_matrix(rep.path("Ba.txt.gz"), rep.path("Ba.bin"), Ba_);
     }
   
-    void Model1::embedding(const path_type& path)
+    void Model4::embedding(const path_type& path)
     {
       namespace qi = boost::spirit::qi;
       namespace standard = boost::spirit::standard;
@@ -217,13 +217,13 @@ namespace rnnp
 									\
     Theta.OpCategory(Stream, Theta.Wc_,  1, Theta.hidden_);		\
 									\
-    Theta.OpCategory(Stream, Theta.Wsh_, Theta.hidden_, Theta.embedding_); \
+    Theta.OpCategory(Stream, Theta.Wsh_, Theta.hidden_, Theta.hidden_ + Theta.embedding_); \
     Theta.OpCategory(Stream, Theta.Bsh_, Theta.hidden_, 1);		\
 									\
-    Theta.OpCategory(Stream, Theta.Wre_, Theta.hidden_, Theta.hidden_ + Theta.hidden_); \
+    Theta.OpCategory(Stream, Theta.Wre_, Theta.hidden_, Theta.hidden_ + Theta.hidden_ + Theta.hidden_); \
     Theta.OpCategory(Stream, Theta.Bre_, Theta.hidden_, 1);		\
 									\
-    Theta.OpCategory(Stream, Theta.Wu_,  Theta.hidden_, Theta.hidden_); \
+    Theta.OpCategory(Stream, Theta.Wu_,  Theta.hidden_, Theta.hidden_ + Theta.hidden_); \
     Theta.OpCategory(Stream, Theta.Bu_,  Theta.hidden_, 1);		\
 									\
     Theta.OpMatrix(Stream, Theta.Wf_);					\
@@ -234,7 +234,7 @@ namespace rnnp
 									\
     Theta.OpMatrix(Stream, Theta.Ba_);
     
-    std::ostream& operator<<(std::ostream& os, const Model1& theta)
+    std::ostream& operator<<(std::ostream& os, const Model4& theta)
     {
       os.write((char*) &theta.hidden_,    sizeof(theta.hidden_));
       os.write((char*) &theta.embedding_, sizeof(theta.embedding_));
@@ -244,7 +244,7 @@ namespace rnnp
       return os;
     }
     
-    std::istream& operator>>(std::istream& is, Model1& theta)
+    std::istream& operator>>(std::istream& is, Model4& theta)
     {
       is.read((char*) &theta.hidden_,    sizeof(theta.hidden_));
       is.read((char*) &theta.embedding_, sizeof(theta.embedding_));
@@ -278,14 +278,14 @@ namespace rnnp
 						\
     Op(Ba_, Theta.Ba_);
 
-    Model1& Model1::operator+=(const Model1& theta)
+    Model4& Model4::operator+=(const Model4& theta)
     {
       MODEL_BINARY_OPERATOR(Model::plus_equal, theta);
       
       return *this;
     }
     
-    Model1& Model1::operator-=(const Model1& theta)
+    Model4& Model4::operator-=(const Model4& theta)
     {
       MODEL_BINARY_OPERATOR(Model::minus_equal, theta);
 
@@ -316,14 +316,14 @@ namespace rnnp
 						\
     Ba_ Op x;
   
-    Model1& Model1::operator*=(const double& x)
+    Model4& Model4::operator*=(const double& x)
     {
       MODEL_UNARY_OPERATOR(*=);
 
       return *this;
     }
   
-    Model1& Model1::operator/=(const double& x)
+    Model4& Model4::operator/=(const double& x)
     {
       MODEL_UNARY_OPERATOR(/=);
     

@@ -9,14 +9,17 @@
 #include <rnnp/gradient/model1.hpp>
 #include <rnnp/gradient/model2.hpp>
 #include <rnnp/gradient/model3.hpp>
+#include <rnnp/gradient/model4.hpp>
 
 #include <rnnp/model/model1.hpp>
 #include <rnnp/model/model2.hpp>
 #include <rnnp/model/model3.hpp>
+#include <rnnp/model/model4.hpp>
 
 #include <rnnp/parser/model1.hpp>
 #include <rnnp/parser/model2.hpp>
 #include <rnnp/parser/model3.hpp>
+#include <rnnp/parser/model4.hpp>
 
 namespace rnnp
 {
@@ -48,6 +51,14 @@ namespace rnnp
   };
 
   template <>
+  struct model_traits<model::Model4>
+  {
+    typedef model::Model4    model_type;
+    typedef gradient::Model4 gradient_type;
+    typedef parser::Model4   parser_type;
+  };
+
+  template <>
   struct model_traits<gradient::Model1>
   {
     typedef model::Model1    model_type;
@@ -72,6 +83,14 @@ namespace rnnp
   };
 
   template <>
+  struct model_traits<gradient::Model4>
+  {
+    typedef model::Model4    model_type;
+    typedef gradient::Model4 gradient_type;
+    typedef parser::Model4   parser_type;
+  };
+
+  template <>
   struct model_traits<parser::Model1>
   {
     typedef model::Model1    model_type;
@@ -93,6 +112,14 @@ namespace rnnp
     typedef model::Model3    model_type;
     typedef gradient::Model3 gradient_type;
     typedef parser::Model3   parser_type;
+  };
+
+  template <>
+  struct model_traits<parser::Model4>
+  {
+    typedef model::Model4    model_type;
+    typedef gradient::Model4 gradient_type;
+    typedef parser::Model4   parser_type;
   };
 };
 

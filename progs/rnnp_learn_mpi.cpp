@@ -11,6 +11,7 @@
 #include <rnnp/model/model1.hpp>
 #include <rnnp/model/model2.hpp>
 #include <rnnp/model/model3.hpp>
+#include <rnnp/model/model4.hpp>
 #include <rnnp/parser.hpp>
 #include <rnnp/parser_oracle.hpp>
 #include <rnnp/loss.hpp>
@@ -85,6 +86,7 @@ std::string signature_name = "none";
 bool model_model1 = false;
 bool model_model2 = false;
 bool model_model3 = false;
+bool model_model4 = false;
 
 path_type model_file;
 path_type embedding_file;
@@ -157,14 +159,14 @@ int main(int argc, char** argv)
       mix_none_mode = true;
 
     if (model_file.empty()) {
-      if (int(model_model1) + model_model2 + model_model3 > 1)
-	throw std::runtime_error("either one of --model{1,2,3}");
+      if (int(model_model1) + model_model2 + model_model3 + model_model4 > 1)
+	throw std::runtime_error("either one of --model{1,2,3,4}");
       
-      if (int(model_model1) + model_model2 + model_model3 == 0)
+      if (int(model_model1) + model_model2 + model_model3 + model_model4 == 0)
 	model_model2 = true;
     } else {
-      if (int(model_model1) + model_model2 + model_model3)
-	throw std::runtime_error("model file is specified via --model, but with --model{1,2,3}?");
+      if (int(model_model1) + model_model2 + model_model3 + model_model4)
+	throw std::runtime_error("model file is specified via --model, but with --model{1,2,3,4}?");
       
       if (! boost::filesystem::exists(model_file))
 	throw std::runtime_error("no model file? " + model_file.string());
@@ -173,6 +175,7 @@ int main(int argc, char** argv)
       case 1: model_model1 = true; break;
       case 2: model_model2 = true; break;
       case 3: model_model3 = true; break;
+      case 4: model_model4 = true; break;
       default:
 	throw std::runtime_error("invalid model file");
       }
@@ -218,6 +221,10 @@ int main(int argc, char** argv)
       learn(optimizations, trees, grammar, *signature, theta, generator);
     } else if (model_model3) {
       rnnp::model::Model3 theta(hidden_size, embedding_size, grammar);
+      
+      learn(optimizations, trees, grammar, *signature, theta, generator);
+    } else if (model_model4) {
+      rnnp::model::Model4 theta(hidden_size, embedding_size, grammar);
       
       learn(optimizations, trees, grammar, *signature, theta, generator);
     } else
@@ -1183,6 +1190,7 @@ void options(int argc, char** argv)
     ("model1",    po::bool_switch(&model_model1), "parsing by model1")
     ("model2",    po::bool_switch(&model_model2), "parsing by model2 (default)")
     ("model3",    po::bool_switch(&model_model3), "parsing by model3")
+    ("model4",    po::bool_switch(&model_model4), "parsing by model4")
 
     ("model",     po::value<path_type>(&model_file),                              "model file")
     ("hidden",    po::value<int>(&hidden_size)->default_value(hidden_size),       "hidden dimension")

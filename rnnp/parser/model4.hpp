@@ -3,8 +3,8 @@
 //  Copyright(C) 2014 Taro Watanabe <taro.watanabe@nict.go.jp>
 //
 
-#ifndef __RNNP__PARSER__MODEL3__HPP__
-#define __RNNP__PARSER__MODEL3__HPP__ 1
+#ifndef __RNNP__PARSER__MODEL4__HPP__
+#define __RNNP__PARSER__MODEL4__HPP__ 1
 
 #include <rnnp/parser/parser.hpp>
 
@@ -12,7 +12,7 @@ namespace rnnp
 {
   namespace parser
   {
-    struct Model3 : public rnnp::parser::Parser
+    struct Model4 : public rnnp::parser::Parser
     {
       template <typename Parser, typename Theta>
       void operation_shift(Parser& parser,
@@ -23,7 +23,6 @@ namespace rnnp
       {
 	const size_type offset1 = 0;
 	const size_type offset2 = theta.hidden_;
-	const size_type offset3 = theta.hidden_ + theta.embedding_;
 	
 	state_type state_new = parser.state_allocator_.allocate();
 	
@@ -48,8 +47,6 @@ namespace rnnp
 					     * state.layer(theta.hidden_))
 					  + (theta.Wsh_.block(offset_category, offset2, theta.hidden_, theta.embedding_)
 					     * theta.terminal_.col(theta.terminal(head)))
-					  + (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
-					     * parser.queue_.col(state_new.next()))
 					  ).array().unaryExpr(model_type::activation());
 	
 	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
@@ -96,7 +93,7 @@ namespace rnnp
 					  + (theta.Wre_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
 					     * state_reduced.layer(theta.hidden_))
 					  + (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
-					     * parser.queue_.col(state_new.next()))
+					     * state_stack.layer(theta.hidden_))
 					  ).array().unaryExpr(model_type::activation());
       
 	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
@@ -114,7 +111,7 @@ namespace rnnp
       {
 	const size_type offset1 = 0;
 	const size_type offset2 = theta.hidden_;
-
+	
 	state_type state_new = parser.state_allocator_.allocate();
 
 	state_new.step()  = state.step() + 1;
@@ -137,16 +134,16 @@ namespace rnnp
 					  + (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
 					     * state.layer(theta.hidden_))
 					  + (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
-					     * parser.queue_.col(state_new.next()))
+					     * state.stack().layer(theta.hidden_))
 					  ).array().unaryExpr(model_type::activation());
-	
+      
 	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
-	
+      
 	state_new.score() = state.score() + score;
-	
+      
 	parser.agenda_[state_new.step()].push_back(state_new);
       }
-      
+    
       template <typename Parser, typename Theta>
       void operation_final(Parser& parser,
 			   const Theta& theta,
@@ -218,22 +215,6 @@ namespace rnnp
 			   const sentence_type& input,
 			   const Theta& theta)
       {
-	const size_type offset1 = 0;
-	const size_type offset2 = theta.hidden_;
-	
-	const size_type input_size = input.size();
-	
-	parser.queue_.resize(theta.hidden_, input_size + 1);
-	
-	parser.queue_.col(input_size) = theta.Bqe_.array().unaryExpr(model_type::activation());
-	for (size_type i = input_size; i; -- i)
-	  parser.queue_.col(i - 1) = (theta.Bqu_
-				      + (theta.Wqu_.block(0, offset1, theta.hidden_, theta.hidden_)
-					 * parser.queue_.col(i))
-				      + (theta.Wqu_.block(0, offset2, theta.hidden_, theta.embedding_)
-					 * theta.queue_.col(theta.terminal(input[i - 1])))
-				      ).array().unaryExpr(model_type::activation());
-	
 	state_type state_new = parser.state_allocator_.allocate();
 
 	state_new.step()  = 0;

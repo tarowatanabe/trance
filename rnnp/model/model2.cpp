@@ -113,6 +113,9 @@ namespace rnnp
       if (embedding_ == 0)
 	throw std::runtime_error("invalid dimension");
     
+      vocab_terminal_.clear();
+      vocab_category_.clear();
+      
       // first, resize
       terminal_ = tensor_type::Zero(embedding_, terminal_.cols());
 

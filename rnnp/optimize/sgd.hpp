@@ -183,6 +183,42 @@ namespace rnnp
 	update(theta.Ba_, gradient.Ba_, scale, false);
       }
     }
+
+    template <>
+    inline
+    void SGD<model::Model4>::operator()(model::Model4& theta,
+					const gradient::Model4& gradient,
+					const option_type& option) const
+    {
+      if (! gradient.count_) return;
+	
+      const double scale = 1.0 / gradient.count_;
+	
+      if (option.learn_embedding())
+	update(theta.terminal_, gradient.terminal_, scale, false);
+	
+      if (option.learn_classification())
+	update(theta.Wc_, gradient.Wc_, scale, true);
+	
+      if (option.learn_hidden()) {
+	update(theta.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, gradient.Bsh_, scale, false);
+	  
+	update(theta.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, gradient.Bre_, scale, false);
+	  
+	update(theta.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, gradient.Bu_, scale, false);
+	  
+	update(theta.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, gradient.Bf_, scale, false);
+	  
+	update(theta.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, gradient.Bi_, scale, false);
+	  
+	update(theta.Ba_, gradient.Ba_, scale, false);
+      }
+    }
   };
 };
 
