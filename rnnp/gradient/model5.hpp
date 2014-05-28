@@ -40,7 +40,6 @@ namespace rnnp
 	Gradient::swap(static_cast<Gradient&>(x));
 	
 	terminal_.swap(x.terminal_);
-	queue_.swap(x.queue_);
       
 	Wc_.swap(x.Wc_);
       
@@ -71,7 +70,6 @@ namespace rnnp
 	Gradient::clear();
 
 	terminal_.clear();
-	queue_.clear();
 
 	Wc_.clear();
       
@@ -105,14 +103,6 @@ namespace rnnp
 	return tensor;
       }
 
-      tensor_type& queue(const word_type& word)
-      {
-	tensor_type& tensor = queue_[word];
-	if (! tensor.rows())
-	  tensor = tensor_type::Zero(embedding_, 1);
-	return tensor;
-      }
-    
       tensor_type& Wc(const word_type& label)
       {
 	tensor_type& tensor = Wc_[label];
@@ -172,7 +162,6 @@ namespace rnnp
     public:
       // embedding
       matrix_embedding_type terminal_;
-      matrix_embedding_type queue_;
     
       // classification
       matrix_category_type Wc_;

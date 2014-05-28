@@ -231,7 +231,7 @@ namespace rnnp
 				      + (theta.Wqu_.block(0, offset1, theta.hidden_, theta.hidden_)
 					 * parser.queue_.col(i))
 				      + (theta.Wqu_.block(0, offset2, theta.hidden_, theta.embedding_)
-					 * theta.queue_.col(theta.terminal(input[i - 1])))
+					 * theta.terminal_.col(theta.terminal(input[i - 1])))
 				      ).array().unaryExpr(model_type::activation());
 	
 	state_type state_new = parser.state_allocator_.allocate();

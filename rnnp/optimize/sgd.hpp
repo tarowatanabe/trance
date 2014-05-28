@@ -152,10 +152,8 @@ namespace rnnp
 	
       const double scale = 1.0 / gradient.count_;
 	
-      if (option.learn_embedding()) {
+      if (option.learn_embedding())
 	update(theta.terminal_, gradient.terminal_, scale, false);
-	update(theta.queue_,    gradient.queue_,    scale, false);
-      }
 	
       if (option.learn_classification())
 	update(theta.Wc_, gradient.Wc_, scale, true);
@@ -230,10 +228,8 @@ namespace rnnp
 	
       const double scale = 1.0 / gradient.count_;
 	
-      if (option.learn_embedding()) {
+      if (option.learn_embedding())
 	update(theta.terminal_, gradient.terminal_, scale, false);
-	update(theta.queue_,    gradient.queue_,    scale, false);
-      }
 	
       if (option.learn_classification())
 	update(theta.Wc_, gradient.Wc_, scale, true);

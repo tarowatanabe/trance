@@ -29,7 +29,6 @@ namespace rnnp
     
       // initialize matrix
       terminal_ = tensor_type::Zero(embedding_, vocab_terminal_.size());
-      queue_    = tensor_type::Zero(embedding_, vocab_terminal_.size());
     
       Wc_  = tensor_type::Zero(1 * vocab_category_.size(), hidden_);
     
@@ -67,7 +66,6 @@ namespace rnnp
       rep["hidden"]    = utils::lexical_cast<std::string>(hidden_);
       
       Model::write_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_);
-      Model::write_embedding(rep.path("queue.txt.gz"),    rep.path("queue.bin"),    queue_);
     
       Model::write_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_);
     
@@ -128,7 +126,6 @@ namespace rnnp
       
       // first, resize
       terminal_ = tensor_type::Zero(embedding_, terminal_.cols());
-      queue_    = tensor_type::Zero(embedding_, queue_.cols());
 
       Wc_  = tensor_type::Zero(Wc_.rows(), hidden_);
     
@@ -155,7 +152,6 @@ namespace rnnp
     
       // then, read!
       Model::read_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_);
-      Model::read_embedding(rep.path("queue.txt.gz"),    rep.path("queue.bin"),    queue_);
     
       Model::read_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_);
     
@@ -222,14 +218,10 @@ namespace rnnp
       
 	if (word.id() >= terminal_.cols())
 	  terminal_.conservativeResize(embedding_, word.id() + 1);
-	if (word.id() >= queue_.cols())
-	  queue_.conservativeResize(embedding_, word.id() + 1);
 	if (word.id() >= vocab_terminal_.size())
 	  vocab_terminal_.resize(word.id() + 1, false);
       
 	terminal_.col(word.id())
-	  = Eigen::Map<const tensor_type>(&(*boost::fusion::get<1>(parsed).begin()), embedding_, 1);
-	queue_.col(word.id())
 	  = Eigen::Map<const tensor_type>(&(*boost::fusion::get<1>(parsed).begin()), embedding_, 1);
       
 	vocab_terminal_[word.id()] = true;
@@ -238,7 +230,6 @@ namespace rnnp
     
 #define MODEL_STREAM_OPERATOR(Theta, OpEmbedding, OpCategory, OpMatrix, Stream)	\
     Theta.OpEmbedding(Stream, Theta.terminal_);				\
-    Theta.OpEmbedding(Stream, Theta.queue_);				\
 									\
     Theta.OpCategory(Stream, Theta.Wc_,  1, Theta.hidden_);		\
 									\
@@ -287,7 +278,6 @@ namespace rnnp
   
 #define MODEL_BINARY_OPERATOR(Op, Theta)	\
     Op(terminal_, Theta.terminal_);		\
-    Op(queue_,    Theta.queue_);		\
 						\
     Op(Wc_,  Theta.Wc_);			\
 						\
@@ -330,7 +320,6 @@ namespace rnnp
   
 #define MODEL_UNARY_OPERATOR(Op)		\
     terminal_ Op x;				\
-    queue_ Op x;				\
 						\
     Wc_  Op x;					\
 						\

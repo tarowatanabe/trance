@@ -75,7 +75,6 @@ namespace rnnp
 	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
-	queue_    = queue_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
       
 	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
       
@@ -96,7 +95,6 @@ namespace rnnp
 	Model::swap(static_cast<Model&>(x));
 	
 	terminal_.swap(x.terminal_);
-	queue_.swap(x.queue_);
       
 	Wc_.swap(x.Wc_);
       
@@ -127,7 +125,6 @@ namespace rnnp
 	Model::clear();
 
 	terminal_.setZero();
-	queue_.setZero();
       
 	Wc_.setZero();
       
@@ -193,7 +190,6 @@ namespace rnnp
     public:
       // terminal embedding
       tensor_type terminal_;
-      tensor_type queue_;
     
       // classification
       tensor_type Wc_;

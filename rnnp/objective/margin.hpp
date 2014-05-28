@@ -747,13 +747,16 @@ namespace rnnp
 	g.Wqu_.block(0, offset1, theta.hidden_, theta.hidden_)
 	  += queue_.col(i) * candidates.queue_.col(i + 1).transpose();
 	g.Wqu_.block(0, offset2, theta.hidden_, theta.embedding_)
-	  += queue_.col(i) * theta.queue_.col(word_id).transpose();
+	  += queue_.col(i) * theta.terminal_.col(word_id).transpose();
 	g.Bqu_ += queue_.col(i);
 	
 	queue_.col(i + 1).array()
 	  += (candidates.queue_.col(i + 1).array().unaryExpr(model_type::dactivation())
 	      * (theta.Wqu_.block(0, offset1, theta.hidden_, theta.hidden_).transpose()
 		 * queue_.col(i)).array());
+	
+	g.terminal(word_id) += (theta.Wqu_.block(0, offset2, theta.hidden_, theta.embedding_).transpose()
+				* queue_.col(i));
       }
       
       g.Bqe_ += queue_.col(input.size());
@@ -1287,13 +1290,16 @@ namespace rnnp
 	g.Wqu_.block(0, offset1, theta.hidden_, theta.hidden_)
 	  += queue_.col(i) * candidates.queue_.col(i + 1).transpose();
 	g.Wqu_.block(0, offset2, theta.hidden_, theta.embedding_)
-	  += queue_.col(i) * theta.queue_.col(word_id).transpose();
+	  += queue_.col(i) * theta.terminal_.col(word_id).transpose();
 	g.Bqu_ += queue_.col(i);
 	
 	queue_.col(i + 1).array()
 	  += (candidates.queue_.col(i + 1).array().unaryExpr(model_type::dactivation())
 	      * (theta.Wqu_.block(0, offset1, theta.hidden_, theta.hidden_).transpose()
 		 * queue_.col(i)).array());
+	
+	g.terminal(word_id) += (theta.Wqu_.block(0, offset2, theta.hidden_, theta.embedding_).transpose()
+				* queue_.col(i));
       }
       
       g.Bqe_ += queue_.col(input.size());
