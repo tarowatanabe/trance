@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <memory>
 
 #include <rnnp/tree.hpp>
 #include <rnnp/grammar.hpp>
@@ -100,6 +101,9 @@ opt_set_type optimize_options;
 bool mix_none_mode = false;
 bool mix_average_mode = false;
 bool mix_select_mode = false;
+
+path_type output_prefix;
+int dump = 0;
 
 int threads = 1;
 
@@ -464,6 +468,37 @@ struct Task
   }
 };
 
+template <typename Theta>
+struct OutputModel
+{
+  typedef std::pair<Theta, path_type> model_path_type;
+  typedef utils::lockfree_list_queue<model_path_type, std::allocator<model_path_type> > queue_type;
+  
+  OutputModel(queue_type& queue) : queue_(queue) {}
+
+  void operator()()
+  {
+    model_path_type theta;
+    
+    for (;;) {
+      queue_.pop_swap(theta);
+      
+      if (theta.second.empty()) break;
+      
+      theta.first.write(theta.second);
+    }
+  }
+  
+  queue_type& queue_;
+};
+
+template <typename Theta>
+inline
+void swap(typename OutputModel<Theta>::model_path_type& x, typename OutputModel<Theta>::model_path_type& y)
+{
+  x.first.swap(y.first);
+  x.second.swap(y.second);
+}
 
 template <typename Theta, typename Optimizer, typename Objective, typename Gen>
 void learn(const Optimizer& optimizer,
@@ -559,12 +594,16 @@ void learn(const option_set_type& optimizations,
 	      << std::endl;
   }
   
-  option_set_type::const_iterator oiter_end = optimizations.end();
-  for (option_set_type::const_iterator oiter = optimizations.begin(); oiter != oiter_end; ++ oiter)
-    learn(*oiter, trees, grammar, signature, theta, gen);
+  int iter = 0;
 
-  if (! output_file.empty())
-    theta.write(output_file);
+  option_set_type::const_iterator oiter_end = optimizations.end();
+  for (option_set_type::const_iterator oiter = optimizations.begin(); oiter != oiter_end; ++ oiter, ++ iter) {
+    output_prefix = output_file.string() + "." + utils::lexical_cast<std::string>(iter);
+    
+    learn(*oiter, trees, grammar, signature, theta, gen);
+  }
+
+  theta.write(output_file);
 }
 
 
@@ -578,6 +617,8 @@ void learn(const Optimizer& optimizer,
 	   Theta& theta,
 	   Gen& gen)
 {
+  typedef OutputModel<Theta> output_model_type;
+
   typedef Task<Theta, Optimizer, Objective> task_type;
   typedef std::vector<task_type, std::allocator<task_type> > task_set_type;
   
@@ -594,6 +635,10 @@ void learn(const Optimizer& optimizer,
   working_set_type working(trees.size());
   for (size_type i = 0; i != trees.size(); ++ i)
     working[i] = i;
+
+  typename output_model_type::queue_type queue_dumper;
+  
+  std::auto_ptr<boost::thread> dumper(new boost::thread(output_model_type(queue_dumper)));
   
   queue_mapper_type     mapper(threads);
   queue_merger_set_type mergers(threads);
@@ -720,7 +765,11 @@ void learn(const Optimizer& optimizer,
 	if (i != shard_min)
 	  tasks[i].theta_ = tasks[shard_min].theta_;
     }
-
+    
+    if (dump > 0 && !((t + 1) % dump))
+      queue_dumper.push(std::make_pair(tasks.front().theta_,
+				       output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
+    
     if (! updated)
       ++ zero_iter;
     else
@@ -728,6 +777,9 @@ void learn(const Optimizer& optimizer,
     
     if (zero_iter >= 2) break;
   }
+  
+  queue_dumper.push(typename output_model_type::model_path_type());
+  dumper->join();
   
   // copy the model!
   theta = tasks.front().theta_;
@@ -780,7 +832,9 @@ void options(int argc, char** argv)
     
     ("mix-none",    po::bool_switch(&mix_none_mode),    "no mixing")
     ("mix-average", po::bool_switch(&mix_average_mode), "mixing weights by averaging")
-    ("mix-select",  po::bool_switch(&mix_select_mode),  "select weights by L1");
+    ("mix-select",  po::bool_switch(&mix_select_mode),  "select weights by L1")
+
+    ("dump", po::value<int>(&dump)->default_value(dump), "output model file during training");
   
   po::options_description opts_command("command line options");
   opts_command.add_options()
