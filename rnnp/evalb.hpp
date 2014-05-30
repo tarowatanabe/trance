@@ -33,6 +33,15 @@ namespace rnnp
 	  const count_type& test)
       : match_(match), gold_(gold), test_(test) {}
 
+  public:
+    void clear()
+    {
+      match_ = 0;
+      gold_  = 0;
+      test_  = 0;
+    }
+
+  public:
     Evalb& operator+=(const Evalb& x)
     {
       match_ += x.match_;
