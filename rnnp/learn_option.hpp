@@ -30,7 +30,6 @@ namespace rnnp
     } optimize_type;
 
     typedef enum {
-      MARGIN_CROSS,
       MARGIN_DERIVATION,
       MARGIN_EVALB,
       MARGIN_EARLY,
@@ -53,7 +52,6 @@ namespace rnnp
     bool optimize_adadec()   const { return optimize_ == OPTIMIZE_ADADEC; }
     bool optimize_adadelta() const { return optimize_ == OPTIMIZE_ADADELTA; }
     
-    bool margin_cross()      const { return objective_ == MARGIN_CROSS; }
     bool margin_derivation() const { return objective_ == MARGIN_DERIVATION; }
     bool margin_evalb()      const { return objective_ == MARGIN_EVALB; }
     bool margin_early()      const { return objective_ == MARGIN_EARLY; }

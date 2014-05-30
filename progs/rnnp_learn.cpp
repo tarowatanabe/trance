@@ -20,7 +20,6 @@
 #include <rnnp/learn_option.hpp>
 #include <rnnp/derivation.hpp>
 
-#include <rnnp/objective/margin_cross.hpp>
 #include <rnnp/objective/margin_derivation.hpp>
 #include <rnnp/objective/margin_evalb.hpp>
 #include <rnnp/objective/margin_early.hpp>
@@ -520,9 +519,7 @@ void learn(const Optimizer& optimizer,
 	   Gen& gen)
 {
   
-  if (option.margin_cross())
-    learn(optimizer, rnnp::objective::MarginCross(), option, trees, grammar, signature, theta, gen);
-  else if (option.margin_derivation())
+  if (option.margin_derivation())
     learn(optimizer, rnnp::objective::MarginDerivation(), option, trees, grammar, signature, theta, gen);
   else if (option.margin_evalb())
     learn(optimizer, rnnp::objective::MarginEvalb(), option, trees, grammar, signature, theta, gen);

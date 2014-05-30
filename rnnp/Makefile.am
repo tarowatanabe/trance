@@ -21,7 +21,6 @@ signaturedir = $(pkgincludedir)/rnnp/signature
 
 dist_objective_HEADERS = \
 objective/margin.hpp \
-objective/margin_cross.hpp \
 objective/margin_derivation.hpp \
 objective/margin_evalb.hpp \
 objective/margin_early.hpp \
@@ -121,6 +120,7 @@ symbol.hpp \
 tree.hpp
 
 librnnp_la_SOURCES = \
+evalb.cpp \
 forest.cpp \
 gradient.cpp \
 grammar.cpp \

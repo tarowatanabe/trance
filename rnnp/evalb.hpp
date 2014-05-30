@@ -8,6 +8,8 @@
 
 #include <cstddef>
 
+#include <iostream>
+
 #include <rnnp/symbol.hpp>
 #include <rnnp/span.hpp>
 #include <rnnp/state.hpp>
@@ -46,7 +48,14 @@ namespace rnnp
       test_  -= x.test_;
       return *this;
     }
+
+  public:
+    friend
+    std::ostream& operator<<(std::ostream& os, const Evalb& evalb);
+    friend
+    std::istream& operator>>(std::istream& is, Evalb& evalb);
     
+  public:
     double recall() const { return (! gold_ ? 0.0 : double(match_) / gold_); }
     double precision() const { return (! test_ ? 0.0 : double(match_) / test_); }
     
