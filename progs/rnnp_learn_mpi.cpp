@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <iostream>
 
+#include <rnnp/evalb.hpp>
 #include <rnnp/tree.hpp>
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
@@ -274,7 +275,8 @@ enum {
   model_tag = 1000,
   gradient_tag,
   tree_tag,
-  loss_tag
+  loss_tag,
+  evalb_tag,
 };
 
 inline
@@ -616,6 +618,55 @@ void swap(typename OutputModel<Theta>::model_path_type& x, typename OutputModel<
   x.second.swap(y.second);
 }
 
+template <typename Theta, typename Task>
+struct Test
+{
+  typedef size_t    size_type;
+  typedef ptrdiff_t difference_type;
+  
+  typedef rnnp::Evalb       evalb_type;
+  typedef rnnp::EvalbScorer scorer_type;
+  
+  typedef utils::lockfree_list_queue<tree_type, std::allocator<tree_type> > queue_type;
+
+  Test(Task& task,
+       evalb_type& evalb,
+       queue_type& queue)
+    : task_(task),
+      evalb_(evalb),
+      queue_(queue) {}
+  
+  void operator()()
+  {
+    signature_type::signature_ptr_type signature(task_.signature_.clone());
+    
+    rnnp::Parser::derivation_set_type candidates;
+    
+    evalb_.clear();
+    
+    tree_type tree;
+    
+    for (;;) {
+      queue_.pop_swap(tree);
+      
+      if (tree.empty()) break;
+      
+      task_.parser_(tree.leaf(), task_.grammar_, *signature, task_.theta_, kbest_size, candidates);
+
+      if (candidates.empty()) continue;
+      
+      scorer_.assign(tree);
+      evalb_ += scorer_(candidates.front());
+    }
+  }
+  
+  Task& task_;
+  evalb_type& evalb_;
+  queue_type& queue_;
+  
+  scorer_type scorer_;
+};
+
 template <typename Theta, typename Optimizer, typename Objective, typename Gen>
 void learn_root(const Optimizer& optimizer,
 		const Objective& objective,
@@ -624,7 +675,7 @@ void learn_root(const Optimizer& optimizer,
 		const tree_set_type& tests,
 		const grammar_type& grammar,
 		const signature_type& signature,
-		Theta& theta,
+		Theta& theta_ret,
 		Gen& gen)
 {
   typedef OutputModel<Theta> output_model_type;
@@ -664,6 +715,11 @@ void learn_root(const Optimizer& optimizer,
 
   const int mpi_rank = MPI::COMM_WORLD.Get_rank();
   const int mpi_size = MPI::COMM_WORLD.Get_size();
+
+  bool perform_testing = ! tests.empty();
+  MPI::COMM_WORLD.Bcast(&perform_testing, 1, utils::mpi_traits<bool>::data_type(), 0);
+
+  Theta theta = theta_ret;
   
   working_set_type working(trees.size());
   for (size_type i = 0; i != trees.size(); ++ i)
@@ -697,13 +753,14 @@ void learn_root(const Optimizer& optimizer,
   gradient_ostream_ptr_set_type gradient_ostream(mpi_size);
   gradient_istream_ptr_set_type gradient_istream(mpi_size);
   
+  double evalb_max = 0;
   int zero_iter = 0;
   
   for (int t = 0; t < option.iteration_; ++ t) {
     if (debug)
       std::cerr << "iteration: " << (t + 1) << std::endl;
     
-     // prepare iostreams...
+    // prepare iostreams...
     for (int rank = 0; rank != mpi_size; ++ rank)
       if (rank != mpi_rank) {
 	tree_ostream[rank].reset(new tree_ostream_type(rank, tree_tag));
@@ -902,6 +959,121 @@ void learn_root(const Optimizer& optimizer,
       queue_dumper.push(std::make_pair(theta,
 				       output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
 
+    if (perform_testing) {
+      typedef Test<Theta, task_type> test_type;
+      
+      typedef typename test_type::queue_type queue_type;
+      typedef typename test_type::evalb_type evalb_type;
+      
+      if (debug)
+	std::cerr << "testing: " << (t + 1) << std::endl;
+      
+      queue_type queue(1);
+      evalb_type evalb;
+      
+      std::auto_ptr<boost::progress_display> progress(debug
+						      ? new boost::progress_display(tests.size(), std::cerr, "", "", "")
+						      : 0);
+      
+      std::auto_ptr<boost::thread> worker(new boost::thread(test_type(task, evalb, queue)));
+
+      // prepare iostreams...
+      for (int rank = 0; rank != mpi_size; ++ rank)
+	if (rank != mpi_rank)
+	  tree_ostream[rank].reset(new tree_ostream_type(rank, tree_tag));
+      
+      utils::resource start;
+      
+      bool tree_finished = false; // for trees
+      
+      size_type id = 0;
+      
+      int non_found_iter = 0;
+      for (;;) {
+	bool found = false;
+	
+	// mapping of trees...
+	for (int rank = 1; rank != mpi_size && id != tests.size(); ++ rank)
+	  if (tree_ostream[rank]->test()) {
+	    // encode tree as a line
+	    
+	    line.clear();
+	    
+	    boost::iostreams::filtering_ostream os;
+	    os.push(boost::iostreams::back_inserter(line));
+	    os << tests[id];
+	    os.reset();
+	    
+	    tree_ostream[rank]->write(line);
+	    
+	    if (progress.get())
+	      ++ (*progress);
+	    
+	    ++ id;
+	    found = true;
+	  }
+	
+	if (id != tests.size() && tree_mapper.empty()) {
+	  queue.push(tests[id]);
+	  
+	  if (progress.get())
+	    ++ (*progress);
+	  
+	  ++ id;
+	  found = true;
+	}
+	
+	if (! tree_finished && id == tests.size()) {
+	  queue.push(tree_type());
+	  tree_finished = true;
+	}
+	
+	// terminate tree mapping
+	if (tree_finished)
+	  for (int rank = 1; rank != mpi_size; ++ rank)
+	    if (tree_ostream[rank] && tree_ostream[rank]->test()) {
+	      if (! tree_ostream[rank]->terminated())
+		tree_ostream[rank]->terminate();
+	      else
+		tree_ostream[rank].reset();
+	      
+	      found = true;
+	    }
+	
+	// termination condition
+	if (tree_finished && std::count(tree_ostream.begin(), tree_ostream.end(), tree_ostream_ptr_type()) == mpi_size) break;
+	
+	non_found_iter = loop_sleep(found, non_found_iter);
+      }
+      
+      worker->join();
+      
+      utils::resource end;
+      
+      for (int rank = 1; rank != mpi_size; ++ rank) {
+	evalb_type e;
+	
+	boost::iostreams::filtering_istream is;
+	is.push(utils::mpi_device_source(rank, evalb_tag, 4096));
+	
+	is >> e;
+	
+	evalb += e;
+      }
+      
+      const double evalb_curr = evalb();
+
+      if (debug)
+	std::cerr << "EVALB: " << evalb_curr << std::endl
+		  << "test cpu time:    " << end.cpu_time() - start.cpu_time() << std::endl
+		  << "test user time:   " << end.user_time() - start.user_time() << std::endl;
+      
+      if (evalb_curr > evalb_max) {
+	evalb_max = evalb_curr;
+	theta_ret = theta;
+      }
+    }
+
     MPI::COMM_WORLD.Bcast(&updated, 1, utils::mpi_traits<size_type>::data_type(), 0);
     
     if (! updated)
@@ -911,9 +1083,14 @@ void learn_root(const Optimizer& optimizer,
     
     if (zero_iter >= 2) break;
   }
-
+  
   queue_dumper.push(typename output_model_type::model_path_type());
   dumper->join();
+  
+  if (! perform_testing)
+    theta_ret = theta;
+  else
+    bcast_model(theta_ret);
 }
 
 template <typename Theta, typename Optimizer, typename Objective>
@@ -922,7 +1099,7 @@ void learn_others(const Optimizer& optimizer,
 		  const option_type& option,
 		  const grammar_type& grammar,
 		  const signature_type& signature,
-		  Theta& theta)
+		  Theta& theta_ret)
 {
   typedef Task<Theta, Optimizer, Objective> task_type;
   
@@ -957,6 +1134,11 @@ void learn_others(const Optimizer& optimizer,
   
   const int mpi_rank = MPI::COMM_WORLD.Get_rank();
   const int mpi_size = MPI::COMM_WORLD.Get_size();
+
+  bool perform_testing = false;
+  MPI::COMM_WORLD.Bcast(&perform_testing, 1, utils::mpi_traits<bool>::data_type(), 0);
+  
+  Theta theta = theta_ret;
   
   queue_tree_type     tree_mapper(1);
   queue_gradient_type gradient_mapper;
@@ -1105,6 +1287,50 @@ void learn_others(const Optimizer& optimizer,
       select_model(theta);
     else
       bcast_model(theta);
+
+    if (perform_testing) {
+      typedef Test<Theta, task_type> test_type;  
+      
+      typedef typename test_type::queue_type queue_type;
+      typedef typename test_type::evalb_type evalb_type;
+      
+      queue_type queue(1);
+      evalb_type evalb;
+      
+      std::auto_ptr<boost::thread> worker(new boost::thread(test_type(task, evalb, queue)));
+      
+      tree_istream_ptr_type tree_istream(new tree_istream_type(0, tree_tag));
+
+      int non_found_iter = 0;
+      for (;;) {
+	bool found = false;
+	
+	// read trees mapped from root
+	if (tree_istream && tree_istream->test() && queue.empty()) {
+	  if (tree_istream->read(line)) {
+	    tree.assign(line);
+	    
+	    queue.push_swap(tree);
+	  } else {
+	    tree_istream.reset();
+	    
+	    queue.push(tree_type());
+	  }
+	  
+	  found = true;
+	}
+
+	if (! tree_istream) break;
+	
+	non_found_iter = loop_sleep(found, non_found_iter);
+      }
+      
+      worker->join();
+      
+      boost::iostreams::filtering_ostream os;
+      os.push(utils::mpi_device_sink(0, evalb_tag, 4096));
+      os << evalb;
+    }
     
     size_type updated = 0;
     
@@ -1117,6 +1343,11 @@ void learn_others(const Optimizer& optimizer,
     
     if (zero_iter >= 2) break;
   }
+
+  if (! perform_testing)
+    theta_ret = theta;
+  else
+    bcast_model(theta_ret);
 }
 
 
