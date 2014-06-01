@@ -56,7 +56,7 @@ namespace rnnp
     for (tree_type::const_iterator aiter = tree.begin(); aiter != aiter_end; ++ aiter) {
       rule.rhs_.push_back(aiter->label_);
       
-      if (! aiter->leaf())
+      if (! aiter->terminal())
 	tail.push_back(forest.add_node().id_);
     }
     
@@ -66,7 +66,7 @@ namespace rnnp
     
     tail_type::const_iterator titer = tail.begin();
     for (tree_type::const_iterator aiter = tree.begin(); aiter != aiter_end; ++ aiter) 
-      if (! aiter->leaf()) {
+      if (! aiter->terminal()) {
 	assign_tree(*titer, *aiter, forest);
 	++ titer;
       }

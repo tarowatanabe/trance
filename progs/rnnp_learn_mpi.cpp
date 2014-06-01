@@ -78,6 +78,7 @@ typedef std::vector<option_type, std::allocator<option_type> > option_set_type;
 typedef utils::chunk_vector<tree_type, 4096 / sizeof(tree_type), std::allocator<tree_type> > tree_set_type;
 
 path_type input_file = "-";
+path_type test_file;
 path_type output_file;
 
 path_type grammar_file;
@@ -202,6 +203,13 @@ int main(int argc, char** argv)
     
     if (mpi_rank == 0 && debug)
       std::cerr << "# of training data: " << trees.size() << std::endl;
+
+    tree_set_type tests;
+    if (! test_file.empty())
+      read_data(test_file, tests);
+    
+    if (mpi_rank == 0 && debug && ! tests.empty())
+      std::cerr << "# of test data: " << tests.size() << std::endl;
     
     grammar_type grammar(grammar_file);
     
@@ -1254,6 +1262,7 @@ void options(int argc, char** argv)
   po::options_description opts_config("configuration options");
   opts_config.add_options()
     ("input",     po::value<path_type>(&input_file)->default_value(input_file), "input file")
+    ("test",      po::value<path_type>(&test_file),                             "test file")
     ("output",    po::value<path_type>(&output_file),                           "output file")
     
     ("grammar",    po::value<path_type>(&grammar_file),                                    "grammar file")

@@ -9,8 +9,10 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <iterator>
 
 #include <rnnp/symbol.hpp>
+#include <rnnp/sentence.hpp>
 
 #include <utils/hashmurmur3.hpp>
 #include <utils/piece.hpp>
@@ -24,7 +26,8 @@ namespace rnnp
     typedef size_t    size_type;
     typedef ptrdiff_t difference_type;
     
-    typedef rnnp::Symbol  symbol_type;
+    typedef rnnp::Symbol   symbol_type;
+    typedef rnnp::Sentence sentence_type;
     
     typedef Tree tree_type;
     typedef utils::simple_vector<tree_type, std::allocator<tree_type> > antecedent_type;
@@ -60,9 +63,28 @@ namespace rnnp
     std::string string() const;
 
   public:
-    bool leaf() const { return antecedent_.empty(); }
     bool terminal() const { return antecedent_.empty(); }
     bool empty() const { return label_.empty() && antecedent_.empty(); }
+
+  public:
+    template <typename Iterator>
+    void leaf(Iterator iter) const
+    {
+      if (terminal()) {
+	*iter = label_;
+	++ iter;
+      } else {
+	for (const_iterator aiter = begin(); aiter != end(); ++ aiter)
+	  aiter->leaf(iter);
+      }
+    }
+
+    sentence_type leaf() const
+    {
+      sentence_type sent;
+      leaf(std::back_inserter(sent));
+      return sent;
+    }
     
   public:
     inline const_iterator begin() const { return antecedent_.begin(); }

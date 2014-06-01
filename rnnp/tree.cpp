@@ -116,7 +116,7 @@ namespace rnnp
 
     if (tree.empty())
       return karma::generate(iter, "(())");
-    else if (tree.leaf())
+    else if (tree.terminal())
       return karma::generate(iter, standard::string, tree.label_);
     else {
       if (! karma::generate(iter, '(' << standard::string << ' ', tree.label_.strip()))

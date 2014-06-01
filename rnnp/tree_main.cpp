@@ -14,6 +14,8 @@ int main(int argc, char** argv)
   
   while (std::cin >> tree) {
     std::cout << tree << std::endl;
+
+    std::cout << "leaf: " << tree.leaf() << std::endl;
     
     rnnp::binarize_left(tree, binarized_left);
     
