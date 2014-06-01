@@ -118,6 +118,7 @@ int debug = 0;
 template <typename Theta, typename Gen>
 void learn(const option_set_type& options,
 	   const tree_set_type& trees,
+	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
 	   Theta& theta,
@@ -230,35 +231,35 @@ int main(int argc, char** argv)
       
       rnnp::model::Model1 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
     } else if (model_model2) {
       if (mpi_rank == 0 && debug)
 	std::cerr << "model2" << std::endl;
       
       rnnp::model::Model2 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
     } else if (model_model3) {
       if (mpi_rank == 0 && debug)
 	std::cerr << "model3" << std::endl;
       
       rnnp::model::Model3 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
     } else if (model_model4) {
       if (mpi_rank == 0 && debug)
 	std::cerr << "model4" << std::endl;
       
       rnnp::model::Model4 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
     } else if (model_model5) {
       if (mpi_rank == 0 && debug)
 	std::cerr << "model5" << std::endl;
       
       rnnp::model::Model5 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
     } else
       throw std::runtime_error("no model?");
     
@@ -620,6 +621,7 @@ void learn_root(const Optimizer& optimizer,
 		const Objective& objective,
 		const option_type& option,
 		const tree_set_type& trees,
+		const tree_set_type& tests,
 		const grammar_type& grammar,
 		const signature_type& signature,
 		Theta& theta,
@@ -1123,6 +1125,7 @@ void learn(const Optimizer& optimizer,
 	   const Objective& objective,
 	   const option_type& option,
 	   const tree_set_type& trees,
+	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
 	   Theta& theta,
@@ -1132,6 +1135,7 @@ template <typename Theta, typename Optimizer, typename Gen>
 void learn(const Optimizer& optimizer,
 	   const option_type& option,
 	   const tree_set_type& trees,
+	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
 	   Theta& theta,
@@ -1139,21 +1143,21 @@ void learn(const Optimizer& optimizer,
 {
   
   if (option.margin_derivation())
-    learn(optimizer, rnnp::objective::MarginDerivation(), option, trees, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::MarginDerivation(), option, trees, tests, grammar, signature, theta, gen);
   else if (option.margin_evalb())
-    learn(optimizer, rnnp::objective::MarginEvalb(), option, trees, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::MarginEvalb(), option, trees, tests, grammar, signature, theta, gen);
   else if (option.margin_early())
-    learn(optimizer, rnnp::objective::MarginEarly(), option, trees, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::MarginEarly(), option, trees, tests, grammar, signature, theta, gen);
   else if (option.margin_late())
-    learn(optimizer, rnnp::objective::MarginLate(), option, trees, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::MarginLate(), option, trees, tests, grammar, signature, theta, gen);
   else if (option.margin_max())
-    learn(optimizer, rnnp::objective::MarginMax(), option, trees, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::MarginMax(), option, trees, tests, grammar, signature, theta, gen);
   else if (option.violation_early())
-    learn(optimizer, rnnp::objective::ViolationEarly(), option, trees, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::ViolationEarly(), option, trees, tests, grammar, signature, theta, gen);
   else if (option.violation_late())
-    learn(optimizer, rnnp::objective::ViolationLate(), option, trees, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::ViolationLate(), option, trees, tests, grammar, signature, theta, gen);
   else if (option.violation_max())
-    learn(optimizer, rnnp::objective::ViolationMax(), option, trees, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::ViolationMax(), option, trees, tests, grammar, signature, theta, gen);
   else
     throw std::runtime_error("unsupported objective");
 }
@@ -1161,6 +1165,7 @@ void learn(const Optimizer& optimizer,
 template <typename Theta, typename Gen>
 void learn(const option_type& option,
 	   const tree_set_type& trees,
+	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
 	   Theta& theta,
@@ -1170,13 +1175,13 @@ void learn(const option_type& option,
     std::cerr << "learning: " << option << std::endl;
 
   if (option.optimize_adagrad())
-    learn(rnnp::optimize::AdaGrad<Theta>(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
+    learn(rnnp::optimize::AdaGrad<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, theta, gen);
   else if (option.optimize_adadec())
-    learn(rnnp::optimize::AdaDec<Theta>(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
+    learn(rnnp::optimize::AdaDec<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, theta, gen);
   else if (option.optimize_adadelta())
-    learn(rnnp::optimize::AdaDelta<Theta>(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
+    learn(rnnp::optimize::AdaDelta<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, theta, gen);
   else if (option.optimize_sgd())
-    learn(rnnp::optimize::SGD<Theta>(theta, option.lambda_, option.eta0_), option, trees, grammar, signature, theta, gen);
+    learn(rnnp::optimize::SGD<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, theta, gen);
   else
     throw std::runtime_error("unknown optimizer");
 }
@@ -1184,6 +1189,7 @@ void learn(const option_type& option,
 template <typename Theta, typename Gen>
 void learn(const option_set_type& optimizations,
 	   const tree_set_type& trees,
+	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
 	   Theta& theta,
@@ -1218,7 +1224,7 @@ void learn(const option_set_type& optimizations,
   for (option_set_type::const_iterator oiter = optimizations.begin(); oiter != oiter_end; ++ oiter, ++ iter) {
     output_prefix = output_file.string() + "." + utils::lexical_cast<std::string>(iter);
     
-    learn(*oiter, trees, grammar, signature, theta, gen);
+    learn(*oiter, trees, tests, grammar, signature, theta, gen);
   }
 
   if (MPI::COMM_WORLD.Get_rank() == 0)
@@ -1231,13 +1237,14 @@ void learn(const Optimizer& optimizer,
 	   const Objective& objective,
 	   const option_type& option,
 	   const tree_set_type& trees,
+	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
 	   Theta& theta,
 	   Gen& gen)
 {
   if (MPI::COMM_WORLD.Get_rank() == 0)
-    learn_root(optimizer, objective, option, trees, grammar, signature, theta, gen);
+    learn_root(optimizer, objective, option, trees, tests, grammar, signature, theta, gen);
   else
     learn_others(optimizer, objective, option, grammar, signature, theta);
 }

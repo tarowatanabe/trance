@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 
+#include <rnnp/evalb.hpp>
 #include <rnnp/tree.hpp>
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
@@ -508,6 +509,58 @@ void swap(typename OutputModel<Theta>::model_path_type& x, typename OutputModel<
   x.second.swap(y.second);
 }
 
+template <typename Theta, typename Task>
+struct Test
+{
+  typedef size_t    size_type;
+  typedef ptrdiff_t difference_type;
+  
+  typedef rnnp::Evalb       evalb_type;
+  typedef rnnp::EvalbScorer scorer_type;
+  
+  typedef utils::lockfree_list_queue<size_type, std::allocator<size_type> > queue_type;
+
+  Test(const tree_set_type& trees,
+       Task& task,
+       evalb_type& evalb,
+       queue_type& queue)
+    : trees_(trees),
+      task_(task),
+      evalb_(evalb),
+      queue_(queue) {}
+  
+  void operator()()
+  {
+    signature_type::signature_ptr_type signature(task_.signature_.clone());
+    
+    rnnp::Parser::derivation_set_type candidates;
+    
+    evalb_.clear();
+    
+    size_type id = 0;
+    
+    for (;;) {
+      queue_.pop(id);
+      
+      if (id == size_type(-1)) break;
+      
+      task_.parser_(trees_[id].leaf(), task_.grammar_, *signature, task_.theta_, kbest_size, candidates);
+
+      if (candidates.empty()) continue;
+      
+      scorer_.assign(trees_[id]);
+      evalb_ += scorer_(candidates.front());
+    }
+  }
+  
+  const tree_set_type& trees_;
+  Task& task_;
+  evalb_type& evalb_;
+  queue_type& queue_;
+  
+  scorer_type scorer_;
+};
+
 template <typename Theta, typename Optimizer, typename Objective, typename Gen>
 void learn(const Optimizer& optimizer,
 	   const Objective& objective,
@@ -617,6 +670,8 @@ void learn(const option_set_type& optimizations,
 }
 
 
+
+
 template <typename Theta, typename Optimizer, typename Objective, typename Gen>
 void learn(const Optimizer& optimizer,
 	   const Objective& objective,
@@ -642,6 +697,8 @@ void learn(const Optimizer& optimizer,
   typedef typename task_type::working_set_type working_set_type;
   
   typedef std::vector<size_type, std::allocator<size_type> > batch_set_type;
+
+  const bool perform_testing = ! tests.empty();
 
   working_set_type working(trees.size());
   for (size_type i = 0; i != trees.size(); ++ i)
@@ -669,6 +726,7 @@ void learn(const Optimizer& optimizer,
   for (size_type shard = 0; shard != tasks.size(); ++ shard)
     tasks[shard].shard_ = shard;
   
+  double evalb_max = 0;
   int zero_iter = 0;
   
   for (int t = 0; t < option.iteration_; ++ t) {
@@ -775,11 +833,69 @@ void learn(const Optimizer& optimizer,
       for (size_type i = 0; i < tasks.size(); ++ i)
 	if (i != shard_min)
 	  tasks[i].theta_ = tasks[shard_min].theta_;
+    } else {
+      for (size_type i = 1; i < tasks.size(); ++ i)
+	tasks[i].theta_ = tasks.front().theta_;
     }
     
     if (dump > 0 && !((t + 1) % dump))
       queue_dumper.push(std::make_pair(tasks.front().theta_,
 				       output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
+
+    if (perform_testing) {
+      typedef Test<Theta, task_type> test_type;
+      
+      typedef typename test_type::queue_type queue_type;
+      typedef typename test_type::evalb_type evalb_type;
+      
+      typedef std::vector<evalb_type, std::allocator<evalb_type> > evalb_set_type;
+      
+      if (debug)
+	std::cerr << "testing: " << (t + 1) << std::endl;
+      
+      queue_type queue(threads);
+      evalb_set_type evalb(threads);
+      
+      std::auto_ptr<boost::progress_display> progress(debug
+						      ? new boost::progress_display(tests.size(), std::cerr, "", "", "")
+						      : 0);
+      
+      boost::thread_group workers;
+      
+      utils::resource start;
+      
+      for (size_type i = 0; i != tasks.size(); ++ i)
+	workers.add_thread(new boost::thread(test_type(tests, tasks[i], evalb[i], queue)));
+      
+      for (size_type id = 0; id != tests.size(); ++ id) {
+	queue.push(id);
+	
+	if (debug)
+	  ++ (*progress);
+      }
+      
+      for (size_type i = 0; i != tasks.size(); ++ i)
+	queue.push(size_type(-1));
+      
+      workers.join_all();
+
+      utils::resource end;
+      
+      for (size_type i = 1; i != tasks.size(); ++ i)
+	evalb.front() += evalb[i];
+
+      const double evalb_curr = evalb.front()();
+      
+      if (debug)
+	std::cerr << "EVALB: " << evalb_curr << std::endl
+		  << "test cpu time:    " << end.cpu_time() - start.cpu_time() << std::endl
+		  << "test user time:   " << end.user_time() - start.user_time() << std::endl;
+      
+      if (evalb_curr > evalb_max) {
+	evalb_max = evalb_curr;
+	theta = tasks.front().theta_;
+      }
+    }
     
     if (! updated)
       ++ zero_iter;
@@ -793,7 +909,8 @@ void learn(const Optimizer& optimizer,
   dumper->join();
   
   // copy the model!
-  theta = tasks.front().theta_;
+  if (! perform_testing)
+    theta = tasks.front().theta_;
 }
 
 void read_data(const path_type& path,
