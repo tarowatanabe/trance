@@ -155,12 +155,16 @@ librnnp_la_LIBADD = \
 	$(ICU_LDFLAGS)
 
 noinst_PROGRAMS = \
+evalb_main \
 forest_main \
 grammar_main \
 oracle_main \
 rule_main \
 signature_main \
 tree_main
+
+evalb_main_SOURCES  = evalb_main.cpp 
+evalb_main_LDADD    = librnnp.la
 
 forest_main_SOURCES  = forest_main.cpp 
 forest_main_LDADD    = librnnp.la

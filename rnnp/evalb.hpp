@@ -178,22 +178,25 @@ namespace rnnp
     
     void collect(const tree_type& tree, span_type& span, stat_set_type& stats) const
     {
+      bool pos = false;
+
       tree_type::const_iterator titer_end = tree.end();
       for (tree_type::const_iterator titer = tree.begin(); titer != titer_end; ++ titer) {
 	const tree_type& antecedent = *titer;
 	
-	if (antecedent.antecedent_.empty())
+	if (antecedent.antecedent_.empty()) {
 	  ++ span.last_;
-	else {
+	  pos = true;
+	}else {
 	  span_type span_ant(span.last_, span.last_);
 	  collect(antecedent, span_ant, stats);
 	  
 	  span.last_ = span_ant.last_;
 	}
       }
-      
+
       // post-traversal
-      if (tree.label_.non_terminal() && ! tree.label_.binarized())
+      if (! pos && tree.label_.non_terminal() && ! tree.label_.binarized())
 	stats.insert(stat_type(span, tree.label_));
     }
     
