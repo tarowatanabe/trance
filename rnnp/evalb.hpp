@@ -187,7 +187,7 @@ namespace rnnp
 	if (antecedent.antecedent_.empty()) {
 	  ++ span.last_;
 	  pos = true;
-	}else {
+	} else {
 	  span_type span_ant(span.last_, span.last_);
 	  collect(antecedent, span_ant, stats);
 	  
