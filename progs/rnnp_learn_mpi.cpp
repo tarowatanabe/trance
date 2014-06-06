@@ -1067,11 +1067,18 @@ void learn_root(const Optimizer& optimizer,
 	std::cerr << "EVALB: " << evalb_curr << std::endl
 		  << "test cpu time:    " << end.cpu_time() - start.cpu_time() << std::endl
 		  << "test user time:   " << end.user_time() - start.user_time() << std::endl;
+
+      bool decay = false;
       
       if (evalb_curr > evalb_max) {
 	evalb_max = evalb_curr;
 	theta_ret = theta;
-      }
+      } else
+	decay = option.decay_;
+      
+      MPI::COMM_WORLD.Bcast(&decay, 1, utils::mpi_traits<bool>::data_type(), 0);
+      if (decay)
+	task.optimizer_.decay();
     }
 
     MPI::COMM_WORLD.Bcast(&updated, 1, utils::mpi_traits<size_type>::data_type(), 0);
@@ -1330,6 +1337,11 @@ void learn_others(const Optimizer& optimizer,
       boost::iostreams::filtering_ostream os;
       os.push(utils::mpi_device_sink(0, evalb_tag, 4096));
       os << evalb;
+      
+      bool decay = false;
+      MPI::COMM_WORLD.Bcast(&decay, 1, utils::mpi_traits<bool>::data_type(), 0);
+      if (decay)
+	task.optimizer_.decay();
     }
     
     size_type updated = 0;

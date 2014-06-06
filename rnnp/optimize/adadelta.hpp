@@ -30,6 +30,12 @@ namespace rnnp
 	       const double& lambda,
 	       const double& eta0)
 	: G_(theta), X_(theta), lambda_(lambda), eta0_(eta0) { G_.clear(); X_.clear(); }
+
+      double decay()
+      {
+	eta0_ *= 0.5;
+	return eta0_;
+      }
       
       void operator()(model_impl_type& theta,
 		      const gradient_impl_type& gradient,

@@ -894,6 +894,9 @@ void learn(const Optimizer& optimizer,
       if (evalb_curr > evalb_max) {
 	evalb_max = evalb_curr;
 	theta = tasks.front().theta_;
+      } else if (option.decay_) {
+	for (size_type i = 0; i != tasks.size(); ++ i)
+	  tasks[i].optimizer_.decay();
       }
     }
     

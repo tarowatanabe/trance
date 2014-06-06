@@ -370,6 +370,8 @@ namespace rnnp
     size_type num_words = 0;
     is.read((char*) &rows,      sizeof(size_type));
     is.read((char*) &num_words, sizeof(size_type));
+
+    //vocab_terminal_.clear();
     
     if (matrix.rows() != rows)
       matrix.conservativeResize(rows, matrix.cols());
@@ -448,7 +450,9 @@ namespace rnnp
       throw std::runtime_error("invlaid rows for read category");
     if (cols != cols_hint)
       throw std::runtime_error("invlaid cols for read category");
-
+    
+    //vocab_category_.clear();
+    
     if (matrix.cols() != cols)
       matrix.conservativeResize(matrix.rows(), cols);
     

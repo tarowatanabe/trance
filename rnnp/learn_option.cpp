@@ -22,6 +22,7 @@ namespace rnnp
       lambda_(0),
       eta0_(0.01),
       shrinking_(false),
+      decay_(false),
       scale_(0)
   {
     
@@ -36,6 +37,7 @@ namespace rnnp
       lambda_(0),
       eta0_(0.01),
       shrinking_(false),
+      decay_(false),
       scale_(0)
   {
     typedef rnnp::Option option_type;
@@ -112,6 +114,8 @@ namespace rnnp
 	eta0_ = utils::lexical_cast<double>(oiter->second);
       else if (utils::ipiece(oiter->first) == "shrinking" || utils::ipiece(oiter->first) == "shrink")
 	shrinking_ = utils::lexical_cast<bool>(oiter->second);
+      else if (utils::ipiece(oiter->first) == "decay")
+	decay_ = utils::lexical_cast<bool>(oiter->second);
       else if (utils::ipiece(oiter->first) == "scale")
 	scale_ = utils::lexical_cast<double>(oiter->second);
       else
@@ -208,6 +212,9 @@ namespace rnnp
 
     if (option.shrinking_)
       opt.push_back(std::make_pair("shrinking", utils::lexical_cast<std::string>(option.shrinking_)));
+    
+    if (option.decay_)
+      opt.push_back(std::make_pair("decay", utils::lexical_cast<std::string>(option.decay_)));
 
     if (option.scale_ > 0)
       opt.push_back(std::make_pair("scale", utils::lexical_cast<std::string>(option.scale_)));

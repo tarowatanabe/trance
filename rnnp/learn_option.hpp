@@ -75,6 +75,7 @@ namespace rnnp
     double lambda_;
     double eta0_;
     bool   shrinking_;
+    bool   decay_;
 
     // other parameters
     double scale_;
