@@ -1074,7 +1074,7 @@ void learn_root(const Optimizer& optimizer,
 	evalb_max = evalb_curr;
 	theta_ret = theta;
       } else
-	decay = option.decay_;
+	decay = t && evalb_curr < evalb_max && option.decay_;
       
       MPI::COMM_WORLD.Bcast(&decay, 1, utils::mpi_traits<bool>::data_type(), 0);
       if (decay)
