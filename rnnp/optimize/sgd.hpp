@@ -279,6 +279,45 @@ namespace rnnp
       }
     }
 
+    template <>
+    inline
+    void SGD<model::Model6>::operator()(model::Model6& theta,
+					const gradient::Model6& gradient,
+					const option_type& option) const
+    {
+      if (! gradient.count_) return;
+	
+      const double scale = 1.0 / gradient.count_;
+	
+      if (option.learn_embedding())
+	update(theta.terminal_, gradient.terminal_, scale, false);
+	
+      if (option.learn_classification())
+	update(theta.Wc_, gradient.Wc_, scale, true);
+	
+      if (option.learn_hidden()) {
+	update(theta.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, gradient.Bsh_, scale, false);
+	  
+	update(theta.Wrel_, gradient.Wrel_, scale, true);
+	update(theta.Brel_, gradient.Brel_, scale, false);
+
+	update(theta.Wrer_, gradient.Wrer_, scale, true);
+	update(theta.Brer_, gradient.Brer_, scale, false);
+	  
+	update(theta.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, gradient.Bu_, scale, false);
+	  
+	update(theta.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, gradient.Bf_, scale, false);
+	
+	update(theta.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, gradient.Bi_, scale, false);
+	
+	update(theta.Ba_, gradient.Ba_, scale, false);
+      }
+    }
+
   };
 };
 

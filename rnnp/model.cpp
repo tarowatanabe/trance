@@ -44,6 +44,8 @@ namespace rnnp
       return model::MODEL4;
     else if (model_name == "model5")
       return model::MODEL5;
+    else if (model_name == "model6")
+      return model::MODEL6;
     else
       return model::NONE;
   }
