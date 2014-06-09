@@ -1334,9 +1334,11 @@ void learn_others(const Optimizer& optimizer,
       
       worker->join();
       
-      boost::iostreams::filtering_ostream os;
-      os.push(utils::mpi_device_sink(0, evalb_tag, 4096));
-      os << evalb;
+      {
+	boost::iostreams::filtering_ostream os;
+	os.push(utils::mpi_device_sink(0, evalb_tag, 4096));
+	os << evalb;
+      }
       
       bool decay = false;
       MPI::COMM_WORLD.Bcast(&decay, 1, utils::mpi_traits<bool>::data_type(), 0);
