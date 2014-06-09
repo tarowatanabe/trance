@@ -157,6 +157,8 @@ namespace rnnp
       while (state) {
 	switch (state.operation().operation()) {
 	case operation_type::REDUCE:
+	case operation_type::REDUCE_LEFT:
+	case operation_type::REDUCE_RIGHT:
 	case operation_type::UNARY:
 	  if (! state.label().binarized())
 	    stats.insert(stat_type(state.span(), state.label()));

@@ -101,6 +101,8 @@ namespace rnnp
 		impl.operation_shift(*this, theta, state, action.head_, action.label_);
 		break;
 	      case operation_type::REDUCE:
+	      case operation_type::REDUCE_LEFT:
+	      case operation_type::REDUCE_RIGHT:
 		if (! state.stack() || state.stack().label() == symbol_type::EPSILON)
 		  throw std::runtime_error("invalid reduction!");
 		

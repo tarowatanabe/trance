@@ -122,6 +122,8 @@ namespace rnnp
 	tree.antecedent_ = tree_type::antecedent_type(1, state.head());
 	break;
       case operation_type::REDUCE:
+      case operation_type::REDUCE_LEFT:
+      case operation_type::REDUCE_RIGHT:
 	tree.label_ = state.label();
 	tree.antecedent_.resize(2);
 	assign(state.reduced(), tree.antecedent_.front());
@@ -183,7 +185,9 @@ namespace rnnp
 	  forest.connect_edge(edge.id_, parent.first->second);
 	  score_accumulated = 0;
 	} break;
-	case operation_type::REDUCE: {
+	case operation_type::REDUCE:
+	case operation_type::REDUCE_LEFT:
+	case operation_type::REDUCE_RIGHT: {
 	  std::pair<state_map_type::iterator, bool> parent = states_.insert(std::make_pair(state, 0));
 	  if (parent.second)
 	    parent.first->second = forest.add_node().id_;

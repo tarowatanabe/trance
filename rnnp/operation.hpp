@@ -23,6 +23,8 @@ namespace rnnp
       AXIOM,
       SHIFT,
       REDUCE,
+      REDUCE_LEFT,
+      REDUCE_RIGHT,
       UNARY,
       FINAL,
       IDLE
@@ -37,10 +39,13 @@ namespace rnnp
 
     bool axiom() const { return operation() == AXIOM; }
     bool shift() const { return operation() == SHIFT; }
-    bool reduce() const { return operation() == REDUCE; }
+    bool reduce() const { return operation() == REDUCE || operation() == REDUCE_LEFT || operation() == REDUCE_RIGHT; }
     bool unary() const { return operation() == UNARY; }
     bool final() const { return operation() == FINAL; }
     bool idle() const { return operation() == IDLE; }
+
+    bool reduce_left()  const { return operation() == REDUCE_LEFT; }
+    bool reduce_right() const { return operation() == REDUCE_RIGHT; }
     
     bool finished() const { return operation() == FINAL || operation() == IDLE; }
 
