@@ -21,6 +21,9 @@ namespace rnnp
 {
   Model::model_type Model::model(const path_type& path)
   {
+    namespace qi = boost::spirit::qi;
+    namespace standard = boost::spirit::standard;
+
     typedef utils::repository repository_type;
     
     if (! repository_type::exists(path))
@@ -28,26 +31,28 @@ namespace rnnp
     
     repository_type rep(path, repository_type::read);
 
-    repository_type::const_iterator iter = rep.find("model");
-    if (iter == rep.end())
+    repository_type::const_iterator riter = rep.find("model");
+    if (riter == rep.end())
       throw std::runtime_error("no model parameter?");
     
-    const std::string& model_name = iter->second;
+    std::string::const_iterator iter     = riter->second.begin();
+    std::string::const_iterator iter_end = riter->second.end();
     
-    if (model_name == "model1")
-      return model::MODEL1;
-    else if (model_name == "model2")
-      return model::MODEL2;
-    else if (model_name == "model3")
-      return model::MODEL3;
-    else if (model_name == "model4")
-      return model::MODEL4;
-    else if (model_name == "model5")
-      return model::MODEL5;
-    else if (model_name == "model6")
-      return model::MODEL6;
-    else
+    int num = 0;
+    
+    if (! qi::phrase_parse(iter, iter_end, "model" >> qi::int_, standard::space, num) || iter != iter_end)
       return model::NONE;
+    
+    switch (num) {
+    case 1: return model::MODEL1;
+    case 2: return model::MODEL2;
+    case 3: return model::MODEL3;
+    case 4: return model::MODEL4;
+    case 5: return model::MODEL5;
+    case 6: return model::MODEL6;
+    case 7: return model::MODEL7;
+    default: return model::NONE;
+    }
   }
 
   void Model::initialize(const size_type& hidden,

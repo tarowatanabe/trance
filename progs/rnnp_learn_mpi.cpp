@@ -9,12 +9,7 @@
 #include <rnnp/tree.hpp>
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
-#include <rnnp/model/model1.hpp>
-#include <rnnp/model/model2.hpp>
-#include <rnnp/model/model3.hpp>
-#include <rnnp/model/model4.hpp>
-#include <rnnp/model/model5.hpp>
-#include <rnnp/model/model6.hpp>
+#include <rnnp/model_traits.hpp>
 #include <rnnp/parser.hpp>
 #include <rnnp/parser_oracle.hpp>
 #include <rnnp/loss.hpp>
@@ -92,6 +87,7 @@ bool model_model3 = false;
 bool model_model4 = false;
 bool model_model5 = false;
 bool model_model6 = false;
+bool model_model7 = false;
 
 path_type model_file;
 path_type embedding_file;
@@ -168,14 +164,14 @@ int main(int argc, char** argv)
       mix_none_mode = true;
 
     if (model_file.empty()) {
-      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6 > 1)
+      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6 + model_model7 > 1)
 	throw std::runtime_error("either one of --model{1,2,3,4,5}");
       
-      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6 == 0)
+      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6 + model_model7 == 0)
 	model_model2 = true;
     } else {
-      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6)
-	throw std::runtime_error("model file is specified via --model, but with --model{1,2,3,4,5,6}?");
+      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6 + model_model7)
+	throw std::runtime_error("model file is specified via --model, but with --model{1,2,3,4,5,6,7}?");
       
       if (! boost::filesystem::exists(model_file))
 	throw std::runtime_error("no model file? " + model_file.string());
@@ -187,6 +183,7 @@ int main(int argc, char** argv)
       case rnnp::model::MODEL4: model_model4 = true; break;
       case rnnp::model::MODEL5: model_model5 = true; break;
       case rnnp::model::MODEL6: model_model6 = true; break;
+      case rnnp::model::MODEL7: model_model7 = true; break;
       default:
 	throw std::runtime_error("invalid model file");
       }
@@ -269,6 +266,13 @@ int main(int argc, char** argv)
 	std::cerr << "model6" << std::endl;
       
       rnnp::model::Model6 theta(hidden_size, embedding_size, grammar);
+      
+      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
+    } else if (model_model7) {
+      if (mpi_rank == 0 && debug)
+	std::cerr << "model7" << std::endl;
+      
+      rnnp::model::Model7 theta(hidden_size, embedding_size, grammar);
       
       learn(optimizations, trees, tests, grammar, *signature, theta, generator);
     } else
@@ -1536,6 +1540,7 @@ void options(int argc, char** argv)
     ("model4",    po::bool_switch(&model_model4), "parsing by model4")
     ("model5",    po::bool_switch(&model_model5), "parsing by model5")
     ("model6",    po::bool_switch(&model_model6), "parsing by model6")
+    ("model7",    po::bool_switch(&model_model7), "parsing by model7")
 
     ("model",     po::value<path_type>(&model_file),                              "model file")
     ("hidden",    po::value<int>(&hidden_size)->default_value(hidden_size),       "hidden dimension")
