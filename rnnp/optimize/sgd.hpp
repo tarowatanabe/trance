@@ -321,6 +321,9 @@ namespace rnnp
 	
       if (option.learn_classification())
 	update(theta.Wc_, gradient.Wc_, scale, true);
+
+      if (option.learn_head())
+	update(theta.head_, gradient.head_, scale, false);
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, gradient.Wsh_, scale, true);

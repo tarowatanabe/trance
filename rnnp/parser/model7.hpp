@@ -52,9 +52,10 @@ namespace rnnp
 					     * parser.queue_.col(state_new.next()))
 					  ).array().unaryExpr(model_type::activation());
 	
-	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	const double score1 = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	const double score2 = (theta.head_.col(theta.terminal(state_new.head())).transpose() * state_new.layer(theta.hidden_))(0, 0);
 	
-	state_new.score() = state.score() + score;
+	state_new.score() = state.score() + score1 + score2;
       
 	parser.agenda_[state_new.step()].push_back(state_new);
       }
@@ -68,7 +69,7 @@ namespace rnnp
 	const size_type offset1 = 0;
 	const size_type offset2 = theta.hidden_;
 	const size_type offset3 = theta.hidden_ + theta.hidden_;
-	const size_type offset4 = theta.hidden_ + theta.hidden_ + theta.embedding_;
+	const size_type offset4 = theta.hidden_ + theta.hidden_ + theta.hidden_;
       
 	const state_type state_reduced = state.stack();
 	const state_type state_stack   = state_reduced.stack();
@@ -97,15 +98,16 @@ namespace rnnp
 					       * state.layer(theta.hidden_))
 					    + (theta.Wrel_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
 					       * state_reduced.layer(theta.hidden_))
-					    + (theta.Wrel_.block(offset_category, offset3, theta.hidden_, theta.embedding_)
-					       * theta.terminal_.col(theta.terminal(state_new.head())))
+					    + (theta.Wrel_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+					       * state_stack.layer(theta.hidden_))
 					    + (theta.Wrel_.block(offset_category, offset4, theta.hidden_, theta.hidden_)
 					       * parser.queue_.col(state_new.next()))
 					    ).array().unaryExpr(model_type::activation());
 	  
-	  const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	  const double score1 = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	  const double score2 = (theta.head_.col(theta.terminal(state_new.head())).transpose() * state_new.layer(theta.hidden_))(0, 0);
 	  
-	  state_new.score() = state.score() + score;
+	  state_new.score() = state.score() + score1 + score2;
 	  
 	  parser.agenda_[state_new.step()].push_back(state_new);
 	}
@@ -134,15 +136,16 @@ namespace rnnp
 					       * state.layer(theta.hidden_))
 					    + (theta.Wrer_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
 					       * state_reduced.layer(theta.hidden_))
-					    + (theta.Wrer_.block(offset_category, offset3, theta.hidden_, theta.embedding_)
-					       * theta.terminal_.col(theta.terminal(state_new.head())))
+					    + (theta.Wrer_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+					       * state_stack.layer(theta.hidden_))
 					    + (theta.Wrer_.block(offset_category, offset4, theta.hidden_, theta.hidden_)
 					       * parser.queue_.col(state_new.next()))
 					    ).array().unaryExpr(model_type::activation());
 	  
-	  const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	  const double score1 = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	  const double score2 = (theta.head_.col(theta.terminal(state_new.head())).transpose() * state_new.layer(theta.hidden_))(0, 0);
 	  
-	  state_new.score() = state.score() + score;
+	  state_new.score() = state.score() + score1 + score2;
 	  
 	  parser.agenda_[state_new.step()].push_back(state_new);
 	}
@@ -156,7 +159,7 @@ namespace rnnp
       {
 	const size_type offset1 = 0;
 	const size_type offset2 = theta.hidden_;
-	const size_type offset3 = theta.hidden_ + theta.embedding_;
+	const size_type offset3 = theta.hidden_ + theta.hidden_;
 
 	state_type state_new = parser.state_allocator_.allocate();
 
@@ -179,15 +182,16 @@ namespace rnnp
 	state_new.layer(theta.hidden_) = (theta.Bu_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
 					     * state.layer(theta.hidden_))
-					  + (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.embedding_)
-					     * theta.terminal_.col(theta.terminal(state_new.head())))
+					  + (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
+					     * state.stack().layer(theta.hidden_))
 					  + (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
 					     * parser.queue_.col(state_new.next()))
 					  ).array().unaryExpr(model_type::activation());
 	
-	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	const double score1 = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	const double score2 = (theta.head_.col(theta.terminal(state_new.head())).transpose() * state_new.layer(theta.hidden_))(0, 0);
 	
-	state_new.score() = state.score() + score;
+	state_new.score() = state.score() + score1 + score2;
 	
 	parser.agenda_[state_new.step()].push_back(state_new);
       }
