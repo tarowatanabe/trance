@@ -9,6 +9,6 @@ Model2: feedback from stack in the shift
 Model3: Model2 + queue context
 Model4: Model2 + feed back from stack in the reduce
 Model5: Model3 + Model4
-Model6: Model2 + head context
+Model6: Model4 + head context
 Model7: Model6 + queue context
 

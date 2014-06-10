@@ -17,9 +17,10 @@ namespace rnnp
       LEARN_NONE           = 0,
       LEARN_CLASSIFICATION = 1,
       LEARN_EMBEDDING      = 1 << 1,
-      LEARN_HIDDEN         = 1 << 2,
-      LEARN_MODEL          = (1 << 1) | (1 << 2),
-      LEARN_ALL            = 1 | (1 << 1) | (1 << 2),
+      LEARN_HEAD           = 1 << 2,
+      LEARN_HIDDEN         = 1 << 3,
+      LEARN_MODEL          = (1 << 1) | (1 << 2) | (1 << 3),
+      LEARN_ALL            = 1 | (1 << 1) | (1 << 2) | (1 << 3),
     } learn_type;
 
     typedef enum {
@@ -45,6 +46,7 @@ namespace rnnp
 
     bool learn_classification() const { return learn_ & LEARN_CLASSIFICATION; }
     bool learn_embedding()      const { return learn_ & LEARN_EMBEDDING; }
+    bool learn_head()           const { return learn_ & LEARN_HEAD; }
     bool learn_hidden()         const { return learn_ & LEARN_HIDDEN; }
 
     bool optimize_sgd()      const { return optimize_ == OPTIMIZE_SGD; }

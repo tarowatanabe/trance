@@ -50,6 +50,8 @@ namespace rnnp
       learn_ = LEARN_CLASSIFICATION;
     else if (learn == "embedding" || learn == "embed")
       learn_ = LEARN_EMBEDDING;
+    else if (learn == "head")
+      learn_ = LEARN_HEAD;
     else if (learn == "hidden")
       learn_ = LEARN_HIDDEN;
     else if (learn == "model")
@@ -62,9 +64,11 @@ namespace rnnp
     for (option_type::const_iterator oiter = option.begin(); oiter != option.end(); ++ oiter) {
       if (utils::ipiece(oiter->first) == "learn") {
 	if (utils::ipiece(oiter->second) == "classification" || utils::ipiece(oiter->second) == "class")
-	  learn_ |= LEARN_CLASSIFICATION;	
+	  learn_ |= LEARN_CLASSIFICATION;
 	else if (utils::ipiece(oiter->second) == "embedding" || utils::ipiece(oiter->second) == "embed")
-	  learn_ |= LEARN_EMBEDDING;	
+	  learn_ |= LEARN_EMBEDDING;
+	else if (utils::ipiece(oiter->second) == "head")
+	  learn_ |= LEARN_HEAD;
 	else if (utils::ipiece(oiter->second) == "hidden")
 	  learn_ |= LEARN_HIDDEN;
 	else if (utils::ipiece(oiter->second) == "model")
@@ -160,6 +164,9 @@ namespace rnnp
     } else if (option.learn_embedding()) {
       opt.name() = "embedding";
       learn = LearnOption::LEARN_EMBEDDING;
+    } else if (option.learn_head()) {
+      opt.name() = "head";
+      learn = LearnOption::LEARN_HEAD;
     } else if (option.learn_hidden()) {
       opt.name() = "hidden";
       learn = LearnOption::LEARN_HIDDEN;
@@ -170,6 +177,8 @@ namespace rnnp
 	opt.push_back(std::make_pair("learn", "classification"));
       if (option.learn_embedding() && learn != LearnOption::LEARN_EMBEDDING)
 	opt.push_back(std::make_pair("learn", "embedding"));
+      if (option.learn_head() && learn != LearnOption::LEARN_HEAD)
+	opt.push_back(std::make_pair("learn", "head"));
       if (option.learn_hidden() && learn != LearnOption::LEARN_HIDDEN)
 	opt.push_back(std::make_pair("learn", "hidden"));
     }

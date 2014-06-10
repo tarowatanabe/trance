@@ -16,6 +16,7 @@ namespace rnnp
       Gradient::initialize(hidden, embedding);
     
       terminal_.clear();
+      head_.clear();
     
       // initialize matrix    
       Wc_.clear();
@@ -43,6 +44,7 @@ namespace rnnp
 
 #define GRADIENT_STREAM_OPERATOR(Theta, Op, Stream)	\
     Theta.Op(Stream, Theta.terminal_);			\
+    Theta.Op(Stream, Theta.head_);			\
 							\
     Theta.Op(Stream, Theta.Wc_);			\
 							\
@@ -92,6 +94,7 @@ namespace rnnp
 
 #define GRADIENT_BINARY_OPERATOR(Op)	\
     Op(terminal_, x.terminal_);			\
+    Op(head_,     x.head_);			\
 						\
     Op(Wc_, x.Wc_);				\
 						\

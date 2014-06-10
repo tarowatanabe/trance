@@ -66,14 +66,16 @@ namespace rnnp
       void random(Gen& gen)
       {
 	const double range_embed = std::sqrt(6.0 / (embedding_ + 1));
+	const double range_head  = std::sqrt(6.0 / (hidden_ + 1));
 	const double range_c  = std::sqrt(6.0 / (hidden_ + 1));
 	const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
-	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + embedding_));
-	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
+	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_));
+	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_));
 	const double range_f  = std::sqrt(6.0 / (hidden_ + hidden_));
 	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
+	head_     = head_.array().unaryExpr(__randomize<Gen>(gen, range_head));
       
 	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
       
@@ -93,6 +95,7 @@ namespace rnnp
 	Model::swap(static_cast<Model&>(x));
 	
 	terminal_.swap(x.terminal_);
+	head_.swap(x.head_);
       
 	Wc_.swap(x.Wc_);
       
@@ -122,6 +125,7 @@ namespace rnnp
 	Model::clear();
 
 	terminal_.setZero();
+	head_.setZero();
       
 	Wc_.setZero();
       
@@ -184,6 +188,9 @@ namespace rnnp
     public:
       // terminal embedding
       tensor_type terminal_;
+      
+      // head classification
+      tensor_type head_;
     
       // classification
       tensor_type Wc_;

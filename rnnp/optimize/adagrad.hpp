@@ -436,6 +436,9 @@ namespace rnnp
 	
       if (option.learn_embedding())
 	update(theta.terminal_, G.terminal_, gradient.terminal_, scale, false);
+
+      if (option.learn_head())
+	update(theta.head_, G.head_, gradient.head_, scale, false);
 	
       if (option.learn_classification())
 	update(theta.Wc_, G.Wc_, gradient.Wc_, scale, true);
