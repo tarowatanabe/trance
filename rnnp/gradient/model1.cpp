@@ -23,12 +23,9 @@ namespace rnnp
       Wsh_.clear();
       Bsh_.clear();
     
-      Wrel_.clear();
-      Brel_.clear();
+      Wre_.clear();
+      Bre_.clear();
 
-      Wrer_.clear();
-      Brer_.clear();
-    
       Wu_.clear();
       Bu_.clear();
       
@@ -49,11 +46,8 @@ namespace rnnp
     Theta.Op(Stream, Theta.Wsh_);			\
     Theta.Op(Stream, Theta.Bsh_);			\
 							\
-    Theta.Op(Stream, Theta.Wrel_);			\
-    Theta.Op(Stream, Theta.Brel_);			\
-							\
-    Theta.Op(Stream, Theta.Wrer_);			\
-    Theta.Op(Stream, Theta.Brer_);			\
+    Theta.Op(Stream, Theta.Wre_);			\
+    Theta.Op(Stream, Theta.Bre_);			\
 							\
     Theta.Op(Stream, Theta.Wu_);			\
     Theta.Op(Stream, Theta.Bu_);			\
@@ -98,11 +92,8 @@ namespace rnnp
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\
 						\
-    Op(Wrel_, x.Wrel_);				\
-    Op(Brel_, x.Brel_);				\
-						\
-    Op(Wrer_, x.Wrer_);				\
-    Op(Brer_, x.Brer_);				\
+    Op(Wre_, x.Wre_);				\
+    Op(Bre_, x.Bre_);				\
 						\
     Op(Wu_, x.Wu_);				\
     Op(Bu_, x.Bu_);				\

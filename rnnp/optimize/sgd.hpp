@@ -96,12 +96,9 @@ namespace rnnp
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, gradient.Bsh_, scale, false);
 	  
-	update(theta.Wrel_, gradient.Wrel_, scale, true);
-	update(theta.Brel_, gradient.Brel_, scale, false);
-
-	update(theta.Wrer_, gradient.Wrer_, scale, true);
-	update(theta.Brer_, gradient.Brer_, scale, false);
-	  
+	update(theta.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, gradient.Bre_, scale, false);
+	
 	update(theta.Wu_, gradient.Wu_, scale, true);
 	update(theta.Bu_, gradient.Bu_, scale, false);
 	  
@@ -135,12 +132,9 @@ namespace rnnp
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, gradient.Bsh_, scale, false);
 	  
-	update(theta.Wrel_, gradient.Wrel_, scale, true);
-	update(theta.Brel_, gradient.Brel_, scale, false);
-
-	update(theta.Wrer_, gradient.Wrer_, scale, true);
-	update(theta.Brer_, gradient.Brer_, scale, false);
-	  
+	update(theta.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, gradient.Bre_, scale, false);
+	
 	update(theta.Wu_, gradient.Wu_, scale, true);
 	update(theta.Bu_, gradient.Bu_, scale, false);
 	  
@@ -174,12 +168,9 @@ namespace rnnp
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, gradient.Bsh_, scale, false);
 	  
-	update(theta.Wrel_, gradient.Wrel_, scale, true);
-	update(theta.Brel_, gradient.Brel_, scale, false);
-
-	update(theta.Wrer_, gradient.Wrer_, scale, true);
-	update(theta.Brer_, gradient.Brer_, scale, false);
-	  
+	update(theta.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, gradient.Bre_, scale, false);
+	
 	update(theta.Wu_, gradient.Wu_, scale, true);
 	update(theta.Bu_, gradient.Bu_, scale, false);
 	  
@@ -217,12 +208,9 @@ namespace rnnp
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, gradient.Bsh_, scale, false);
 	  
-	update(theta.Wrel_, gradient.Wrel_, scale, true);
-	update(theta.Brel_, gradient.Brel_, scale, false);
-
-	update(theta.Wrer_, gradient.Wrer_, scale, true);
-	update(theta.Brer_, gradient.Brer_, scale, false);
-	  
+	update(theta.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, gradient.Bre_, scale, false);
+	
 	update(theta.Wu_, gradient.Wu_, scale, true);
 	update(theta.Bu_, gradient.Bu_, scale, false);
 	  
@@ -256,12 +244,9 @@ namespace rnnp
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, gradient.Bsh_, scale, false);
 	  
-	update(theta.Wrel_, gradient.Wrel_, scale, true);
-	update(theta.Brel_, gradient.Brel_, scale, false);
-
-	update(theta.Wrer_, gradient.Wrer_, scale, true);
-	update(theta.Brer_, gradient.Brer_, scale, false);
-	  
+	update(theta.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, gradient.Bre_, scale, false);
+	
 	update(theta.Wu_, gradient.Wu_, scale, true);
 	update(theta.Bu_, gradient.Bu_, scale, false);
 	  
