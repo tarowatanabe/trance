@@ -159,7 +159,7 @@ namespace rnnp
 	  
 	  if (! qi::parse(iter, iter_end,
 			  *(standard::char_ - qi::eol - ("|||" >> (standard::space | qi::eoi)))
-			  >> -("|||" >> *(qi::double_ % (+standard::blank)))
+			  >> -(qi::omit["|||" >> +standard::blank] >> -(qi::double_ % (+standard::blank)))
 			  >> (qi::eol | qi::eoi),
 			  line,
 			  parameter))
@@ -190,6 +190,10 @@ namespace rnnp
 	names_.reserve(parameter_max);
 	for (size_type id = 0; id != parameter_max; ++ id)
 	  names_.push_back(name + ':' + utils::lexical_cast<std::string>(id));
+
+	name_unary_       = name + ":unk-unary";
+	name_binary_      = name + ":unk-binary";
+	name_preterminal_ = name + ":unk-preterminal";
       }
       
       
@@ -203,6 +207,10 @@ namespace rnnp
       feature_map_type     features_preterminal_;
       
       name_set_type names_;
+
+      feature_type name_unary_;
+      feature_type name_binary_;
+      feature_type name_preterminal_;
     };
     
     class Grammar : public rnnp::FeatureFunction
@@ -268,7 +276,8 @@ namespace rnnp
 	  feature_set_type::const_iterator fiter_end = pimpl_->features_preterminal_[id].end();
 	  for (feature_set_type::const_iterator fiter = pimpl_->features_preterminal_[id].begin(); fiter != fiter_end; ++ fiter, ++ niter)
 	    features[*niter] = *fiter;
-	}
+	} else
+	  features[pimpl_->name_preterminal_] = -1;
 	
 	*reinterpret_cast<symbol_type*>(state) = label;
       }
@@ -295,7 +304,8 @@ namespace rnnp
 	  feature_set_type::const_iterator fiter_end = pimpl_->features_binary_[id].end();
 	  for (feature_set_type::const_iterator fiter = pimpl_->features_binary_[id].begin(); fiter != fiter_end; ++ fiter, ++ niter)
 	    features[*niter] = *fiter;
-	}
+	} else
+	  features[pimpl_->name_binary_] = -1;
 	
 	*reinterpret_cast<symbol_type*>(state) = label;
       }
@@ -320,7 +330,8 @@ namespace rnnp
 	  feature_set_type::const_iterator fiter_end = pimpl_->features_unary_[id].end();
 	  for (feature_set_type::const_iterator fiter = pimpl_->features_unary_[id].begin(); fiter != fiter_end; ++ fiter, ++ niter)
 	    features[*niter] = *fiter;
-	}
+	} else
+	  features[pimpl_->name_unary_] = -1;
 	
 	*reinterpret_cast<symbol_type*>(state) = label;
       }
