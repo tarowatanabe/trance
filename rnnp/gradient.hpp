@@ -11,6 +11,9 @@
 
 #include <rnnp/symbol.hpp>
 #include <rnnp/model.hpp>
+#include <rnnp/feature.hpp>
+#include <rnnp/feature_vector.hpp>
+
 
 #include <utils/atomicop.hpp>
 #include <utils/bithack.hpp>
@@ -29,6 +32,8 @@ namespace rnnp
     typedef Symbol symbol_type;
     typedef Symbol word_type;
     
+    typedef Feature feature_type;
+    
     typedef Model model_type;
 
     typedef model_type::parameter_type parameter_type;
@@ -39,6 +44,8 @@ namespace rnnp
 				 boost::hash<word_type>, std::equal_to<word_type>,
 				 std::allocator<std::pair<const word_type, tensor_type> > >::type matrix_embedding_type;
 
+    typedef FeatureVector<parameter_type, std::allocator<parameter_type> > weights_type;
+    
     typedef symbol_type category_type;
     
     struct category_hash
@@ -66,10 +73,12 @@ namespace rnnp
     
     void write_matrix(std::ostream& os, const matrix_embedding_type& matrix) const;
     void write_matrix(std::ostream& os, const matrix_category_type& matrix) const;
+    void write_matrix(std::ostream& os, const weights_type& matrix) const;
     void write_matrix(std::ostream& os, const tensor_type& matrix) const;
     
     void read_matrix(std::istream& is, matrix_embedding_type& matrix);
     void read_matrix(std::istream& is, matrix_category_type& matrix);
+    void read_matrix(std::istream& is, weights_type& matrix);
     void read_matrix(std::istream& is, tensor_type& matrix);
 
   public:
@@ -78,6 +87,17 @@ namespace rnnp
 
     matrix_category_type& plus_equal(matrix_category_type& x, const matrix_category_type& y);
     matrix_category_type& minus_equal(matrix_category_type& x, const matrix_category_type& y);
+
+    weights_type& plus_equal(weights_type& x, const weights_type& y)
+    {
+      x += y;
+      return x;
+    }
+    weights_type& minus_equal(weights_type& x, const weights_type& y)
+    {
+      x -= y;
+      return x;
+    }
     
     tensor_type& plus_equal(tensor_type& x, const tensor_type& y);
     tensor_type& minus_equal(tensor_type& x, const tensor_type& y);

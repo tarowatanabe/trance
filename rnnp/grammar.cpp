@@ -1,3 +1,7 @@
+#define BOOST_SPIRIT_THREADSAFE
+
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/karma.hpp>
 
 #include "grammar.hpp"
 
@@ -12,11 +16,16 @@ namespace rnnp
 {
   void Grammar::read(const path_type& path)
   {
+    namespace qi = boost::spirit::qi;
+    namespace standard = boost::spirit::standard;
+
+    typedef boost::spirit::istream_iterator iterator_type;
+    
     typedef utils::compact_set<symbol_type,
 			       utils::unassigned<symbol_type>, utils::unassigned<symbol_type>,
 			       boost::hash<symbol_type>, std::equal_to<symbol_type>,
 			       std::allocator<symbol_type> > symbol_unique_type;
-    
+
     clear();
 
     symbol_unique_type terminal;
@@ -27,9 +36,21 @@ namespace rnnp
     rule_type rule;
     
     utils::compress_istream is(path, 1024 * 1024);
+    is.unsetf(std::ios::skipws);
+          
+    iterator_type iter(is);
+    iterator_type iter_end;
     
-    while (utils::getline(is, line)) {
-      boost::algorithm::trim(line);
+    while (iter != iter_end) {
+      line.clear();
+      
+      if (! qi::parse(iter, iter_end,
+		      *(standard::char_ - qi::eol - ("|||" >> (standard::space | qi::eoi)))
+		      >> -qi::omit["|||" >> *(standard::char_ - qi::eol - qi::eoi)]
+		      >> (qi::eol | qi::eoi),
+		      line))
+	if (iter != iter_end)
+	  throw std::runtime_error("parsing failed... " + std::string(iter, iter_end));
       
       if (line.empty()) continue;
       

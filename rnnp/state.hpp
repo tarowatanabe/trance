@@ -9,6 +9,8 @@
 #include <rnnp/operation.hpp>
 #include <rnnp/model.hpp>
 #include <rnnp/span.hpp>
+#include <rnnp/feature_state.hpp>
+#include <rnnp/feature_vector.hpp>
 
 #include <boost/functional/hash/hash.hpp>
 
@@ -34,6 +36,10 @@ namespace rnnp
     typedef model_type::parameter_type parameter_type;
     typedef model_type::tensor_type    tensor_type;
     typedef model_type::matrix_type    matrix_type;
+
+    typedef FeatureState                                                   feature_state_type;
+    typedef FeatureVector<parameter_type, std::allocator<parameter_type> > feature_vector_type;
+    typedef feature_vector_type*                                           feature_vector_ptr_type;
     
     typedef State state_type;
     typedef char* pointer;
@@ -68,6 +74,10 @@ namespace rnnp
     // state_type stack_;
     // state_type derivation_;
     // state_type reduced_;
+
+    // feature state
+    // feature_state_type  featur_state_;
+    // feature_vector_type* featur_vector_;
     
     // scoring
     // score_type score_;
@@ -90,7 +100,10 @@ namespace rnnp
     static const size_type offset_derivation = offset_stack + sizeof(pointer);
     static const size_type offset_reduced    = offset_derivation + sizeof(pointer);
     
-    static const size_type offset_score      = offset_reduced + sizeof(pointer);
+    static const size_type offset_feature_state  = (offset_reduced + sizeof(pointer) + 15) & (~15);
+    static const size_type offset_feature_vector = offset_feature_state + sizeof(feature_state_type);
+    
+    static const size_type offset_score      = offset_feature_vector + sizeof(feature_vector_type*);
     
     static const size_type offset_layer      = (offset_score + sizeof(score_type) + 15) & (~15);
     
@@ -131,6 +144,12 @@ namespace rnnp
     inline const state_type& reduced() const { return *reinterpret_cast<const state_type*>(buffer_ + offset_reduced); }
     inline       state_type& reduced()       { return *reinterpret_cast<state_type*>(buffer_ + offset_reduced); }
         
+    inline const feature_state_type& feature_state() const { return *reinterpret_cast<const feature_state_type*>(buffer_ + offset_feature_state); } 
+    inline       feature_state_type& feature_state()       { return *reinterpret_cast<feature_state_type*>(buffer_ + offset_feature_state); } 
+
+    inline const feature_vector_ptr_type& feature_vector() const { return *reinterpret_cast<const feature_vector_ptr_type*>(buffer_ + offset_feature_vector); }
+    inline       feature_vector_ptr_type& feature_vector()       { return *reinterpret_cast<feature_vector_ptr_type*>(buffer_ + offset_feature_vector); }
+
     inline const score_type& score() const { return *reinterpret_cast<const score_type*>(buffer_ + offset_score); }
     inline       score_type& score()       { return *reinterpret_cast<score_type*>(buffer_ + offset_score); }
     

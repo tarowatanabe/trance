@@ -206,6 +206,22 @@ namespace rnnp
     if (file_size != sizeof(tensor_type::Scalar) * rows * num_parsed)
       throw std::runtime_error("file size does not match: " + path_bin.string());
   }
+
+  void Model::write_weights(const path_type& path,
+			    const weights_type& weights) const
+  {
+    utils::compress_ostream os(path, 1024 * 1024);
+    os.precision(10);
+    os << weights;
+  }
+  
+  void Model::read_weights(const path_type& path,
+			   weights_type& weights)
+  {
+    utils::compress_istream is(path, 1024 * 1024);
+    is >> weights;
+  }
+  
   
   void Model::write_category(const path_type& path_txt,
 			     const path_type& path_bin,
@@ -400,6 +416,51 @@ namespace rnnp
       is.read((char*) matrix.col(word.id()).data(), sizeof(tensor_type::Scalar) * rows);
       
       vocab_terminal_[word.id()] = true;
+    }
+  }
+
+  void Model::write_weights(std::ostream& os,
+			    const weights_type& weights) const
+  {
+    const size_type size = weights.size();
+    
+    os.write((char*) &size, sizeof(size_type));
+    
+    for (feature_type::id_type id = 0; id != size; ++ id) {
+      const feature_type feature(id);
+      
+      const size_type feature_size = feature.size();
+      const parameter_type value   = weights[id];
+      
+      os.write((char*) &feature_size, sizeof(size_type));
+      os.write((char*) &(*feature.begin()), feature_size);
+      os.write((char*) &value, sizeof(parameter_type));
+    }
+  }
+  
+  void Model::read_weights(std::istream& is,
+			   weights_type& weights)
+  {
+    typedef std::vector<char, std::allocator<char> > buffer_type;
+    
+    weights.clear();
+    
+    buffer_type buffer;
+    parameter_type value;
+    
+    size_type size = 0;
+    is.read((char*) &size, sizeof(size_type));
+    
+    for (size_type i = 0; i != size; ++ i) {
+      size_type feature_size = 0;
+      is.read((char*) &feature_size, sizeof(size_type));
+      
+      buffer.resize(feature_size);
+      is.read((char*) &(*buffer.begin()), feature_size);
+      
+      is.read((char*) &value, sizeof(parameter_type));
+      
+      weights[feature_type(buffer.begin(), buffer.end())] = value;
     }
   }
   

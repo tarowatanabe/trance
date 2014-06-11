@@ -10,6 +10,7 @@
 #include <rnnp/tree.hpp>
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
+#include <rnnp/feature_set.hpp>
 #include <rnnp/model_traits.hpp>
 #include <rnnp/parser.hpp>
 #include <rnnp/parser_oracle.hpp>
@@ -51,15 +52,17 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
 
-typedef rnnp::Sentence  sentence_type;
-typedef rnnp::Tree      tree_type;
-typedef rnnp::Grammar   grammar_type;
-typedef rnnp::Signature signature_type;
-typedef rnnp::Model     model_type;
+typedef rnnp::Sentence   sentence_type;
+typedef rnnp::Tree       tree_type;
+typedef rnnp::Grammar    grammar_type;
+typedef rnnp::Signature  signature_type;
+typedef rnnp::FeatureSet feature_set_type;
+typedef rnnp::Model      model_type;
 
 typedef rnnp::LearnOption option_type;
 
 typedef boost::filesystem::path path_type;
+typedef std::vector<std::string, std::allocator<std::string> > feat_set_type;
 
 typedef std::vector<std::string, std::allocator<std::string> > opt_set_type;
 typedef std::vector<option_type, std::allocator<option_type> > option_set_type;
@@ -72,6 +75,7 @@ path_type output_file;
 
 path_type grammar_file;
 std::string signature_name = "none";
+feat_set_type feature_functions;
 
 bool model_model1 = false;
 bool model_model2 = false;
@@ -106,6 +110,8 @@ int dump = 0;
 
 int threads = 1;
 
+bool feature_function_list = false;
+
 int debug = 0;
 
 template <typename Theta, typename Gen>
@@ -114,6 +120,7 @@ void learn(const option_set_type& options,
 	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
+	   const feature_set_type& feats,
 	   Theta& theta,
 	   Gen& gen);
 
@@ -212,6 +219,11 @@ int main(int argc, char** argv)
 		<< std::endl;
 
     signature_type::signature_ptr_type signature(signature_type::create(signature_name));
+
+    feature_set_type feats(feature_functions.begin(), feature_functions.end());
+    
+    if (debug)
+      std::cerr << "# of features: " << feats.size() << std::endl;
     
     if (model_model1) {
       if (debug)
@@ -219,49 +231,49 @@ int main(int argc, char** argv)
       
       rnnp::model::Model1 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, feats, theta, generator);
     } else if (model_model2) {
       if (debug)
 	std::cerr << "model2" << std::endl;
       
       rnnp::model::Model2 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, feats, theta, generator);
     } else if (model_model3) {
       if (debug)
 	std::cerr << "model3" << std::endl;
       
       rnnp::model::Model3 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, feats, theta, generator);
     } else if (model_model4) {
       if (debug)
 	std::cerr << "model4" << std::endl;
       
       rnnp::model::Model4 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, feats, theta, generator);
     } else if (model_model5) {
       if (debug)
 	std::cerr << "model5" << std::endl;
       
       rnnp::model::Model5 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, feats, theta, generator);
     } else if (model_model6) {
       if (debug)
 	std::cerr << "model6" << std::endl;
       
       rnnp::model::Model6 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, feats, theta, generator);
     } else if (model_model7) {
       if (debug)
 	std::cerr << "model7" << std::endl;
       
       rnnp::model::Model7 theta(hidden_size, embedding_size, grammar);
       
-      learn(optimizations, trees, tests, grammar, *signature, theta, generator);
+      learn(optimizations, trees, tests, grammar, *signature, feats, theta, generator);
     } else
       throw std::runtime_error("no model?");
     
@@ -298,6 +310,7 @@ struct Task
        const working_set_type& working,
        const grammar_type& grammar,
        const signature_type& signature,
+       const feature_set_type& feats,
        const model_type& theta,
        queue_mapper_type& mapper,
        queue_merger_set_type& mergers)
@@ -308,6 +321,7 @@ struct Task
       working_(working),
       grammar_(grammar),
       signature_(signature),
+      feats_(feats),
       theta_(theta),
       mapper_(mapper),
       mergers_(mergers),
@@ -324,8 +338,9 @@ struct Task
   
   working_set_type working_curr_;
   
-  const grammar_type&   grammar_;
-  const signature_type& signature_;
+  const grammar_type&     grammar_;
+  const signature_type&   signature_;
+  const feature_set_type& feats_;
   model_type theta_;
   
   queue_mapper_type&     mapper_;
@@ -351,6 +366,7 @@ struct Task
     const size_type batch_size = option_.batch_;
 
     signature_type::signature_ptr_type signature(signature_.clone());
+    feature_set_type feats(feats_.clone());
 
     rnnp::Parser::derivation_set_type candidates;
     rnnp::Parser::derivation_set_type oracles;
@@ -398,9 +414,9 @@ struct Task
 	  for (size_type id = first; id != last; ++ id) {
 	    const tree_type& tree = trees_[working_[id]];
 
-	    parser_oracle_(tree, grammar_, *signature, theta_, kbest_size, oracles);
+	    parser_oracle_(tree, grammar_, *signature, feats, theta_, kbest_size, oracles);
 	    
-	    parser_(parser_oracle_.oracle_.sentence_, grammar_, *signature, theta_, kbest_size, candidates);
+	    parser_(parser_oracle_.oracle_.sentence_, grammar_, *signature, feats, theta_, kbest_size, candidates);
 	    
 	    parsed_ += (! candidates.empty());
 	    ++ instances_;
@@ -546,6 +562,7 @@ struct Test
   void operator()()
   {
     signature_type::signature_ptr_type signature(task_.signature_.clone());
+    feature_set_type feats(task_.feats_.clone());
     
     rnnp::Parser::derivation_set_type candidates;
     
@@ -558,7 +575,7 @@ struct Test
       
       if (id == size_type(-1)) break;
       
-      task_.parser_(trees_[id].leaf(), task_.grammar_, *signature, task_.theta_, kbest_size, candidates);
+      task_.parser_(trees_[id].leaf(), task_.grammar_, *signature, feats, task_.theta_, kbest_size, candidates);
 
       if (candidates.empty()) continue;
       
@@ -583,6 +600,7 @@ void learn(const Optimizer& optimizer,
 	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
+	   const feature_set_type& feats,
 	   Theta& theta,
 	   Gen& gen);
 
@@ -593,26 +611,27 @@ void learn(const Optimizer& optimizer,
 	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
+	   const feature_set_type& feats,
 	   Theta& theta,
 	   Gen& gen)
 {
   
   if (option.margin_derivation())
-    learn(optimizer, rnnp::objective::MarginDerivation(), option, trees, tests, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::MarginDerivation(), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.margin_evalb())
-    learn(optimizer, rnnp::objective::MarginEvalb(), option, trees, tests, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::MarginEvalb(), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.margin_early())
-    learn(optimizer, rnnp::objective::MarginEarly(), option, trees, tests, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::MarginEarly(), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.margin_late())
-    learn(optimizer, rnnp::objective::MarginLate(), option, trees, tests, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::MarginLate(), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.margin_max())
-    learn(optimizer, rnnp::objective::MarginMax(), option, trees, tests, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::MarginMax(), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.violation_early())
-    learn(optimizer, rnnp::objective::ViolationEarly(), option, trees, tests, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::ViolationEarly(), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.violation_late())
-    learn(optimizer, rnnp::objective::ViolationLate(), option, trees, tests, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::ViolationLate(), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.violation_max())
-    learn(optimizer, rnnp::objective::ViolationMax(), option, trees, tests, grammar, signature, theta, gen);
+    learn(optimizer, rnnp::objective::ViolationMax(), option, trees, tests, grammar, signature, feats, theta, gen);
   else
     throw std::runtime_error("unsupported objective");
 }
@@ -623,6 +642,7 @@ void learn(const option_type& option,
 	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
+	   const feature_set_type& feats,
 	   Theta& theta,
 	   Gen& gen)
 {
@@ -630,13 +650,13 @@ void learn(const option_type& option,
     std::cerr << "learning: " << option << std::endl;
 
   if (option.optimize_adagrad())
-    learn(rnnp::optimize::AdaGrad<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, theta, gen);
+    learn(rnnp::optimize::AdaGrad<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_adadec())
-    learn(rnnp::optimize::AdaDec<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, theta, gen);
+    learn(rnnp::optimize::AdaDec<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_adadelta())
-    learn(rnnp::optimize::AdaDelta<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, theta, gen);
+    learn(rnnp::optimize::AdaDelta<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_sgd())
-    learn(rnnp::optimize::SGD<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, theta, gen);
+    learn(rnnp::optimize::SGD<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
   else
     throw std::runtime_error("unknown optimizer");
 }
@@ -647,6 +667,7 @@ void learn(const option_set_type& optimizations,
 	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
+	   const feature_set_type& feats,
 	   Theta& theta,
 	   Gen& gen)
 {
@@ -677,7 +698,7 @@ void learn(const option_set_type& optimizations,
   for (option_set_type::const_iterator oiter = optimizations.begin(); oiter != oiter_end; ++ oiter, ++ iter) {
     output_prefix = output_file.string() + "." + utils::lexical_cast<std::string>(iter);
     
-    learn(*oiter, trees, tests, grammar, signature, theta, gen);
+    learn(*oiter, trees, tests, grammar, signature, feats, theta, gen);
   }
 
   theta.write(output_file);
@@ -694,6 +715,7 @@ void learn(const Optimizer& optimizer,
 	   const tree_set_type& tests,
 	   const grammar_type& grammar,
 	   const signature_type& signature,
+	   const feature_set_type& feats,
 	   Theta& theta,
 	   Gen& gen)
 {
@@ -732,6 +754,7 @@ void learn(const Optimizer& optimizer,
 					 working,
 					 grammar,
 					 signature,
+					 feats,
 					 theta,
 					 mapper,
 					 mergers));
@@ -953,6 +976,7 @@ void options(int argc, char** argv)
     
     ("grammar",    po::value<path_type>(&grammar_file),                                    "grammar file")
     ("signature",  po::value<std::string>(&signature_name)->default_value(signature_name), "language specific signature")
+    ("feature",    po::value<feat_set_type>(&feature_functions)->composing(),              "feature function(s)")
     
     ("model1",    po::bool_switch(&model_model1), "parsing by model1")
     ("model2",    po::bool_switch(&model_model2), "parsing by model2 (default)")
@@ -988,6 +1012,8 @@ void options(int argc, char** argv)
   opts_command.add_options()
     ("config",  po::value<path_type>(),                    "configuration file")    
     ("threads", po::value<int>(&threads)->default_value(threads), "# of threads")
+
+    ("feature-list", po::bool_switch(&feature_function_list), "list of feature functions")
     
     ("debug", po::value<int>(&debug)->implicit_value(1), "debug level")
     ("help", "help message");

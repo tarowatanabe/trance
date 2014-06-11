@@ -60,6 +60,17 @@ namespace rnnp
 	    -= (eta0_ * scale) * giter->second;
       }
       
+      void update(model_type::weights_type& theta,
+		  const gradient_type::weights_type& grad,
+		  const double scale,
+		  const bool regularize) const
+      {
+	gradient_type::weights_type::const_iterator fiter_end = grad.end();
+	for (gradient_type::weights_type::const_iterator fiter = grad.begin(); fiter != fiter_end; ++ fiter) 
+	  if (fiter->second != 0)
+	    theta[fiter->first] -= eta0_ * scale * fiter->second;
+      }
+
       void update(tensor_type& theta,
 		  const tensor_type& g,
 		  const double scale,
@@ -89,8 +100,10 @@ namespace rnnp
       if (option.learn_embedding())
 	update(theta.terminal_, gradient.terminal_, scale, false);
 	
-      if (option.learn_classification())
-	update(theta.Wc_, gradient.Wc_, scale, true);
+      if (option.learn_classification()) {
+	update(theta.Wc_,  gradient.Wc_,  scale, true);
+	update(theta.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
@@ -125,9 +138,11 @@ namespace rnnp
       if (option.learn_embedding())
 	update(theta.terminal_, gradient.terminal_, scale, false);
 	
-      if (option.learn_classification())
-	update(theta.Wc_, gradient.Wc_, scale, true);
-	
+      if (option.learn_classification()) {
+	update(theta.Wc_,  gradient.Wc_,  scale, true);
+	update(theta.Wfe_, gradient.Wfe_, scale, true);
+      }
+      
       if (option.learn_hidden()) {
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, gradient.Bsh_, scale, false);
@@ -161,8 +176,10 @@ namespace rnnp
       if (option.learn_embedding())
 	update(theta.terminal_, gradient.terminal_, scale, false);
 	
-      if (option.learn_classification())
-	update(theta.Wc_, gradient.Wc_, scale, true);
+      if (option.learn_classification()) {
+	update(theta.Wc_,  gradient.Wc_,  scale, true);
+	update(theta.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
@@ -200,9 +217,11 @@ namespace rnnp
 	
       if (option.learn_embedding())
 	update(theta.terminal_, gradient.terminal_, scale, false);
-	
-      if (option.learn_classification())
-	update(theta.Wc_, gradient.Wc_, scale, true);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  gradient.Wc_,  scale, true);
+	update(theta.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
@@ -236,9 +255,11 @@ namespace rnnp
 	
       if (option.learn_embedding())
 	update(theta.terminal_, gradient.terminal_, scale, false);
-	
-      if (option.learn_classification())
-	update(theta.Wc_, gradient.Wc_, scale, true);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  gradient.Wc_,  scale, true);
+	update(theta.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
@@ -279,9 +300,11 @@ namespace rnnp
 
       if (option.learn_head())
 	update(theta.head_, gradient.head_, scale, false);
-	
-      if (option.learn_classification())
-	update(theta.Wc_, gradient.Wc_, scale, true);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  gradient.Wc_,  scale, true);
+	update(theta.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
@@ -318,10 +341,12 @@ namespace rnnp
 	
       if (option.learn_embedding())
 	update(theta.terminal_, gradient.terminal_, scale, false);
-	
-      if (option.learn_classification())
-	update(theta.Wc_, gradient.Wc_, scale, true);
-
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  gradient.Wc_,  scale, true);
+	update(theta.Wfe_, gradient.Wfe_, scale, true);
+      }
+      
       if (option.learn_head())
 	update(theta.head_, gradient.head_, scale, false);
 	

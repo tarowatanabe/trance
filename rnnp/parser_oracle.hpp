@@ -27,29 +27,32 @@ namespace rnnp
     void operator()(const tree_type& input,
 		    const grammar_type& grammar,
 		    const signature_type& signature,
+		    const feature_set_type& feats,
 		    const Theta& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations)
     {
-      parse(input, grammar, signature, theta, kbest, derivations, best_action_none());
+      parse(input, grammar, signature, feats, theta, kbest, derivations, best_action_none());
     }
 
     template <typename Theta, typename BestAction>
     void operator()(const tree_type& input,
 		    const grammar_type& grammar,
 		    const signature_type& signature,
+		    const feature_set_type& feats,
 		    const Theta& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations,
 		    const BestAction& best_action)
     {
-      parse(input, grammar, signature, theta, kbest, derivations, best_action);
+      parse(input, grammar, signature, feats, theta, kbest, derivations, best_action);
     }
     
     template <typename Theta, typename BestAction>
     void parse(const tree_type& input,
 	       const grammar_type& grammar,
 	       const signature_type& signature,
+	       const feature_set_type& feats,
 	       const Theta& theta,
 	       const size_type kbest,
 	       derivation_set_type& derivations,
@@ -61,14 +64,14 @@ namespace rnnp
       
       if (oracle_.sentence_.empty()) return;
       
-      initialize(oracle_.sentence_, theta);
+      initialize(oracle_.sentence_, feats, theta);
 
       if (oracle_.actions_.size() >= agenda_.size())
 	throw std::runtime_error("oracle operation sequence is longer than agenda size!");
 
       typename model_traits<Theta>::parser_type impl;
       
-      impl.operation_axiom(*this, oracle_.sentence_, theta);
+      impl.operation_axiom(*this, oracle_.sentence_, feats, theta);
       
       const size_type unary_max = oracle_.sentence_.size() * unary_size_;
       const size_type step_last = oracle_.sentence_.size() * 2 + unary_max;
@@ -78,7 +81,7 @@ namespace rnnp
 	
 	if (heap.empty()) break;
 	
-	prune(heap, beam_size_);
+	prune(heap, feats, beam_size_);
 	
 	// best_action
 	best_action(step, heap.back());
@@ -88,7 +91,7 @@ namespace rnnp
 	  const state_type& state = *hiter;
 
 	  if (state.operation().finished())
-	    impl.operation_idle(*this, theta, state);
+	    impl.operation_idle(*this, feats, theta, state);
 	  else {
 	    if (step + 1 < oracle_.actions_.size()) {
 	      const oracle_type::action_type& action = oracle_.actions_[step + 1];
@@ -98,7 +101,7 @@ namespace rnnp
 		if (state.next() >= oracle_.sentence_.size())
 		  throw std::runtime_error("invalid shift!");
 		
-		impl.operation_shift(*this, theta, state, action.head_, action.label_);
+		impl.operation_shift(*this, feats, theta, state, action.head_, action.label_);
 		break;
 	      case operation_type::REDUCE:
 	      case operation_type::REDUCE_LEFT:
@@ -106,13 +109,13 @@ namespace rnnp
 		if (! state.stack() || state.stack().label() == symbol_type::EPSILON)
 		  throw std::runtime_error("invalid reduction!");
 		
-		impl.operation_reduce(*this, theta, state, action.label_);
+		impl.operation_reduce(*this, feats, theta, state, action.label_);
 		break;
 	      case operation_type::UNARY:
 		if (state.unary() >= unary_max || state.operation().closure() >= unary_size_)
 		  throw std::runtime_error("invalid unary!");
 		
-		impl.operation_unary(*this, theta, state, action.label_);
+		impl.operation_unary(*this, feats, theta, state, action.label_);
 		break;
 	      default:
 		throw std::runtime_error("invalid operation!");
@@ -123,7 +126,7 @@ namespace rnnp
 		  && state.stack().label() == symbol_type::EPSILON
 		  && state.label() == grammar.goal_
 		  && state.next() == oracle_.sentence_.size())
-		impl.operation_final(*this, theta, state);
+		impl.operation_final(*this, feats, theta, state);
 	      else
 		throw std::runtime_error("invalid final!");
 	    }
@@ -135,7 +138,7 @@ namespace rnnp
       heap_type& heap = agenda_[step_last];
       
       if (! heap.empty()) {
-	prune(heap, kbest);
+	prune(heap, feats, kbest);
 	
 	best_action(step_last, heap.back());
 	

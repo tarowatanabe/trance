@@ -35,7 +35,8 @@ namespace rnnp
     typedef parser_type::word_type      word_type;
     typedef parser_type::symbol_type    symbol_type;
     
-    typedef parser_type::operation_type operation_type;
+    typedef parser_type::operation_type      operation_type;
+    typedef parser_type::feature_vector_type feature_vector_type;
     
     typedef parser_type::state_type   state_type;
     
@@ -98,6 +99,8 @@ namespace rnnp
       forest_binarized_.clear();
       forest_.clear();
 
+      features_.clear();
+
       states_.clear();
       visited_.clear();
     }
@@ -105,6 +108,8 @@ namespace rnnp
   private:
     void assign(state_type state, tree_type& tree)
     {
+      features_ += *state.feature_vector();
+
       switch (state.operation().operation()) {
       case operation_type::AXIOM:
 	break;
@@ -228,6 +233,8 @@ namespace rnnp
     
     forest_type forest_binarized_;
     forest_type forest_;
+
+    feature_vector_type features_;
     
     state_map_type states_;
     visited_type   visited_;

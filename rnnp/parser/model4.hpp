@@ -16,6 +16,7 @@ namespace rnnp
     {
       template <typename Parser, typename Theta>
       void operation_shift(Parser& parser,
+			   const feature_set_type& feats,
 			   const Theta& theta,
 			   const state_type& state,
 			   const word_type& head,
@@ -38,6 +39,12 @@ namespace rnnp
 	state_new.stack()      = state;
 	state_new.derivation() = state;
 	state_new.reduced()    = state_type();
+
+	state_new.feature_vector() = parser.feature_vector_allocator_.allocate();
+	state_new.feature_state()  = feats.apply(state_new.operation(),
+						 state_new.label(),
+						 state_new.head(),
+						 *state_new.feature_vector());
       
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
@@ -51,13 +58,14 @@ namespace rnnp
 	
 	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
 	
-	state_new.score() = state.score() + score;
+	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector()) + state.score() + score;
       
 	parser.agenda_[state_new.step()].push_back(state_new);
       }
 
       template <typename Parser, typename Theta>
       void operation_reduce(Parser& parser,
+			    const feature_set_type& feats,
 			    const Theta& theta,
 			    const state_type& state,
 			    const symbol_type& label)
@@ -83,6 +91,13 @@ namespace rnnp
 	state_new.stack()      = state_stack;
 	state_new.derivation() = state;
 	state_new.reduced()    = state_reduced;
+	
+	state_new.feature_vector() = parser.feature_vector_allocator_.allocate();
+	state_new.feature_state()  = feats.apply(state_new.operation(),
+						 state_new.label(),
+						 state.feature_state(),
+						 state_reduced.feature_state(),
+						 *state_new.feature_vector());
 	  
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
@@ -98,13 +113,14 @@ namespace rnnp
 	  
 	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
 	  
-	state_new.score() = state.score() + score;
+	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector()) + state.score() + score;
 	  
 	parser.agenda_[state_new.step()].push_back(state_new);
       }
     
       template <typename Parser, typename Theta>
       void operation_unary(Parser& parser,
+			   const feature_set_type& feats,
 			   const Theta& theta,
 			   const state_type& state,
 			   const symbol_type& label)
@@ -126,6 +142,12 @@ namespace rnnp
 	state_new.stack()      = state.stack();
 	state_new.derivation() = state;
 	state_new.reduced()    = state_type();
+
+	state_new.feature_vector() = parser.feature_vector_allocator_.allocate();
+	state_new.feature_state()  = feats.apply(state_new.operation(),
+						 state_new.label(),
+						 state.feature_state(),
+						 *state_new.feature_vector());
       
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
@@ -139,13 +161,14 @@ namespace rnnp
       
 	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
       
-	state_new.score() = state.score() + score;
+	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector()) + state.score() + score;
       
 	parser.agenda_[state_new.step()].push_back(state_new);
       }
     
       template <typename Parser, typename Theta>
       void operation_final(Parser& parser,
+			   const feature_set_type& feats,
 			   const Theta& theta,
 			   const state_type& state)
       {
@@ -163,6 +186,11 @@ namespace rnnp
 	state_new.stack()      = state.stack();
 	state_new.derivation() = state;
 	state_new.reduced()    = state_type();
+	
+	state_new.feature_vector() = parser.feature_vector_allocator_.allocate();
+	state_new.feature_state()  = feats.apply(state_new.operation(),
+						 state.feature_state(),
+						 *state_new.feature_vector());
 
 	const size_type offset_classification = theta.offset_classification(symbol_type::FINAL);
       
@@ -172,13 +200,14 @@ namespace rnnp
       
 	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
       
-	state_new.score() = state.score() + score;
+	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector()) + state.score() + score;
       
 	parser.agenda_[state_new.step()].push_back(state_new);
       }
       
       template <typename Parser, typename Theta>
       void operation_idle(Parser& parser,
+			  const feature_set_type& feats,
 			  const Theta& theta,
 			  const state_type& state)
       {
@@ -196,6 +225,11 @@ namespace rnnp
 	state_new.stack()      = state.stack();
 	state_new.derivation() = state;
 	state_new.reduced()    = state_type();
+	
+	state_new.feature_vector() = parser.feature_vector_allocator_.allocate();
+	state_new.feature_state()  = feats.apply(state_new.operation(),
+						 state.feature_state(),
+						 *state_new.feature_vector());
 
 	const size_type offset_classification = theta.offset_classification(symbol_type::IDLE);
       
@@ -205,7 +239,7 @@ namespace rnnp
       
 	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
       
-	state_new.score() = state.score() + score;
+	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector()) + state.score() + score;
       
 	parser.agenda_[state_new.step()].push_back(state_new);
       }
@@ -213,6 +247,7 @@ namespace rnnp
       template <typename Parser, typename Theta>
       void operation_axiom(Parser& parser, 
 			   const sentence_type& input,
+			   const feature_set_type& feats,
 			   const Theta& theta)
       {
 	state_type state_new = parser.state_allocator_.allocate();
@@ -229,8 +264,12 @@ namespace rnnp
 	state_new.stack()      = state_type();
 	state_new.derivation() = state_type();
 	state_new.reduced()    = state_type();
-
-	state_new.score() = 0;
+	
+	state_new.feature_vector() = parser.feature_vector_allocator_.allocate();
+	state_new.feature_state()  = feats.apply(state_new.operation(),
+						 *state_new.feature_vector());
+	
+	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector());
 	state_new.layer(theta.hidden_) = theta.Ba_.array().unaryExpr(model_type::activation());
       
 	parser.agenda_[state_new.step()].push_back(state_new);

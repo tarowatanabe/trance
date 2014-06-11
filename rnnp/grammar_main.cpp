@@ -21,6 +21,14 @@ int main(int argc, char** argv)
 	    << " sentence: " << grammar.sentence_
 	    << " binarized: " << grammar.sentence_binarized_
 	    << std::endl;
+
+  std::cerr << "binary: " << grammar.binary_size()
+	    << " unary: " << grammar.unary_size()
+	    << " preterminal: " << grammar.preterminal_size()
+	    << " terminals: " << grammar.terminal_.size()
+	    << " non-terminals: " << grammar.non_terminal_.size()
+	    << " POS: " << grammar.pos_.size()
+	    << std::endl;
   
   rnnp::Symbol symbol;
   while (std::cin >> symbol) {

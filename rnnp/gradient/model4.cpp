@@ -19,6 +19,7 @@ namespace rnnp
     
       // initialize matrix    
       Wc_.clear();
+      Wfe_.clear();
       
       Wsh_.clear();
       Bsh_.clear();
@@ -42,6 +43,7 @@ namespace rnnp
     Theta.Op(Stream, Theta.terminal_);			\
 							\
     Theta.Op(Stream, Theta.Wc_);			\
+    Theta.Op(Stream, Theta.Wfe_);			\
 							\
     Theta.Op(Stream, Theta.Wsh_);			\
     Theta.Op(Stream, Theta.Bsh_);			\
@@ -87,7 +89,8 @@ namespace rnnp
 #define GRADIENT_BINARY_OPERATOR(Op)	\
     Op(terminal_, x.terminal_);			\
 						\
-    Op(Wc_, x.Wc_);				\
+    Op(Wc_,  x.Wc_);				\
+    Op(Wfe_, x.Wfe_);				\
 						\
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\

@@ -43,6 +43,7 @@ namespace rnnp
 	head_.swap(x.head_);
       
 	Wc_.swap(x.Wc_);
+	Wfe_.swap(x.Wfe_);
       
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
@@ -73,6 +74,7 @@ namespace rnnp
 	head_.clear();
 
 	Wc_.clear();
+	Wfe_.clear();
       
 	Wsh_.clear();
 	Bsh_.clear();
@@ -192,6 +194,9 @@ namespace rnnp
 
       // classification
       matrix_category_type Wc_;
+
+      // features
+      weights_type Wfe_;
     
       // shift
       matrix_category_type Wsh_;

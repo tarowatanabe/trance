@@ -84,6 +84,21 @@ namespace rnnp
     }
   }
   
+  void Gradient::write_matrix(std::ostream& os, const weights_type& matrix) const
+  {
+    const size_type size = matrix.size();
+    
+    os.write((char*) &size, sizeof(size_type));
+    
+    for (weights_type::const_iterator fiter = matrix.begin(); fiter != matrix.end(); ++ fiter) {
+      const size_type feature_size = fiter->first.size();
+      
+      os.write((char*) &feature_size, sizeof(size_type));
+      os.write((char*) &(*fiter->first.begin()), feature_size);
+      os.write((char*) &fiter->second, sizeof(parameter_type));
+    }
+  }
+
   void Gradient::write_matrix(std::ostream& os, const tensor_type& matrix) const
   {
     const tensor_type::Index rows = matrix.rows();
@@ -161,6 +176,31 @@ namespace rnnp
     }
   }
   
+  void Gradient::read_matrix(std::istream& is, weights_type& matrix)
+  {
+    typedef std::vector<char, std::allocator<char> > buffer_type;
+    
+    matrix.clear();
+    
+    buffer_type buffer;
+    parameter_type value;
+    
+    size_type size = 0;
+    is.read((char*) &size, sizeof(size_type));
+    
+    for (size_type i = 0; i != size; ++ i) {
+      size_type feature_size = 0;
+      is.read((char*) &feature_size, sizeof(size_type));
+      
+      buffer.resize(feature_size);
+      is.read((char*) &(*buffer.begin()), feature_size);
+      
+      is.read((char*) &value, sizeof(parameter_type));
+      
+      matrix[feature_type(buffer.begin(), buffer.end())] = value;
+    }
+  }
+
   void Gradient::read_matrix(std::istream& is, tensor_type& matrix)
   {
     tensor_type::Index rows = 0;

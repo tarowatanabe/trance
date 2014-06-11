@@ -172,6 +172,54 @@ namespace rnnp
 	  }
 	}
       }
+
+      
+      void update(model_type::weights_type& theta,
+		  model_type::weights_type& Gs,
+		  model_type::weights_type& Xs,
+		  const gradient_type::weights_type& grad,
+		  const double scale,
+		  const bool regularize) const
+      {
+	if (lambda_ != 0.0) {
+	  gradient_type::weights_type::const_iterator fiter_end = grad.end();
+	  for (gradient_type::weights_type::const_iterator fiter = grad.begin(); fiter != fiter_end; ++ fiter) 
+	    if (fiter->second != 0) {
+	      model_type::weights_type::value_type& x = theta[fiter->first];
+	      model_type::weights_type::value_type& G = Gs[fiter->first];
+	      model_type::weights_type::value_type& X = Xs[fiter->first];
+	      const gradient_type::weights_type::mapped_type& g = fiter->second;
+	      
+	      G = G * 0.95 + (g * scale) * (g * scale);
+	      
+	      const double rate = learning_rate(eta0_, X, G);
+	      const double x1 = x - rate * scale * g;
+	      const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
+	      
+	      X = X * 0.95 + (x2 - x) * (x2 - x);
+	      
+	      x = x2;
+	    }
+	} else {
+	  gradient_type::weights_type::const_iterator fiter_end = grad.end();
+	  for (gradient_type::weights_type::const_iterator fiter = grad.begin(); fiter != fiter_end; ++ fiter) 
+	    if (fiter->second != 0) {
+	      model_type::weights_type::value_type& x = theta[fiter->first];
+	      model_type::weights_type::value_type& G = Gs[fiter->first];
+	      model_type::weights_type::value_type& X = Xs[fiter->first];
+	      const gradient_type::weights_type::mapped_type& g = fiter->second;
+	      
+	      G = G * 0.95 + (g * scale) * (g * scale);
+	      
+	      const double rate = learning_rate(eta0_, X, G);
+	      const double x1 = x - rate * scale * g;
+	      
+	      X = X * 0.95 + (x1 - x) * (x1 - x);
+	      
+	      x = x1;
+	    }
+	}
+      }
       
       void update(tensor_type& theta,
 		  tensor_type& G,
@@ -283,8 +331,10 @@ namespace rnnp
       if (option.learn_embedding())
 	update(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
 	
-      if (option.learn_classification())
-	update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, true);
+      if (option.learn_classification()) {
+	update(theta.Wc_,  G.Wc_,  X.Wc_,  gradient.Wc_, scale, true);
+	update(theta.Wfe_, G.Wfe_, X.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
@@ -321,9 +371,11 @@ namespace rnnp
       
       if (option.learn_embedding())
 	update(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
-	
-      if (option.learn_classification())
-	update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, true);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  G.Wc_,  X.Wc_,  gradient.Wc_, scale, true);
+	update(theta.Wfe_, G.Wfe_, X.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
@@ -360,9 +412,11 @@ namespace rnnp
       
       if (option.learn_embedding())
 	update(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
-	
-      if (option.learn_classification())
-	update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, true);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  G.Wc_,  X.Wc_,  gradient.Wc_, scale, true);
+	update(theta.Wfe_, G.Wfe_, X.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
@@ -403,9 +457,11 @@ namespace rnnp
       
       if (option.learn_embedding())
 	update(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
-	
-      if (option.learn_classification())
-	update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, true);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  G.Wc_,  X.Wc_,  gradient.Wc_, scale, true);
+	update(theta.Wfe_, G.Wfe_, X.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
@@ -442,9 +498,11 @@ namespace rnnp
       
       if (option.learn_embedding())
 	update(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
-	
-      if (option.learn_classification())
-	update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, true);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  G.Wc_,  X.Wc_,  gradient.Wc_, scale, true);
+	update(theta.Wfe_, G.Wfe_, X.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
@@ -488,9 +546,11 @@ namespace rnnp
 
       if (option.learn_head())
 	update(theta.head_, G.head_, X.head_, gradient.head_, scale, false);
-	
-      if (option.learn_classification())
-	update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, true);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  G.Wc_,  X.Wc_,  gradient.Wc_, scale, true);
+	update(theta.Wfe_, G.Wfe_, X.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
@@ -533,9 +593,11 @@ namespace rnnp
 	
       if (option.learn_head())
 	update(theta.head_, G.head_, X.head_, gradient.head_, scale, false);
-
-      if (option.learn_classification())
-	update(theta.Wc_, G.Wc_, X.Wc_, gradient.Wc_, scale, true);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  G.Wc_,  X.Wc_,  gradient.Wc_, scale, true);
+	update(theta.Wfe_, G.Wfe_, X.Wfe_, gradient.Wfe_, scale, true);
+      }
 	
       if (option.learn_hidden()) {
 	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);

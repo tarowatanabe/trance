@@ -18,31 +18,46 @@
 
 namespace rnnp
 {
-  class Parser
+  class Parser : public parser::Parser
   {
   public:
-    typedef parser::Parser::size_type       size_type;
-    typedef parser::Parser::difference_type difference_type;
-
-    typedef parser::Parser::span_type     span_type;
-    typedef parser::Parser::sentence_type sentence_type;
-
-    typedef parser::Parser::grammar_type   grammar_type;
-    typedef parser::Parser::signature_type signature_type;
-    
-    typedef parser::Parser::model_type model_type;
-    
-    typedef model_type::symbol_type    symbol_type;
-    typedef model_type::word_type      word_type;
-    typedef model_type::parameter_type parameter_type;
-    typedef model_type::tensor_type    tensor_type;
-    typedef model_type::matrix_type    matrix_type;
-    
-    typedef parser::Parser::operation_type operation_type;
-    typedef parser::Parser::state_type     state_type;
-
     typedef Allocator<state_type> state_allocator_type;
     
+    struct feature_vector_allocator_type
+    {
+      typedef utils::chunk_vector<feature_vector_type,
+				  1024 * 16 / sizeof(feature_vector_type),
+				  std::allocator<feature_vector_type> > feature_vector_set_type;
+      typedef std::vector<feature_vector_type*, std::allocator<feature_vector_type*> > cache_type;
+      
+      feature_vector_type* allocate()
+      {
+	if (! cache_.empty()) {
+	  feature_vector_type* allocated = cache_.back();
+	  cache_.pop_back();
+	  allocated->clear();
+	  return allocated;
+	}
+	
+	feature_vectors_.push_back(feature_vector_type());
+	return &feature_vectors_.back();
+      }
+
+      void deallocate(const feature_vector_type* vec)
+      {
+	cache_.push_back(const_cast<feature_vector_type*>(vec));
+      }
+      
+      void clear()
+      {
+	feature_vectors_.clear();
+	cache_.clear();
+      }
+      
+      feature_vector_set_type feature_vectors_;
+      cache_type cache_;
+    };
+
   public:
     // heap...
     typedef std::vector<state_type, std::allocator<state_type> > heap_type;
@@ -77,29 +92,32 @@ namespace rnnp
     void operator()(const sentence_type& input,
 		    const grammar_type& grammar,
 		    const signature_type& signature,
+		    const feature_set_type& feats,
 		    const Theta& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations)
     {
-      parse(input, grammar, signature, theta, kbest, derivations, best_action_none());
+      parse(input, grammar, signature, feats, theta, kbest, derivations, best_action_none());
     }
 
     template <typename Theta, typename BestAction>
     void operator()(const sentence_type& input,
 		    const grammar_type& grammar,
 		    const signature_type& signature,
+		    const feature_set_type& feats,
 		    const Theta& theta,
 		    const size_type kbest,
 		    derivation_set_type& derivations,
 		    const BestAction& best_action)
     {
-      parse(input, grammar, signature, theta, kbest, derivations, best_action);
+      parse(input, grammar, signature, feats, theta, kbest, derivations, best_action);
     }
     
     template <typename Theta, typename BestAction>
     void parse(const sentence_type& input,
 	       const grammar_type& grammar,
 	       const signature_type& signature,
+	       const feature_set_type& feats,
 	       const Theta& theta,
 	       const size_type kbest,
 	       derivation_set_type& derivations,
@@ -109,11 +127,11 @@ namespace rnnp
       
       if (input.empty()) return;
       
-      initialize(input, theta);
+      initialize(input, feats, theta);
 
       typename model_traits<Theta>::parser_type impl;
       
-      impl.operation_axiom(*this, input, theta);
+      impl.operation_axiom(*this, input, feats, theta);
       
       const size_type unary_max = input.size() * unary_size_;
       const size_type step_last = input.size() * 2 + unary_max;
@@ -124,7 +142,7 @@ namespace rnnp
 	
 	if (heap.empty()) break;
 	
-	prune(heap, beam_size_);
+	prune(heap, feats, beam_size_);
 	
 	// best_action
 	best_action(step, heap.back());
@@ -134,7 +152,7 @@ namespace rnnp
 	  const state_type& state = *hiter;
 	  
 	  if (state.operation().finished())
-	    impl.operation_idle(*this, theta, state);
+	    impl.operation_idle(*this, feats, theta, state);
 	  else {
 	    // we perform shift..
 	    if (state.next() < input.size()) {
@@ -142,7 +160,7 @@ namespace rnnp
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		impl.operation_shift(*this, theta, state, input[state.next()], riter->lhs_);
+		impl.operation_shift(*this, feats, theta, state, input[state.next()], riter->lhs_);
 	    }
 	    
 	    // we perform unary
@@ -151,7 +169,7 @@ namespace rnnp
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		impl.operation_unary(*this, theta, state, riter->lhs_);
+		impl.operation_unary(*this, feats, theta, state, riter->lhs_);
 	    }
 	    
 	    // final...
@@ -159,7 +177,7 @@ namespace rnnp
 		&& state.stack().label() == symbol_type::EPSILON
 		&& state.label() == grammar.goal_
 		&& state.next() == input.size())
-	      impl.operation_final(*this, theta, state);
+	      impl.operation_final(*this, feats, theta, state);
 	    
 	    // we will perform reduce
 	    if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
@@ -167,7 +185,7 @@ namespace rnnp
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 	      for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		impl.operation_reduce(*this, theta, state, riter->lhs_);
+		impl.operation_reduce(*this, feats, theta, state, riter->lhs_);
 	    }
 	  }
 	}
@@ -184,7 +202,7 @@ namespace rnnp
 	  if (heap.empty()) break;
 	  
 	  if (step > step_drop) {
-	    prune(heap, beam_size_);
+	    prune(heap, feats, beam_size_);
 	    
 	    // best_action
 	    best_action(step, heap.back());
@@ -195,7 +213,7 @@ namespace rnnp
 	    const state_type& state = *hiter;
 	    
 	    if (state.operation().finished())
-	      impl.operation_idle(*this, theta, state);
+	      impl.operation_idle(*this, feats, theta, state);
 	    else {
 	      // we perform shift.... this should not happen, though..
 	      if (state.next() < input.size()) {
@@ -203,7 +221,7 @@ namespace rnnp
 		
 		grammar_type::rule_set_type::const_iterator riter_end = rules.end();
 		for (grammar_type::rule_set_type::const_iterator riter = rules.begin(); riter != riter_end; ++ riter)
-		  impl.operation_shift(*this, theta, state, input[state.next()], riter->lhs_);
+		  impl.operation_shift(*this, feats, theta, state, input[state.next()], riter->lhs_);
 	      }
 	      
 	      // perform root
@@ -211,21 +229,21 @@ namespace rnnp
 		  && state.stack().label() == symbol_type::EPSILON
 		  && state.label() != grammar.goal_
 		  && state.next() == input.size())
-		impl.operation_unary(*this, theta, state, grammar.goal_);
+		impl.operation_unary(*this, feats, theta, state, grammar.goal_);
 	      
 	      // final...
 	      if (state.stack()
 		  && state.stack().label() == symbol_type::EPSILON
 		  && state.label() == grammar.goal_
 		  && state.next() == input.size())
-		impl.operation_final(*this, theta, state);
+		impl.operation_final(*this, feats, theta, state);
 	      
 	      // we will perform reduce
 	      if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
 		if (state.stack().stack() && state.stack().stack().label() == symbol_type::EPSILON)
-		  impl.operation_reduce(*this, theta, state, grammar.sentence_);
+		  impl.operation_reduce(*this, feats, theta, state, grammar.sentence_);
 		else
-		  impl.operation_reduce(*this, theta, state, grammar.sentence_binarized_);
+		  impl.operation_reduce(*this, feats, theta, state, grammar.sentence_binarized_);
 	      }
 	    }
 	  }
@@ -236,7 +254,7 @@ namespace rnnp
       heap_type& heap = agenda_[step_last];
       
       if (! heap.empty()) {
-	prune(heap, kbest);
+	prune(heap, feats, kbest);
 	
 	best_action(step_last, heap.back());
 	
@@ -244,7 +262,7 @@ namespace rnnp
       }
     }
     
-    void initialize(const sentence_type& input, const model_type& theta)
+    void initialize(const sentence_type& input, const feature_set_type& feats, const model_type& theta)
     {
       // # of operations is 2n + # of unary rules + final
       agenda_.clear();
@@ -253,9 +271,13 @@ namespace rnnp
       // state allocator
       state_allocator_.clear();
       state_allocator_.assign(state_type::size(theta.hidden_));
+      
+      // feature(s)
+      const_cast<feature_set_type&>(feats).initialize();
+      feature_vector_allocator_.clear();
     }
     
-    void prune(heap_type& heap, const size_type beam)
+    void prune(heap_type& heap, const feature_set_type& feats, const size_type beam)
     {
       if (heap.empty()) return;
 
@@ -269,8 +291,11 @@ namespace rnnp
 	std::pop_heap(hiter_begin, hiter, heap_compare());
       
       // deallocate unused states
-      for (heap_type::iterator iter = hiter_begin; iter != hiter; ++ iter)
+      for (heap_type::iterator iter = hiter_begin; iter != hiter; ++ iter) {
+	const_cast<feature_set_type&>(feats).deallocate(iter->feature_state());
+	feature_vector_allocator_.deallocate(iter->feature_vector());
 	state_allocator_.deallocate(*iter);
+      }
       
       // erase deallocated states
       heap.erase(hiter_begin, hiter);
@@ -283,7 +308,8 @@ namespace rnnp
     agenda_type agenda_;
     
     // allocator
-    state_allocator_type state_allocator_;
+    state_allocator_type          state_allocator_;
+    feature_vector_allocator_type feature_vector_allocator_;
     
     // additional information required by some models...
     tensor_type queue_;

@@ -5,6 +5,9 @@
 //
 // collect grammar
 //
+//
+// we will peform witten-bell smoothing or KN smoothing...?
+//
 
 #include <iostream>
 
@@ -17,7 +20,7 @@
 
 #include "utils/compress_stream.hpp"
 #include "utils/compact_map.hpp"
-#include "utils/unordered_set.hpp"
+#include "utils/unordered_map.hpp"
 #include "utils/bithack.hpp"
 
 #include <boost/program_options.hpp>
@@ -30,17 +33,18 @@ typedef rnnp::Tree    tree_type;
 typedef rnnp::Rule    rule_type;
 
 typedef uint64_t count_type;
+typedef double   prob_type;
 typedef utils::compact_map<symbol_type, count_type,
 			   utils::unassigned<symbol_type>, utils::unassigned<symbol_type>,
 			   boost::hash<symbol_type>, std::equal_to<symbol_type>,
 			   std::allocator<std::pair<const symbol_type, count_type> > > unigram_type;
 
 
-struct Grammar
+struct GrammarCount
 {
-  typedef utils::unordered_set<rule_type,
+  typedef utils::unordered_map<rule_type, count_type,
 			       boost::hash<rule_type>, std::equal_to<rule_type>,
-			       std::allocator<rule_type> >::type rule_set_type;
+			       std::allocator<std::pair<const rule_type, count_type> > >::type rule_set_type;
   
   
   symbol_type  goal_;
@@ -51,19 +55,39 @@ struct Grammar
   rule_set_type preterminal_;
 };
 
-typedef Grammar grammar_type;
+struct GrammarPCFG
+{
+  typedef utils::unordered_map<rule_type, prob_type,
+			       boost::hash<rule_type>, std::equal_to<rule_type>,
+			       std::allocator<std::pair<const rule_type, prob_type> > >::type rule_set_type;
+  typedef utils::unordered_map<symbol_type, rule_set_type,
+			       boost::hash<symbol_type>, std::equal_to<symbol_type>,
+			       std::allocator<std::pair<const symbol_type, rule_set_type> > >::type rule_map_type;
+  
+  symbol_type goal_;
+  symbol_type sentence_;
+  
+  rule_map_type binary_;
+  rule_map_type unary_;
+  rule_map_type preterminal_;
+};
+
+typedef GrammarCount grammar_count_type;
+typedef GrammarPCFG  grammar_pcfg_type;
 
 typedef rnnp::Signature signature_type;
 
 void collect_rules(const path_type& path,
-		   grammar_type& grammar,
+		   grammar_count_type& grammar,
 		   unigram_type& unigram,
 		   const bool left=true);
 void cutoff_terminal(const signature_type& signature,
-		     grammar_type& grammar,
+		     grammar_count_type& grammar,
 		     unigram_type& unigram);
+void estimate(const grammar_count_type& counts,
+	      grammar_pcfg_type& pcfg);
 void output_grammar(const path_type& path,
-		    const grammar_type& grammar);
+		    const grammar_pcfg_type& grammar);
 
 path_type input_file = "-";
 path_type output_file = "-";
@@ -72,6 +96,8 @@ std::string signature_name = "none";
 
 bool binarize_left = false;
 bool binarize_right = false;
+
+bool split_preterminal = false;
 
 int cutoff = 3;
 
@@ -90,15 +116,19 @@ int main(int argc, char** argv)
     if (int(binarize_left) + binarize_right == 0)
       binarize_left = true;
     
-    grammar_type grammar;
+    grammar_count_type grammar;
     unigram_type unigram;
 
     collect_rules(input_file, grammar, unigram, binarize_left);
 
     if (cutoff > 0)
       cutoff_terminal(*signature_type::create(signature_name), grammar, unigram);
+
+    grammar_pcfg_type grammar_pcfg;
+
+    estimate(grammar, grammar_pcfg);
     
-    output_grammar(output_file, grammar);
+    output_grammar(output_file, grammar_pcfg);
   }
   catch (const std::exception& err) {
     std::cerr << "error: " << err.what() << std::endl;
@@ -109,7 +139,7 @@ int main(int argc, char** argv)
 
 struct CollectRules
 {
-  CollectRules(grammar_type& grammar,
+  CollectRules(grammar_count_type& grammar,
 	       unigram_type& unigram,
 	       bool left)
     : grammar_(grammar), unigram_(unigram), left_(left), unary_max_(0) {}
@@ -152,11 +182,11 @@ struct CollectRules
       
       if (rule.unary()) {
 	++ unary;
-	grammar_.unary_.insert(rule);
+	++ grammar_.unary_[rule];
 	
 	extract(tree.antecedent_.front(), unary);
       } else if (rule.preterminal()) {
-	grammar_.preterminal_.insert(rule);
+	  ++ grammar_.preterminal_[rule];
 	
 	++ unigram_[rule.rhs_.front()];
       } else
@@ -172,7 +202,7 @@ struct CollectRules
       if (! rule.binary())
 	throw std::runtime_error("invalid rule: " + rule.string());
       
-      grammar_.binary_.insert(rule);
+      ++ grammar_.binary_[rule];
 
       int unary_left = 0;
       int unary_right = 0;
@@ -187,7 +217,7 @@ struct CollectRules
 
   tree_type binarized_;
   
-  grammar_type& grammar_;
+  grammar_count_type& grammar_;
   unigram_type& unigram_;
   bool left_;
 
@@ -195,7 +225,7 @@ struct CollectRules
 };
 
 void collect_rules(const path_type& path,
-		   grammar_type& grammar,
+		   grammar_count_type& grammar,
 		   unigram_type& unigram,
 		   const bool left)
 {
@@ -214,7 +244,7 @@ void collect_rules(const path_type& path,
 }
 
 void cutoff_terminal(const signature_type& signature,
-		     grammar_type& grammar,
+		     grammar_count_type& grammar,
 		     unigram_type& unigram)
 {
   unigram_type unigram_cutoff;
@@ -230,22 +260,22 @@ void cutoff_terminal(const signature_type& signature,
   
   unigram.swap(unigram_cutoff);
   
-  grammar_type::rule_set_type preterminal;
-  grammar_type::rule_set_type preterminal_oov;
+  grammar_count_type::rule_set_type preterminal;
+  grammar_count_type::rule_set_type preterminal_oov;
   bool has_fallback = false;
   
-  grammar_type::rule_set_type::const_iterator piter_end = grammar.preterminal_.end();
-  for (grammar_type::rule_set_type::const_iterator piter = grammar.preterminal_.begin(); piter != piter_end; ++ piter)
-    if (unigram.find(piter->rhs_.front()) != unigram.end())
+  grammar_count_type::rule_set_type::const_iterator piter_end = grammar.preterminal_.end();
+  for (grammar_count_type::rule_set_type::const_iterator piter = grammar.preterminal_.begin(); piter != piter_end; ++ piter)
+    if (unigram.find(piter->first.rhs_.front()) != unigram.end())
       preterminal.insert(*piter);
     else {
       if (debug >= 2)
-	std::cerr << "removing preterminal: " << *piter << std::endl;
+	std::cerr << "removing preterminal: " << piter->first << std::endl;
       
-      const symbol_type sig = signature(piter->rhs_.front());
+      const symbol_type sig = signature(piter->first.rhs_.front());
       
-      preterminal.insert(rule_type(piter->lhs_, rule_type::rhs_type(1, sig)));
-      preterminal_oov.insert(rule_type(piter->lhs_, rule_type::rhs_type(1, symbol_type::UNK)));
+      preterminal[rule_type(piter->first.lhs_, rule_type::rhs_type(1, sig))] += piter->second;
+      preterminal_oov[rule_type(piter->first.lhs_, rule_type::rhs_type(1, symbol_type::UNK))] += piter->second;
       
       has_fallback |= (sig == symbol_type::UNK);
     }
@@ -256,41 +286,541 @@ void cutoff_terminal(const signature_type& signature,
   grammar.preterminal_.swap(preterminal);
 }
 
-void output_grammar(const path_type& path,
-		    const grammar_type& grammar)
+struct Estimate
 {
-  utils::compress_ostream os(path, 1024 * 1024);
+  typedef rule_type::lhs_type lhs_type;
+  typedef rule_type::rhs_type rhs_type;
 
-  symbol_type sentence;
-  count_type  count = 0;
+  typedef std::pair<count_type, prob_type> count_prob_type;
 
-  if (grammar.sentence_.empty())
+  struct rhs_hash : public utils::hashmurmur3<size_t>
+  {
+    typedef utils::hashmurmur3<size_t> hasher_type;
+    
+    size_t operator()(const rhs_type& x) const
+    {
+      return hasher_type::operator()(x.begin(), x.end(), 0);
+    }
+  };
+  
+  typedef utils::unordered_map<rhs_type, count_prob_type,
+			       rhs_hash, std::equal_to<rhs_type>,
+			       std::allocator<std::pair<const rhs_type, count_prob_type> > >::type rhs_set_type;
+  
+  typedef utils::unordered_map<rule_type, count_prob_type,
+			       boost::hash<rule_type>, std::equal_to<rule_type>,
+			       std::allocator<std::pair<const rule_type, count_prob_type> > >::type rule_set_type;
+  typedef utils::unordered_map<symbol_type, rule_set_type,
+			       boost::hash<symbol_type>, std::equal_to<symbol_type>,
+			       std::allocator<std::pair<const symbol_type, rule_set_type> > >::type rule_map_type;
+
+  
+};
+
+void estimate(const grammar_count_type& counts,
+	      grammar_pcfg_type& pcfg)
+{
+  typedef Estimate estimate_type;
+
+  // assign goal and sentence
+  pcfg.goal_ = counts.goal_;
+  
+  count_type count = 0;
+  if (counts.sentence_.empty())
     throw std::runtime_error("invalid pre-goal label");
   
-  unigram_type::const_iterator siter_end = grammar.sentence_.end();
-  for (unigram_type::const_iterator siter = grammar.sentence_.begin(); siter != siter_end; ++ siter)
+  unigram_type::const_iterator siter_end = counts.sentence_.end();
+  for (unigram_type::const_iterator siter = counts.sentence_.begin(); siter != siter_end; ++ siter)
     if (siter->second > count) {
-      sentence = siter->first;
+      pcfg.sentence_ = siter->first;
       count = siter->second;
     }
   
+  //
+  // now, we perform actual estimation....
+  //
+  
+  // First, restrcture..
+  estimate_type::rule_map_type unary;
+  estimate_type::rule_map_type binary;
+  estimate_type::rule_map_type preterminal;
+
+  // unary..
+  grammar_count_type::rule_set_type::const_iterator uiter_end = counts.unary_.end();
+  for (grammar_count_type::rule_set_type::const_iterator uiter = counts.unary_.begin(); uiter != uiter_end; ++ uiter)
+    unary[uiter->first.lhs_][uiter->first].first = uiter->second;
+  
+  // binary...
+  grammar_count_type::rule_set_type::const_iterator biter_end = counts.binary_.end();
+  for (grammar_count_type::rule_set_type::const_iterator biter = counts.binary_.begin(); biter != biter_end; ++ biter)
+    binary[biter->first.lhs_][biter->first].first = biter->second;
+  
+  // preterminal..
+  grammar_count_type::rule_set_type::const_iterator piter_end = counts.preterminal_.end();
+  for (grammar_count_type::rule_set_type::const_iterator piter = counts.preterminal_.begin(); piter != piter_end; ++ piter)
+    preterminal[piter->first.lhs_][piter->first].first = piter->second;
+  
+  // Second, collect lower order count
+  
+  if (split_preterminal) {
+    
+    {
+      estimate_type::rhs_set_type unigram;
+
+      count_type t1[5];
+      count_type t2[5];
+      std::fill(t1, t1 + 5, count_type(0));
+      std::fill(t2, t2 + 5, count_type(0));
+      
+      {
+	estimate_type::rule_map_type::const_iterator uiter_end = unary.end();
+	for (estimate_type::rule_map_type::const_iterator uiter = unary.begin(); uiter != uiter_end; ++ uiter) {
+	  estimate_type::rule_set_type::const_iterator riter_end = uiter->second.end();
+	  for (estimate_type::rule_set_type::const_iterator riter = uiter->second.begin(); riter != riter_end; ++ riter) {
+	    ++ unigram[riter->first.rhs_].first;
+	    
+	    if (riter->second.first <= 4)
+	      ++ t2[riter->second.first];
+	  }
+	}
+	
+	estimate_type::rule_map_type::const_iterator biter_end = binary.end();
+	for (estimate_type::rule_map_type::const_iterator biter = binary.begin(); biter != biter_end; ++ biter) {
+	  estimate_type::rule_set_type::const_iterator riter_end = biter->second.end();
+	  for (estimate_type::rule_set_type::const_iterator riter = biter->second.begin(); riter != riter_end; ++ riter) {
+	    ++ unigram[riter->first.rhs_].first;
+	    
+	    if (riter->second.first <= 4)
+	      ++ t2[riter->second.first];
+	  }
+	}
+      }
+      
+      count_type total = 0;
+      
+      {
+	estimate_type::rhs_set_type::const_iterator uiter_end = unigram.end();
+	for (estimate_type::rhs_set_type::const_iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter) {
+	  if (uiter->second.first <= 4)
+	    ++ t1[uiter->second.first];
+	  
+	  total += uiter->second.first;
+	}
+      }
+      
+      // estimate discount
+      double d1[4];
+      double d2[4];
+      std::fill(d1, d1 + 4, double(0));
+      std::fill(d2, d2 + 4, double(0));
+      
+      for (int k = 1; k != 3; ++ k)
+	d1[k] = double(k) - double((k + 1) * t1[1] * t1[k+1]) / double((t1[1] + 2 * t1[2]) * t1[k]);
+      
+      for (int k = 1; k != 3; ++ k)
+	d2[k] = double(k) - double((k + 1) * t2[1] * t2[k+1]) / double((t2[1] + 2 * t2[2]) * t2[k]);
+      
+      // estimate unigram probability...
+      {
+	const double factor = 1.0 / total;
+	const double uniform = 1.0 / unigram.size();
+	
+	double backoff = 0.0;
+	
+	estimate_type::rhs_set_type::iterator uiter_end = unigram.end();
+	for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter)
+	  if (uiter->second.first <= 3)
+	    backoff += d1[uiter->second.first];
+	
+	double sum = 0.0;
+	
+	for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter) {
+	  uiter->second.second = factor * (double(uiter->second.first)
+					   - d1[utils::bithack::min(uiter->second.first, count_type(3))]
+					   + backoff * uniform);
+	  
+	  sum += uiter->second.second;
+	}
+	
+	// make sure that we are correctly normalized
+	const double factor_sum = 1.0 / sum;
+	for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter)
+	  uiter->second.second *= factor_sum;
+      }
+      
+      // estimate rule probability
+      estimate_type::rule_map_type::iterator uiter_end = unary.end();
+      for (estimate_type::rule_map_type::iterator uiter = unary.begin(); uiter != uiter_end; ++ uiter) {
+	count_type total = 0;
+	
+	estimate_type::rule_set_type::iterator riter_end = uiter->second.end();
+	for (estimate_type::rule_set_type::iterator riter = uiter->second.begin(); riter != riter_end; ++ riter)
+	  total += riter->second.first;
+	
+	const double factor = 1.0 / total;
+	
+	double backoff = 0.0;
+	for (estimate_type::rule_set_type::iterator riter = uiter->second.begin(); riter != riter_end; ++ riter)
+	  if (riter->second.first <= 3)
+	    backoff += d2[riter->second.first];
+	
+	for (estimate_type::rule_set_type::iterator riter = uiter->second.begin(); riter != riter_end; ++ riter) {
+	  const prob_type lower = unigram[riter->first.rhs_].second;
+	  
+	  riter->second.second = factor * (double(riter->second.first)
+					   - d2[utils::bithack::min(riter->second.first, count_type(3))]
+					   + backoff * lower);
+	}
+      }
+      
+      estimate_type::rule_map_type::iterator biter_end = binary.end();
+      for (estimate_type::rule_map_type::iterator biter = binary.begin(); biter != biter_end; ++ biter) {
+	count_type total = 0;
+	
+	estimate_type::rule_set_type::iterator riter_end = biter->second.end();
+	for (estimate_type::rule_set_type::iterator riter = biter->second.begin(); riter != riter_end; ++ riter)
+	  total += riter->second.first;
+	
+	const double factor = 1.0 / total;
+	
+	double backoff = 0.0;
+	for (estimate_type::rule_set_type::iterator riter = biter->second.begin(); riter != riter_end; ++ riter)
+	  if (riter->second.first <= 3)
+	    backoff += d2[riter->second.first];
+	
+	for (estimate_type::rule_set_type::iterator riter = biter->second.begin(); riter != riter_end; ++ riter) {
+	  const prob_type lower = unigram[riter->first.rhs_].second;
+	  
+	  riter->second.second = factor * (double(riter->second.first)
+					   - d2[utils::bithack::min(riter->second.first, count_type(3))]
+					   + backoff * lower);
+	}
+      }
+    }
+    
+    {
+      // collect modified count and count of count
+      
+      estimate_type::rhs_set_type unigram;
+      
+      count_type t1[5];
+      count_type t2[5];
+      std::fill(t1, t1 + 5, count_type(0));
+      std::fill(t2, t2 + 5, count_type(0));
+      
+      {
+	estimate_type::rule_map_type::const_iterator piter_end = preterminal.end();
+	for (estimate_type::rule_map_type::const_iterator piter = preterminal.begin(); piter != piter_end; ++ piter) {
+	  estimate_type::rule_set_type::const_iterator riter_end = piter->second.end();
+	  for (estimate_type::rule_set_type::const_iterator riter = piter->second.begin(); riter != riter_end; ++ riter) {
+	    ++ unigram[riter->first.rhs_].first;
+	    
+	    if (riter->second.first <= 4)
+	      ++ t2[riter->second.first];
+	  }
+	}
+      }
+      
+      count_type total = 0;
+
+      {
+	estimate_type::rhs_set_type::const_iterator uiter_end = unigram.end();
+	for (estimate_type::rhs_set_type::const_iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter) {
+	  if (uiter->second.first <= 4)
+	    ++ t1[uiter->second.first];
+	  
+	  total += uiter->second.first;
+	}
+      }
+      
+      // estimate discount
+      double d1[4];
+      double d2[4];
+      std::fill(d1, d1 + 4, double(0));
+      std::fill(d2, d2 + 4, double(0));
+      
+      for (int k = 1; k != 3; ++ k)
+	d1[k] = double(k) - double((k + 1) * t1[1] * t1[k+1]) / double((t1[1] + 2 * t1[2]) * t1[k]);
+      
+      for (int k = 1; k != 3; ++ k)
+	d2[k] = double(k) - double((k + 1) * t2[1] * t2[k+1]) / double((t2[1] + 2 * t2[2]) * t2[k]);
+      
+      // estimate unigram probability...
+      const double factor = 1.0 / total;
+      const double uniform = 1.0 / unigram.size();
+      
+      double backoff = 0.0;
+      
+      estimate_type::rhs_set_type::iterator uiter_end = unigram.end();
+      for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter)
+	if (uiter->second.first <= 3)
+	  backoff += d1[uiter->second.first];
+
+      double sum = 0.0;
+      
+      for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter) {
+	uiter->second.second = factor * (double(uiter->second.first)
+					 - d1[utils::bithack::min(uiter->second.first, count_type(3))]
+					 + backoff * uniform);
+	
+	sum += uiter->second.second;
+      }
+      
+      // make sure that we are correctly normalized
+      const double factor_sum = 1.0 / sum;
+      for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter)
+	uiter->second.second *= factor_sum;
+      
+      // estimate rule probability...
+      estimate_type::rule_map_type::iterator piter_end = preterminal.end();
+      for (estimate_type::rule_map_type::iterator piter = preterminal.begin(); piter != piter_end; ++ piter) {
+	count_type total = 0;
+	
+	estimate_type::rule_set_type::iterator riter_end = piter->second.end();
+	for (estimate_type::rule_set_type::iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
+	  total += riter->second.first;
+	
+	const double factor = 1.0 / total;
+	
+	double backoff = 0.0;
+	for (estimate_type::rule_set_type::iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
+	  if (riter->second.first <= 3)
+	    backoff += d2[riter->second.first];
+	
+	for (estimate_type::rule_set_type::iterator riter = piter->second.begin(); riter != riter_end; ++ riter) {
+	  const prob_type lower = unigram[riter->first.rhs_].second;
+	  
+	  riter->second.second = factor * (double(riter->second.first)
+					   - d2[utils::bithack::min(riter->second.first, count_type(3))]
+					   + backoff * lower);
+	}
+      }
+    }
+  } else {
+    estimate_type::rhs_set_type unigram;
+
+    count_type t1[5];
+    count_type t2[5];
+    std::fill(t1, t1 + 5, count_type(0));
+    std::fill(t2, t2 + 5, count_type(0));
+      
+    {
+      estimate_type::rule_map_type::const_iterator uiter_end = unary.end();
+      for (estimate_type::rule_map_type::const_iterator uiter = unary.begin(); uiter != uiter_end; ++ uiter) {
+	estimate_type::rule_set_type::const_iterator riter_end = uiter->second.end();
+	for (estimate_type::rule_set_type::const_iterator riter = uiter->second.begin(); riter != riter_end; ++ riter) {
+	  ++ unigram[riter->first.rhs_].first;
+	    
+	  if (riter->second.first <= 4)
+	    ++ t2[riter->second.first];
+	}
+      }
+      
+      estimate_type::rule_map_type::const_iterator biter_end = binary.end();
+      for (estimate_type::rule_map_type::const_iterator biter = binary.begin(); biter != biter_end; ++ biter) {
+	estimate_type::rule_set_type::const_iterator riter_end = biter->second.end();
+	for (estimate_type::rule_set_type::const_iterator riter = biter->second.begin(); riter != riter_end; ++ riter) {
+	  ++ unigram[riter->first.rhs_].first;
+	    
+	  if (riter->second.first <= 4)
+	    ++ t2[riter->second.first];
+	}
+      }
+      
+      estimate_type::rule_map_type::const_iterator piter_end = preterminal.end();
+      for (estimate_type::rule_map_type::const_iterator piter = preterminal.begin(); piter != piter_end; ++ piter) {
+	estimate_type::rule_set_type::const_iterator riter_end = piter->second.end();
+	for (estimate_type::rule_set_type::const_iterator riter = piter->second.begin(); riter != riter_end; ++ riter) {
+	  ++ unigram[riter->first.rhs_].first;
+	    
+	  if (riter->second.first <= 4)
+	    ++ t2[riter->second.first];
+	}
+      }
+    }
+      
+    count_type total = 0;
+      
+    {
+      estimate_type::rhs_set_type::const_iterator uiter_end = unigram.end();
+      for (estimate_type::rhs_set_type::const_iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter) {
+	if (uiter->second.first <= 4)
+	  ++ t1[uiter->second.first];
+	  
+	total += uiter->second.first;
+      }
+    }
+      
+    // estimate discount
+    double d1[4];
+    double d2[4];
+    std::fill(d1, d1 + 4, double(0));
+    std::fill(d2, d2 + 4, double(0));
+      
+    for (int k = 1; k != 3; ++ k)
+      d1[k] = double(k) - double((k + 1) * t1[1] * t1[k+1]) / double((t1[1] + 2 * t1[2]) * t1[k]);
+      
+    for (int k = 1; k != 3; ++ k)
+      d2[k] = double(k) - double((k + 1) * t2[1] * t2[k+1]) / double((t2[1] + 2 * t2[2]) * t2[k]);
+      
+    // estimate unigram probability...
+    {
+      const double factor = 1.0 / total;
+      const double uniform = 1.0 / unigram.size();
+      
+      double backoff = 0.0;
+
+      estimate_type::rhs_set_type::iterator uiter_end = unigram.end();
+      for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter)
+	if (uiter->second.first <= 3)
+	  backoff += d1[uiter->second.first];
+
+      double sum = 0.0;
+	
+      for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter) {
+	uiter->second.second = factor * (double(uiter->second.first)
+					 - d1[utils::bithack::min(uiter->second.first, count_type(3))]
+					 + backoff * uniform);
+	
+	sum += uiter->second.second;
+      }
+      
+      // make sure that we are correctly normalized
+      const double factor_sum = 1.0 / sum;
+      for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter)
+	uiter->second.second *= factor_sum;
+    }
+      
+    // estimate rule probability
+    estimate_type::rule_map_type::iterator uiter_end = unary.end();
+    for (estimate_type::rule_map_type::iterator uiter = unary.begin(); uiter != uiter_end; ++ uiter) {
+      count_type total = 0;
+	
+      estimate_type::rule_set_type::iterator riter_end = uiter->second.end();
+      for (estimate_type::rule_set_type::iterator riter = uiter->second.begin(); riter != riter_end; ++ riter)
+	total += riter->second.first;
+	
+      const double factor = 1.0 / total;
+	
+      double backoff = 0.0;
+      for (estimate_type::rule_set_type::iterator riter = uiter->second.begin(); riter != riter_end; ++ riter)
+	if (riter->second.first <= 3)
+	  backoff += d2[riter->second.first];
+	
+      for (estimate_type::rule_set_type::iterator riter = uiter->second.begin(); riter != riter_end; ++ riter) {
+	const prob_type lower = unigram[riter->first.rhs_].second;
+	  
+	riter->second.second = factor * (double(riter->second.first)
+					 - d2[utils::bithack::min(riter->second.first, count_type(3))]
+					 + backoff * lower);
+      }
+    }
+      
+    estimate_type::rule_map_type::iterator biter_end = binary.end();
+    for (estimate_type::rule_map_type::iterator biter = binary.begin(); biter != biter_end; ++ biter) {
+      count_type total = 0;
+	
+      estimate_type::rule_set_type::iterator riter_end = biter->second.end();
+      for (estimate_type::rule_set_type::iterator riter = biter->second.begin(); riter != riter_end; ++ riter)
+	total += riter->second.first;
+	
+      const double factor = 1.0 / total;
+	
+      double backoff = 0.0;
+      for (estimate_type::rule_set_type::iterator riter = biter->second.begin(); riter != riter_end; ++ riter)
+	if (riter->second.first <= 3)
+	  backoff += d2[riter->second.first];
+	
+      for (estimate_type::rule_set_type::iterator riter = biter->second.begin(); riter != riter_end; ++ riter) {
+	const prob_type lower = unigram[riter->first.rhs_].second;
+	  
+	riter->second.second = factor * (double(riter->second.first)
+					 - d2[utils::bithack::min(riter->second.first, count_type(3))]
+					 + backoff * lower);
+      }
+    }
+
+    estimate_type::rule_map_type::iterator piter_end = preterminal.end();
+    for (estimate_type::rule_map_type::iterator piter = preterminal.begin(); piter != piter_end; ++ piter) {
+      count_type total = 0;
+	
+      estimate_type::rule_set_type::iterator riter_end = piter->second.end();
+      for (estimate_type::rule_set_type::iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
+	total += riter->second.first;
+	
+      const double factor = 1.0 / total;
+	
+      double backoff = 0.0;
+      for (estimate_type::rule_set_type::iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
+	if (riter->second.first <= 3)
+	  backoff += d2[riter->second.first];
+	
+      for (estimate_type::rule_set_type::iterator riter = piter->second.begin(); riter != riter_end; ++ riter) {
+	const prob_type lower = unigram[riter->first.rhs_].second;
+	  
+	riter->second.second = factor * (double(riter->second.first)
+					 - d2[utils::bithack::min(riter->second.first, count_type(3))]
+					 + backoff * lower);
+      }
+    }
+  }
+
+  {
+    estimate_type::rule_map_type::const_iterator uiter_end = unary.end();
+    for (estimate_type::rule_map_type::const_iterator uiter = unary.begin(); uiter != uiter_end; ++ uiter) {
+      estimate_type::rule_set_type::const_iterator riter_end = uiter->second.end();
+      for (estimate_type::rule_set_type::const_iterator riter = uiter->second.begin(); riter != riter_end; ++ riter)
+	pcfg.unary_[riter->first.lhs_][riter->first] = riter->second.second;
+    }
+    
+    estimate_type::rule_map_type::const_iterator biter_end = binary.end();
+    for (estimate_type::rule_map_type::const_iterator biter = binary.begin(); biter != biter_end; ++ biter) {
+      estimate_type::rule_set_type::const_iterator riter_end = biter->second.end();
+      for (estimate_type::rule_set_type::const_iterator riter = biter->second.begin(); riter != riter_end; ++ riter)
+	pcfg.binary_[riter->first.lhs_][riter->first] = riter->second.second;
+    }
+    
+    estimate_type::rule_map_type::const_iterator piter_end = preterminal.end();
+    for (estimate_type::rule_map_type::const_iterator piter = preterminal.begin(); piter != piter_end; ++ piter) {
+      estimate_type::rule_set_type::const_iterator riter_end = piter->second.end();
+      for (estimate_type::rule_set_type::const_iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
+	pcfg.preterminal_[riter->first.lhs_][riter->first] = riter->second.second;
+    }
+  }
+}
+
+void output_grammar(const path_type& path,
+		    const grammar_pcfg_type& grammar)
+{
+  utils::compress_ostream os(path, 1024 * 1024);
+  os.precision(10);
+  
   os << grammar.goal_ << '\n';
-  os << sentence << '\n';
+  os << grammar.sentence_ << '\n';
   os << '\n';
 
-  grammar_type::rule_set_type::const_iterator uiter_end = grammar.unary_.end();
-  for (grammar_type::rule_set_type::const_iterator uiter = grammar.unary_.begin(); uiter != uiter_end; ++ uiter)
-    os << *uiter << '\n';
+  grammar_pcfg_type::rule_map_type::const_iterator uiter_end = grammar.unary_.end();
+  for (grammar_pcfg_type::rule_map_type::const_iterator uiter = grammar.unary_.begin(); uiter != uiter_end; ++ uiter) {
+    grammar_pcfg_type::rule_set_type::const_iterator riter_end = uiter->second.end();
+    for (grammar_pcfg_type::rule_set_type::const_iterator riter = uiter->second.begin(); riter != riter_end; ++ riter)
+      os << riter->first << " ||| " << std::log(riter->second) << '\n';
+  }
   os << '\n';
   
-  grammar_type::rule_set_type::const_iterator biter_end = grammar.binary_.end();
-  for (grammar_type::rule_set_type::const_iterator biter = grammar.binary_.begin(); biter != biter_end; ++ biter)
-    os << *biter << '\n';
+  grammar_pcfg_type::rule_map_type::const_iterator biter_end = grammar.binary_.end();
+  for (grammar_pcfg_type::rule_map_type::const_iterator biter = grammar.binary_.begin(); biter != biter_end; ++ biter) {
+    grammar_pcfg_type::rule_set_type::const_iterator riter_end = biter->second.end();
+    for (grammar_pcfg_type::rule_set_type::const_iterator riter = biter->second.begin(); riter != riter_end; ++ riter)
+      os << riter->first << " ||| " << std::log(riter->second) << '\n';
+  }
   os << '\n';
 
-  grammar_type::rule_set_type::const_iterator piter_end = grammar.preterminal_.end();
-  for (grammar_type::rule_set_type::const_iterator piter = grammar.preterminal_.begin(); piter != piter_end; ++ piter)
-    os << *piter << '\n';
+  grammar_pcfg_type::rule_map_type::const_iterator piter_end = grammar.preterminal_.end();
+  for (grammar_pcfg_type::rule_map_type::const_iterator piter = grammar.preterminal_.begin(); piter != piter_end; ++ piter) {
+    grammar_pcfg_type::rule_set_type::const_iterator riter_end = piter->second.end();
+    for (grammar_pcfg_type::rule_set_type::const_iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
+      os << riter->first << " ||| " << std::log(riter->second) << '\n';
+  }
 }
 
 
@@ -307,6 +837,8 @@ void options(int argc, char** argv)
     
     ("binarize-left",  po::bool_switch(&binarize_left),  "left recursive (or left heavy) binarization (default)")
     ("binarize-right", po::bool_switch(&binarize_right), "right recursive (or right heavy) binarization")
+    
+    ("split-preterminal", po::bool_switch(&split_preterminal), "split preterminals from other non-terminals (like Penn-treebank)")
     
     ("cutoff",    po::value<int>(&cutoff)->default_value(cutoff),           "OOV cutoff")
     

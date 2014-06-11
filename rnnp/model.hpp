@@ -11,8 +11,10 @@
 #include <iostream>
 
 #include <rnnp/symbol.hpp>
+#include <rnnp/feature.hpp>
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
+#include <rnnp/weight_vector.hpp>
 
 #include <rnnp/model/model_type.hpp>
 
@@ -33,6 +35,8 @@ namespace rnnp
     
     typedef Symbol symbol_type;
     typedef Symbol word_type;
+    
+    typedef Feature feature_type;
 
     typedef Grammar   grammar_type;
     typedef Signature signature_type;
@@ -41,6 +45,8 @@ namespace rnnp
     
     typedef Eigen::Matrix<parameter_type, Eigen::Dynamic, Eigen::Dynamic> tensor_type;
     typedef Eigen::Map<tensor_type>                                       matrix_type;
+
+    typedef WeightVector<parameter_type, std::allocator<parameter_type> > weights_type;
 
     typedef symbol_type category_type;
     
@@ -108,6 +114,11 @@ namespace rnnp
 			const path_type& path_bin,
 			tensor_type& matrix);
     
+    void write_weights(const path_type& path,
+		       const weights_type& weights) const;
+    void read_weights(const path_type& path,
+		      weights_type& weights);
+
     void write_category(const path_type& path_txt,
 			const path_type& path_bin,
 			const tensor_type& matrix,
@@ -131,6 +142,11 @@ namespace rnnp
 			 const tensor_type& matrix) const;
     void read_embedding(std::istream& is,
 			tensor_type& matrix);
+
+    void write_weights(std::ostream& os,
+		       const weights_type& weights) const;
+    void read_weights(std::istream& is,
+		      weights_type& weights);
     
     void write_category(std::ostream& os,
 			const tensor_type& matrix,
@@ -150,6 +166,17 @@ namespace rnnp
     tensor_type& plus_equal(tensor_type& x, const tensor_type& y);
     tensor_type& minus_equal(tensor_type& x, const tensor_type& y);
     
+    weights_type& plus_equal(weights_type& x, const weights_type& y)
+    {
+      x += y;
+      return x;
+    }
+    weights_type& minus_equal(weights_type& x, const weights_type& y)
+    {
+      x -= y;
+      return x;
+    }
+
   public:
     word_type::id_type terminal(const word_type& x) const
     {

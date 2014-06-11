@@ -11,6 +11,7 @@ librnnp-model.la
 
 librnnpincludedir= $(pkgincludedir)/rnnp
 
+featuredir   = $(pkgincludedir)/rnnp/feature
 objectivedir = $(pkgincludedir)/rnnp/objective
 optimizedir  = $(pkgincludedir)/rnnp/optimize
 gradientdir  = $(pkgincludedir)/rnnp/gradient
@@ -18,6 +19,10 @@ modeldir     = $(pkgincludedir)/rnnp/model
 parserdir    = $(pkgincludedir)/rnnp/parser
 semiringdir  = $(pkgincludedir)/rnnp/semiring
 signaturedir = $(pkgincludedir)/rnnp/signature
+
+dist_feature_HEADERS = \
+feature/grammar.hpp \
+feature/penalty.hpp
 
 dist_objective_HEADERS = \
 objective/margin.hpp \
@@ -104,7 +109,16 @@ binarize_left.hpp \
 binarize_right.hpp \
 debinarize.hpp \
 derivation.hpp \
+dot_product.hpp \
 evalb.hpp \
+feature.hpp \
+feature_function.hpp \
+feature_set.hpp \
+feature_state.hpp \
+feature_vector.hpp \
+feature_vector_codec.hpp \
+feature_vector_compact.hpp \
+feature_vector_linear.hpp \
 forest.hpp \
 gradient.hpp \
 grammar.hpp \
@@ -127,10 +141,13 @@ sort.hpp \
 span.hpp \
 state.hpp \
 symbol.hpp \
-tree.hpp
+tree.hpp \
+weight_vector.hpp
 
 librnnp_la_SOURCES = \
 evalb.cpp \
+feature.cpp \
+feature_set.cpp \
 forest.cpp \
 gradient.cpp \
 grammar.cpp \

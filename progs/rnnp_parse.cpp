@@ -21,6 +21,7 @@
 #include <rnnp/sentence.hpp>
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
+#include <rnnp/feature_set.hpp>
 #include <rnnp/model_traits.hpp>
 #include <rnnp/parser.hpp>
 #include <rnnp/derivation.hpp>
@@ -41,9 +42,11 @@
 typedef rnnp::Sentence      sentence_type;
 typedef rnnp::Grammar       grammar_type;
 typedef rnnp::Signature     signature_type;
+typedef rnnp::FeatureSet    feature_set_type;
 typedef rnnp::Model         model_type;
 
 typedef boost::filesystem::path path_type;
+typedef std::vector<std::string, std::allocator<std::string> > feat_set_type;
 
 path_type input_file = "-";
 path_type output_file = "-";
@@ -53,6 +56,7 @@ bool forest_mode = false;
 
 path_type grammar_file;
 std::string signature_name = "none";
+feat_set_type feature_functions;
 
 bool model_model1 = false;
 bool model_model2 = false;
@@ -76,11 +80,14 @@ path_type embedding_file;
 
 int threads = 1;
 
+bool feature_function_list = false;
+
 int debug = 0;
 
 template <typename Theta>
 void parse(const grammar_type& grammar,
 	   const signature_type& signature,
+	   const feature_set_type& feats,
 	   Theta& theta,
 	   const path_type& input_path,
 	   const path_type& output_path);
@@ -148,55 +155,60 @@ int main(int argc, char** argv)
 
     signature_type::signature_ptr_type signature(signature_type::create(signature_name));
 
+    feature_set_type feats(feature_functions.begin(), feature_functions.end());
+    
+    if (debug)
+      std::cerr << "# of features: " << feats.size() << std::endl;
+
     if (model_model1) {
       if (debug)
 	std::cerr << "model1" << std::endl;
 
       rnnp::model::Model1 theta(hidden_size, embedding_size, grammar);
       
-      parse(grammar, *signature, theta, input_file, output_file);
+      parse(grammar, *signature, feats, theta, input_file, output_file);
     } else if (model_model2) {
       if (debug)
 	std::cerr << "model2" << std::endl;
       
       rnnp::model::Model2 theta(hidden_size, embedding_size, grammar);
       
-      parse(grammar, *signature, theta, input_file, output_file);
+      parse(grammar, *signature, feats, theta, input_file, output_file);
     } else if (model_model3) {
       if (debug)
 	std::cerr << "model3" << std::endl;
 
       rnnp::model::Model3 theta(hidden_size, embedding_size, grammar);
       
-      parse(grammar, *signature, theta, input_file, output_file);
+      parse(grammar, *signature, feats, theta, input_file, output_file);
     } else if (model_model4) {
       if (debug)
 	std::cerr << "model4" << std::endl;
       
       rnnp::model::Model4 theta(hidden_size, embedding_size, grammar);
       
-      parse(grammar, *signature, theta, input_file, output_file);
+      parse(grammar, *signature, feats, theta, input_file, output_file);
     } else if (model_model5) {
       if (debug)
 	std::cerr << "model5" << std::endl;
       
       rnnp::model::Model5 theta(hidden_size, embedding_size, grammar);
       
-      parse(grammar, *signature, theta, input_file, output_file);
+      parse(grammar, *signature, feats, theta, input_file, output_file);
     } else if (model_model6) {
       if (debug)
 	std::cerr << "model6" << std::endl;
       
       rnnp::model::Model6 theta(hidden_size, embedding_size, grammar);
       
-      parse(grammar, *signature, theta, input_file, output_file);
+      parse(grammar, *signature, feats, theta, input_file, output_file);
     } else if (model_model7) {
       if (debug)
 	std::cerr << "model7" << std::endl;
       
       rnnp::model::Model7 theta(hidden_size, embedding_size, grammar);
       
-      parse(grammar, *signature, theta, input_file, output_file);
+      parse(grammar, *signature, feats, theta, input_file, output_file);
     } else
       throw std::runtime_error("no model?");
     
@@ -254,11 +266,13 @@ struct Mapper : public MapReduce
 {
   Mapper(const grammar_type& grammar,
 	 const signature_type& signature,
+	 const feature_set_type& feats,
 	 const Theta&   theta,
 	 queue_type& mapper,
 	 queue_type& reducer)
     : grammar_(grammar),
       signature_(signature),
+      feats_(feats),
       theta_(theta),
       mapper_(mapper),
       reducer_(reducer) {}
@@ -294,6 +308,7 @@ struct Mapper : public MapReduce
     resource_.clear();
 
     signature_type::signature_ptr_type signature(signature_.clone());
+    feature_set_type feats(feats_.clone());
     
     for (;;) {
       mapper_.pop_swap(mapped);
@@ -304,7 +319,7 @@ struct Mapper : public MapReduce
       
       utils::resource start;
       
-      parser(input, grammar_, *signature, theta_, kbest_size, derivations);
+      parser(input, grammar_, *signature, feats, theta_, kbest_size, derivations);
       
       utils::resource end;
       
@@ -344,10 +359,15 @@ struct Mapper : public MapReduce
 	    
 	    os << reduced.id_ << " ||| " << derivation.tree_;
 	    
-	    karma::generate(std::ostream_iterator<char>(os), " ||| " << double10 << '\n', diter->score());
+	    karma::generate(std::ostream_iterator<char>(os),
+			    " ||| " << -((standard::string << '=' << double10) % ' ')
+			    << " ||| " << double10
+			    << '\n',
+			    derivation.features_,
+			    diter->score());
 	  }
 	} else
-	  os << reduced.id_ << " ||| ||| 0" << '\n';
+	  os << reduced.id_ << " ||| ||| ||| 0" << '\n';
       }
       
       os.reset();
@@ -358,9 +378,10 @@ struct Mapper : public MapReduce
     }
   }
   
-  const grammar_type&   grammar_;
-  const signature_type& signature_;
-  const Theta&          theta_;
+  const grammar_type&     grammar_;
+  const signature_type&   signature_;
+  const feature_set_type& feats_;
+  const Theta&            theta_;
   
   queue_type& mapper_;
   queue_type& reducer_;
@@ -450,6 +471,7 @@ struct Reducer : public MapReduce
 template <typename Theta>
 void parse(const grammar_type& grammar,
 	   const signature_type& signature,
+	   const feature_set_type& feats,
 	   Theta& theta,
 	   const path_type& input_path,
 	   const path_type& output_path)
@@ -490,7 +512,7 @@ void parse(const grammar_type& grammar,
   reducers.add_thread(new boost::thread(reducer_type(output_path, queue_reducer)));
   
   std::vector<mapper_type, std::allocator<mapper_type> > workers(threads,
-								 mapper_type(grammar, signature, theta, queue_mapper, queue_reducer));
+								 mapper_type(grammar, signature, feats, theta, queue_mapper, queue_reducer));
   
   boost::thread_group mappers;
   for (int i = 0; i != threads; ++ i)
@@ -550,6 +572,7 @@ void options(int argc, char** argv)
     
     ("grammar",    po::value<path_type>(&grammar_file),                                    "grammar file")
     ("signature",  po::value<std::string>(&signature_name)->default_value(signature_name), "language specific signature")
+    ("feature",    po::value<feat_set_type>(&feature_functions)->composing(),              "feature function(s)")
 
     ("model1",    po::bool_switch(&model_model1), "parsing by model1")
     ("model2",    po::bool_switch(&model_model2), "parsing by model2 (default)")
@@ -574,6 +597,8 @@ void options(int argc, char** argv)
   opts_command.add_options()
     ("config",  po::value<path_type>(),                    "configuration file")
     ("threads", po::value<int>(&threads)->default_value(threads), "# of threads")
+
+    ("feature-list", po::bool_switch(&feature_function_list), "list of feature functions")
     
     ("debug", po::value<int>(&debug)->implicit_value(1), "debug level")
     ("help", "help message");

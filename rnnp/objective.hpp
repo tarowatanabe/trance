@@ -48,6 +48,8 @@ namespace rnnp
     typedef parser_type::heap_type      heap_type;
     typedef parser_type::agenda_type    agenda_type;
 
+    typedef parser_type::feature_vector_type feature_vector_type;
+
     typedef Loss loss_type;
     
     struct backward_type

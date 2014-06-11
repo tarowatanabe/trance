@@ -67,14 +67,23 @@ namespace rnnp
 	state_set_type::iterator siter_end = states_[step].end();
 	for (state_set_type::iterator siter = states_[step].begin(); siter != siter_end; ++ siter) {
 	  const state_type& state = *siter;
-	    
+	  
 	  backward_type& backward = backward_[state];
 	    
 	  if (! backward.delta_.rows())
 	    backward.delta_ = tensor_type::Zero(theta.hidden_, 1);
-	    
+
 	  //std::cerr << "step: " << step << " loss: " << backward.loss_ << std::endl;
+
+	  // feature set
+	  if (option.learn_classification()) {
+	    const feature_vector_type& feats = *state.feature_vector();
 	    
+	    feature_vector_type::const_iterator fiter_end = feats.end();
+	    for (feature_vector_type::const_iterator fiter = feats.begin(); fiter != fiter_end; ++ fiter)
+	      g.Wfe_[fiter->first] += backward.loss_ * fiter->second;
+	  }
+	  
 	  switch (state.operation().operation()) {
 	  case operation_type::AXIOM: {
 	    // initial bias
@@ -284,6 +293,15 @@ namespace rnnp
 	    backward.delta_ = tensor_type::Zero(theta.hidden_, 1);
 	    
 	  //std::cerr << "step: " << step << " loss: " << backward.loss_ << std::endl;
+	  
+	  // feature set
+	  if (option.learn_classification()) {
+	    const feature_vector_type& feats = *state.feature_vector();
+	    
+	    feature_vector_type::const_iterator fiter_end = feats.end();
+	    for (feature_vector_type::const_iterator fiter = feats.begin(); fiter != fiter_end; ++ fiter)
+	      g.Wfe_[fiter->first] += backward.loss_ * fiter->second;
+	  }
 	    
 	  switch (state.operation().operation()) {
 	  case operation_type::AXIOM: {
@@ -511,6 +529,15 @@ namespace rnnp
 	    backward.delta_ = tensor_type::Zero(theta.hidden_, 1);
 	    
 	  //std::cerr << "step: " << step << " loss: " << backward.loss_ << std::endl;
+
+	  // feature set
+	  if (option.learn_classification()) {
+	    const feature_vector_type& feats = *state.feature_vector();
+	    
+	    feature_vector_type::const_iterator fiter_end = feats.end();
+	    for (feature_vector_type::const_iterator fiter = feats.begin(); fiter != fiter_end; ++ fiter)
+	      g.Wfe_[fiter->first] += backward.loss_ * fiter->second;
+	  }
 	    
 	  switch (state.operation().operation()) {
 	  case operation_type::AXIOM: {
@@ -789,6 +816,15 @@ namespace rnnp
 	    backward.delta_ = tensor_type::Zero(theta.hidden_, 1);
 	    
 	  //std::cerr << "step: " << step << " loss: " << backward.loss_ << std::endl;
+
+	  // feature set
+	  if (option.learn_classification()) {
+	    const feature_vector_type& feats = *state.feature_vector();
+	    
+	    feature_vector_type::const_iterator fiter_end = feats.end();
+	    for (feature_vector_type::const_iterator fiter = feats.begin(); fiter != fiter_end; ++ fiter)
+	      g.Wfe_[fiter->first] += backward.loss_ * fiter->second;
+	  }
 	    
 	  switch (state.operation().operation()) {
 	  case operation_type::AXIOM: {
@@ -1039,6 +1075,15 @@ namespace rnnp
 	    backward.delta_ = tensor_type::Zero(theta.hidden_, 1);
 	    
 	  //std::cerr << "step: " << step << " loss: " << backward.loss_ << std::endl;
+
+	  // feature set
+	  if (option.learn_classification()) {
+	    const feature_vector_type& feats = *state.feature_vector();
+	    
+	    feature_vector_type::const_iterator fiter_end = feats.end();
+	    for (feature_vector_type::const_iterator fiter = feats.begin(); fiter != fiter_end; ++ fiter)
+	      g.Wfe_[fiter->first] += backward.loss_ * fiter->second;
+	  }
 	    
 	  switch (state.operation().operation()) {
 	  case operation_type::AXIOM: {
@@ -1336,6 +1381,15 @@ namespace rnnp
 	    backward.delta_ = tensor_type::Zero(theta.hidden_, 1);
 	    
 	  //std::cerr << "step: " << step << " loss: " << backward.loss_ << std::endl;
+
+	  // feature set
+	  if (option.learn_classification()) {
+	    const feature_vector_type& feats = *state.feature_vector();
+	    
+	    feature_vector_type::const_iterator fiter_end = feats.end();
+	    for (feature_vector_type::const_iterator fiter = feats.begin(); fiter != fiter_end; ++ fiter)
+	      g.Wfe_[fiter->first] += backward.loss_ * fiter->second;
+	  }
 	    
 	  switch (state.operation().operation()) {
 	  case operation_type::AXIOM: {
@@ -1663,6 +1717,15 @@ namespace rnnp
 	    backward.delta_ = tensor_type::Zero(theta.hidden_, 1);
 	    
 	  //std::cerr << "step: " << step << " loss: " << backward.loss_ << std::endl;
+	  
+	  // feature set
+	  if (option.learn_classification()) {
+	    const feature_vector_type& feats = *state.feature_vector();
+	    
+	    feature_vector_type::const_iterator fiter_end = feats.end();
+	    for (feature_vector_type::const_iterator fiter = feats.begin(); fiter != fiter_end; ++ fiter)
+	      g.Wfe_[fiter->first] += backward.loss_ * fiter->second;
+	  }
 	    
 	  switch (state.operation().operation()) {
 	  case operation_type::AXIOM: {

@@ -13,6 +13,8 @@
 #include <rnnp/model.hpp>
 #include <rnnp/span.hpp>
 #include <rnnp/state.hpp>
+#include <rnnp/feature_set.hpp>
+#include <rnnp/dot_product.hpp>
 
 namespace rnnp
 {
@@ -38,10 +40,15 @@ namespace rnnp
       typedef model_type::parameter_type parameter_type;
       typedef model_type::tensor_type    tensor_type;
       typedef model_type::matrix_type    matrix_type;
+
+      typedef rnnp::FeatureSet feature_set_type;
       
       typedef Operation operation_type;
       
       typedef State state_type;
+
+      typedef state_type::feature_state_type  feature_state_type;
+      typedef state_type::feature_vector_type feature_vector_type;
     };
   };
 };

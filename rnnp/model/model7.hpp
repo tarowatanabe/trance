@@ -101,6 +101,7 @@ namespace rnnp
 	head_.swap(x.head_);
       
 	Wc_.swap(x.Wc_);
+	Wfe_.swap(x.Wfe_);
       
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
@@ -135,6 +136,7 @@ namespace rnnp
 	head_.setZero();
       
 	Wc_.setZero();
+	Wfe_.clear();
       
 	Wsh_.setZero();
 	Bsh_.setZero();
@@ -209,6 +211,9 @@ namespace rnnp
     
       // classification
       tensor_type Wc_;
+      
+      // features
+      weights_type Wfe_;
     
       // shift
       tensor_type Wsh_;
