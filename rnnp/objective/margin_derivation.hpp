@@ -66,11 +66,8 @@ namespace rnnp
 	      
 	      const double loss_factor = prob_candidate * prob_oracle;
 	      
-	      backward_type& backward_candidate = backward_[state_candidate];
-	      backward_type& backward_oracle    = backward_[state_oracle];
-	      
-	      backward_candidate.loss_ += loss_factor;
-	      backward_oracle.loss_    -= loss_factor;
+	      backward_[state_candidate].loss_ += loss_factor;
+	      backward_[state_oracle].loss_    -= loss_factor;
 	      
 	      loss += error * loss_factor;
 	      found = true;
