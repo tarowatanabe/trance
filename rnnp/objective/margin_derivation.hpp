@@ -32,7 +32,7 @@ namespace rnnp
 	// this should not happen...
 	if (step_back == 0) return 0.0;
 
-	if (option.margin_all) {
+	if (option.margin_all_) {
 	  const size_type kbest_candidate_size = candidates.agenda_[step_back].size();
 	  const size_type kbest_oracle_size    = oracles.agenda_[step_back].size();
 	  
