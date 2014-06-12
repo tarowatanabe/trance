@@ -40,52 +40,65 @@ namespace rnnp
 	const size_type step = violation(candidates, oracles, option);
 	
 	if (step == size_type(-1)) return 0.0;
+
+	if (option.margin_all_) {
+	  weight_type Z_candidate;
+	  weight_type Z_oracle;
+	  
+	  for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
+	    Z_candidate += rnnp::semiring::traits<weight_type>::exp(candidates.agenda_[step][c].score());
+	  
+	  for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o)
+	    Z_oracle += rnnp::semiring::traits<weight_type>::exp(oracles.agenda_[step][o].score());
+	  
+	  double loss = 0;
+	  
+	  for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
+	    for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o) {
+	      const state_type& state_candidate = candidates.agenda_[step][c];
+	      const state_type& state_oracle    = oracles.agenda_[step][o];
+	      
+	      const double& score_candidate = state_candidate.score();
+	      const double& score_oracle    = state_oracle.score();
+	      
+	      const bool suffered = score_candidate > score_oracle;
+	      const double error = std::max(1.0 - (score_oracle - score_candidate), 0.0);
+	      
+	      if (! suffered || error <= 0.0) continue;
+	      
+	      const weight_type prob_candidate = semiring::traits<weight_type>::exp(score_candidate) / Z_candidate;
+	      const weight_type prob_oracle    = semiring::traits<weight_type>::exp(score_oracle)    / Z_oracle;
+	      
+	      const double loss_factor = prob_candidate * prob_oracle;
+	      
+	      backward_type& backward_candidate = backward_[state_candidate];
+	      backward_type& backward_oracle    = backward_[state_oracle];
+	      
+	      backward_candidate.loss_ += loss_factor;
+	      backward_oracle.loss_    -= loss_factor;
+	      
+	      loss += error * loss_factor;
+	    }
 	
-	weight_type Z_candidate;
-	weight_type Z_oracle;
-	
-	for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	  Z_candidate += rnnp::semiring::traits<weight_type>::exp(candidates.agenda_[step][c].score());
-	
-	for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o)
-	  Z_oracle += rnnp::semiring::traits<weight_type>::exp(oracles.agenda_[step][o].score());
-	
-	double loss = 0;
-	
-	for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	  for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o) {
-	    const state_type& state_candidate = candidates.agenda_[step][c];
-	    const state_type& state_oracle    = oracles.agenda_[step][o];
-	    
-	    const double& score_candidate = state_candidate.score();
-	    const double& score_oracle    = state_oracle.score();
-	    
-	    const bool suffered = score_candidate > score_oracle;
-	    const double error = std::max(1.0 - (score_oracle - score_candidate), 0.0);
-	    
-	    if (! suffered || error <= 0.0) continue;
-	    
-	    const weight_type prob_candidate = semiring::traits<weight_type>::exp(score_candidate) / Z_candidate;
-	    const weight_type prob_oracle    = semiring::traits<weight_type>::exp(score_oracle)    / Z_oracle;
-	    
-	    const double loss_factor = prob_candidate * prob_oracle;
-	    
-	    backward_type& backward_candidate = backward_[state_candidate];
-	    backward_type& backward_oracle    = backward_[state_oracle];
-	    
-	    backward_candidate.loss_ += loss_factor;
-	    backward_oracle.loss_    -= loss_factor;
-	    
-	    loss += error * loss_factor;
-	  }
-	
-	for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	  states_[candidates.agenda_[step][c].step()].insert(candidates.agenda_[step][c]);
-	
-	for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o)
-	  states_[oracles.agenda_[step][o].step()].insert(oracles.agenda_[step][o]);
-	
-	return loss;
+	  for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
+	    states_[candidates.agenda_[step][c].step()].insert(candidates.agenda_[step][c]);
+	  
+	  for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o)
+	    states_[oracles.agenda_[step][o].step()].insert(oracles.agenda_[step][o]);
+	  
+	  return loss;
+	} else {
+	  const state_type& state_candidate = candidates.agenda_[step].back();
+	  const state_type& state_oracle    = oracles.agenda_[step].back();
+	  
+	  backward_[state_candidate].loss_ += 1.0;
+	  backward_[state_oracle].loss_    -= 1.0;	  
+	  
+	  states_[state_candidate.step()].insert(state_candidate);
+	  states_[state_oracle.step()].insert(state_oracle);
+	  
+	  return std::max(1.0 - (state_oracle.score() - state_candidate.score()), 0.0);
+	}
       }
     };
   };

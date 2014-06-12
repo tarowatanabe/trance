@@ -78,6 +78,7 @@ namespace rnnp
     double eta0_;
     bool   shrinking_;
     bool   decay_;
+    bool   margin_all_;
 
     // other parameters
     double scale_;

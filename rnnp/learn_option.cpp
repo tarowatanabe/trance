@@ -23,6 +23,7 @@ namespace rnnp
       eta0_(0.01),
       shrinking_(false),
       decay_(false),
+      margin_all_(false),
       scale_(0)
   {
     
@@ -38,6 +39,7 @@ namespace rnnp
       eta0_(0.01),
       shrinking_(false),
       decay_(false),
+      margin_all_(false),
       scale_(0)
   {
     typedef rnnp::Option option_type;
@@ -120,6 +122,8 @@ namespace rnnp
 	shrinking_ = utils::lexical_cast<bool>(oiter->second);
       else if (utils::ipiece(oiter->first) == "decay")
 	decay_ = utils::lexical_cast<bool>(oiter->second);
+      else if (utils::ipiece(oiter->first) == "margin-all")
+	margin_all_ = utils::lexical_cast<bool>(oiter->second);
       else if (utils::ipiece(oiter->first) == "scale")
 	scale_ = utils::lexical_cast<double>(oiter->second);
       else
@@ -224,6 +228,9 @@ namespace rnnp
     
     if (option.decay_)
       opt.push_back(std::make_pair("decay", utils::lexical_cast<std::string>(option.decay_)));
+    
+    if (option.margin_all_)
+      opt.push_back(std::make_pair("margin-all", utils::lexical_cast<std::string>(option.margin_all_)));
 
     if (option.scale_ > 0)
       opt.push_back(std::make_pair("scale", utils::lexical_cast<std::string>(option.scale_)));
