@@ -40,7 +40,7 @@ namespace rnnp
     
     int num = 0;
     
-    if (! qi::phrase_parse(iter, iter_end, "model" >> qi::int_, standard::space, num) || iter != iter_end)
+    if (! qi::phrase_parse(iter, iter_end, qi::no_case["model"] >> qi::int_, standard::space, num) || iter != iter_end)
       return model::NONE;
     
     switch (num) {
@@ -50,7 +50,6 @@ namespace rnnp
     case 4: return model::MODEL4;
     case 5: return model::MODEL5;
     case 6: return model::MODEL6;
-    case 7: return model::MODEL7;
     default: return model::NONE;
     }
   }

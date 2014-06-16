@@ -78,6 +78,30 @@ namespace rnnp
       states_.clear();
       states_.resize(std::max(candidates.agenda_.size(), oracles.agenda_.size()));
     }
+
+    template <typename Theta>
+    backward_type& backward_state(const Theta& theta, const state_type& state, const double& loss)
+    {
+      backward_type& back = backward_[state];
+      
+      back.loss_ += loss;
+      
+      if (! back.delta_.rows())
+	back.delta_ = tensor_type::Zero(theta.hidden_, 1);
+      
+      return back;
+    }
+
+    template <typename Theta>
+    backward_type& backward_state(const Theta& theta, const state_type& state)
+    {
+      backward_type& back = backward_[state];
+      
+      if (! back.delta_.rows())
+	back.delta_ = tensor_type::Zero(theta.hidden_, 1);
+      
+      return back;
+    }
     
     derivation_type   derivation_;
     backward_set_type backward_;

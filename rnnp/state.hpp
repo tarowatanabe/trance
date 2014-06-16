@@ -143,7 +143,13 @@ namespace rnnp
 
     inline const state_type& reduced() const { return *reinterpret_cast<const state_type*>(buffer_ + offset_reduced); }
     inline       state_type& reduced()       { return *reinterpret_cast<state_type*>(buffer_ + offset_reduced); }
-        
+
+    inline const state_type& left() const { return reduced(); }
+    inline       state_type& left()       { return reduced(); }
+    
+    inline const state_type& right() const { return derivation(); }
+    inline       state_type& right()       { return derivation(); }
+    
     inline const feature_state_type& feature_state() const { return *reinterpret_cast<const feature_state_type*>(buffer_ + offset_feature_state); } 
     inline       feature_state_type& feature_state()       { return *reinterpret_cast<feature_state_type*>(buffer_ + offset_feature_state); } 
 

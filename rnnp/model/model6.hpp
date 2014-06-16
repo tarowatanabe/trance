@@ -66,24 +66,24 @@ namespace rnnp
       void random(Gen& gen)
       {
 	const double range_embed = std::sqrt(6.0 / (embedding_ + 1));
-	const double range_head  = std::sqrt(6.0 / (hidden_ + 1));
 	const double range_c  = std::sqrt(6.0 / (hidden_ + 1));
-	const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
-	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_));
-	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_));
+	const double range_sh = std::sqrt(6.0 / (hidden_ + embedding_ + hidden_ * 5));
+	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ * 5));
+	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ * 5));
+	const double range_qu = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
 	const double range_f  = std::sqrt(6.0 / (hidden_ + hidden_));
 	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
-	head_     = head_.array().unaryExpr(__randomize<Gen>(gen, range_head));
       
 	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
       
-	Wsh_  = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
-	Wrel_ = Wrel_.array().unaryExpr(__randomize<Gen>(gen, range_re));
-	Wrer_ = Wrer_.array().unaryExpr(__randomize<Gen>(gen, range_re));
+	Wsh_ = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
+	Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
       
-	Wu_ = Wu_.array().unaryExpr(__randomize<Gen>(gen, range_u));
+	Wu_  = Wu_.array().unaryExpr(__randomize<Gen>(gen, range_u));
+	
+	Wqu_ = Wqu_.array().unaryExpr(__randomize<Gen>(gen, range_qu));
       
 	Wf_ = Wf_.array().unaryExpr(__randomize<Gen>(gen, range_f));
 	Wi_ = Wi_.array().unaryExpr(__randomize<Gen>(gen, range_i));
@@ -95,22 +95,22 @@ namespace rnnp
 	Model::swap(static_cast<Model&>(x));
 	
 	terminal_.swap(x.terminal_);
-	head_.swap(x.head_);
       
 	Wc_.swap(x.Wc_);
 	Wfe_.swap(x.Wfe_);
       
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
+      
+	Wre_.swap(x.Wre_);
+	Bre_.swap(x.Bre_);
 
-	Wrel_.swap(x.Wrel_);
-	Brel_.swap(x.Brel_);
-      
-	Wrer_.swap(x.Wrer_);
-	Brer_.swap(x.Brer_);
-      
 	Wu_.swap(x.Wu_);
 	Bu_.swap(x.Bu_);
+
+	Wqu_.swap(x.Wqu_);
+	Bqu_.swap(x.Bqu_);
+	Bqe_.swap(x.Bqe_);
 
 	Wf_.swap(x.Wf_);
 	Bf_.swap(x.Bf_);
@@ -126,7 +126,6 @@ namespace rnnp
 	Model::clear();
 
 	terminal_.setZero();
-	head_.setZero();
       
 	Wc_.setZero();
 	Wfe_.clear();
@@ -134,12 +133,9 @@ namespace rnnp
 	Wsh_.setZero();
 	Bsh_.setZero();
 
-	Wrel_.setZero();
-	Brel_.setZero();
+	Wre_.setZero();
+	Bre_.setZero();
 
-	Wrer_.setZero();
-	Brer_.setZero();
-      
 	Wu_.setZero();
 	Bu_.setZero();
       
@@ -149,6 +145,10 @@ namespace rnnp
 	Wi_.setZero();
 	Bi_.setZero();
 
+	Wqu_.setZero();
+	Bqu_.setZero();
+	Bqe_.setZero();
+	
 	Ba_.setZero();
       }
     
@@ -160,13 +160,14 @@ namespace rnnp
 	norm += Wc_.lpNorm<1>();
 	
 	norm += Wsh_.lpNorm<1>();
-	norm += Wrel_.lpNorm<1>();
-	norm += Wrer_.lpNorm<1>();
+	norm += Wre_.lpNorm<1>();
       
 	norm += Wu_.lpNorm<1>();
 	norm += Wf_.lpNorm<1>();
 	norm += Wi_.lpNorm<1>();
-            
+	
+	norm += Wqu_.lpNorm<1>();
+	
 	return norm;
       }
     
@@ -177,26 +178,24 @@ namespace rnnp
 	norm += Wc_.squaredNorm();
       
 	norm += Wsh_.squaredNorm();
-	norm += Wrel_.squaredNorm();
-	norm += Wrer_.squaredNorm();
+	norm += Wre_.squaredNorm();
       
 	norm += Wu_.squaredNorm();
 	norm += Wf_.squaredNorm();
 	norm += Wi_.squaredNorm();
-      
+	
+	norm += Wqu_.squaredNorm();
+	
 	return std::sqrt(norm);
       }
       
     public:
       // terminal embedding
       tensor_type terminal_;
-      
-      // head classification
-      tensor_type head_;
     
       // classification
       tensor_type Wc_;
-
+      
       // features
       weights_type Wfe_;
     
@@ -204,14 +203,10 @@ namespace rnnp
       tensor_type Wsh_;
       tensor_type Bsh_;
     
-      // reduce left
-      tensor_type Wrel_;
-      tensor_type Brel_;
-
-      // reduce right
-      tensor_type Wrer_;
-      tensor_type Brer_;
-    
+      // reduce
+      tensor_type Wre_;
+      tensor_type Bre_;
+      
       // unary
       tensor_type Wu_;
       tensor_type Bu_;
@@ -223,7 +218,12 @@ namespace rnnp
       // idle
       tensor_type Wi_;
       tensor_type Bi_;
-    
+      
+      // queue
+      tensor_type Wqu_;
+      tensor_type Bqu_;
+      tensor_type Bqe_;
+      
       // axiom
       tensor_type Ba_;
     };

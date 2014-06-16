@@ -16,7 +16,6 @@ namespace rnnp
       Gradient::initialize(hidden, embedding);
     
       terminal_.clear();
-      head_.clear();
     
       // initialize matrix    
       Wc_.clear();
@@ -25,12 +24,9 @@ namespace rnnp
       Wsh_.clear();
       Bsh_.clear();
     
-      Wrel_.clear();
-      Brel_.clear();
+      Wre_.clear();
+      Bre_.clear();
 
-      Wrer_.clear();
-      Brer_.clear();
-      
       Wu_.clear();
       Bu_.clear();
       
@@ -39,13 +35,16 @@ namespace rnnp
     
       Wi_ = tensor_type::Zero(hidden_, hidden_);
       Bi_ = tensor_type::Zero(hidden_, 1);
-    
+
+      Wqu_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
+      Bqu_ = tensor_type::Zero(hidden_, 1);
+      Bqe_ = tensor_type::Zero(hidden_, 1);
+      
       Ba_ = tensor_type::Zero(hidden_, 1);
     }
 
 #define GRADIENT_STREAM_OPERATOR(Theta, Op, Stream)	\
     Theta.Op(Stream, Theta.terminal_);			\
-    Theta.Op(Stream, Theta.head_);			\
 							\
     Theta.Op(Stream, Theta.Wc_);			\
     Theta.Op(Stream, Theta.Wfe_);			\
@@ -53,11 +52,8 @@ namespace rnnp
     Theta.Op(Stream, Theta.Wsh_);			\
     Theta.Op(Stream, Theta.Bsh_);			\
 							\
-    Theta.Op(Stream, Theta.Wrel_);			\
-    Theta.Op(Stream, Theta.Brel_);			\
-							\
-    Theta.Op(Stream, Theta.Wrer_);			\
-    Theta.Op(Stream, Theta.Brer_);			\
+    Theta.Op(Stream, Theta.Wre_);			\
+    Theta.Op(Stream, Theta.Bre_);			\
 							\
     Theta.Op(Stream, Theta.Wu_);			\
     Theta.Op(Stream, Theta.Bu_);			\
@@ -67,6 +63,10 @@ namespace rnnp
 							\
     Theta.Op(Stream, Theta.Wi_);			\
     Theta.Op(Stream, Theta.Bi_);			\
+							\
+    Theta.Op(Stream, Theta.Wqu_);			\
+    Theta.Op(Stream, Theta.Bqu_);			\
+    Theta.Op(Stream, Theta.Bqe_);			\
 							\
     Theta.Op(Stream, Theta.Bi_);
 
@@ -96,7 +96,6 @@ namespace rnnp
 
 #define GRADIENT_BINARY_OPERATOR(Op)	\
     Op(terminal_, x.terminal_);			\
-    Op(head_,     x.head_);			\
 						\
     Op(Wc_,  x.Wc_);				\
     Op(Wfe_, x.Wfe_);				\
@@ -104,11 +103,8 @@ namespace rnnp
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\
 						\
-    Op(Wrel_, x.Wrel_);				\
-    Op(Brel_, x.Brel_);				\
-						\
-    Op(Wrer_, x.Wrer_);				\
-    Op(Brer_, x.Brer_);				\
+    Op(Wre_, x.Wre_);				\
+    Op(Bre_, x.Bre_);				\
 						\
     Op(Wu_, x.Wu_);				\
     Op(Bu_, x.Bu_);				\
@@ -118,6 +114,10 @@ namespace rnnp
 						\
     Op(Wi_, x.Wi_);				\
     Op(Bi_, x.Bi_);				\
+						\
+    Op(Wqu_, x.Wqu_);				\
+    Op(Bqu_, x.Bqu_);				\
+    Op(Bqe_, x.Bqe_);				\
 						\
     Op(Ba_, x.Ba_);
 
