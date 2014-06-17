@@ -106,7 +106,7 @@ namespace rnnp
 	      case operation_type::REDUCE:
 	      case operation_type::REDUCE_LEFT:
 	      case operation_type::REDUCE_RIGHT:
-		if (! state.stack() || state.stack().label() == symbol_type::EPSILON)
+		if (! state.stack() || state.stack().label() == symbol_type::AXIOM)
 		  throw std::runtime_error("invalid reduction!");
 		
 		impl.operation_reduce(*this, feats, theta, state, action.label_);
@@ -123,7 +123,7 @@ namespace rnnp
 	    } else {
 	      // final...
 	      if (state.stack()
-		  && state.stack().label() == symbol_type::EPSILON
+		  && state.stack().label() == symbol_type::AXIOM
 		  && state.label() == grammar.goal_
 		  && state.next() == oracle_.sentence_.size())
 		impl.operation_final(*this, feats, theta, state);

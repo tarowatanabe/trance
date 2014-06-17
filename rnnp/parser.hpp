@@ -174,13 +174,13 @@ namespace rnnp
 	    
 	    // final...
 	    if (state.stack()
-		&& state.stack().label() == symbol_type::EPSILON
+		&& state.stack().label() == symbol_type::AXIOM
 		&& state.label() == grammar.goal_
 		&& state.next() == input.size())
 	      impl.operation_final(*this, feats, theta, state);
 	    
 	    // we will perform reduce
-	    if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
+	    if (state.stack() && state.stack().label() != symbol_type::AXIOM) {
 	      const grammar_type::rule_set_type& rules = grammar.binary(state.stack().label(), state.label());
 	      
 	      grammar_type::rule_set_type::const_iterator riter_end = rules.end();
@@ -226,21 +226,21 @@ namespace rnnp
 	      
 	      // perform root
 	      if (state.stack()
-		  && state.stack().label() == symbol_type::EPSILON
+		  && state.stack().label() == symbol_type::AXIOM
 		  && state.label() != grammar.goal_
 		  && state.next() == input.size())
 		impl.operation_unary(*this, feats, theta, state, grammar.goal_);
 	      
 	      // final...
 	      if (state.stack()
-		  && state.stack().label() == symbol_type::EPSILON
+		  && state.stack().label() == symbol_type::AXIOM
 		  && state.label() == grammar.goal_
 		  && state.next() == input.size())
 		impl.operation_final(*this, feats, theta, state);
 	      
 	      // we will perform reduce
-	      if (state.stack() && state.stack().label() != symbol_type::EPSILON) {
-		if (state.stack().stack() && state.stack().stack().label() == symbol_type::EPSILON)
+	      if (state.stack() && state.stack().label() != symbol_type::AXIOM) {
+		if (state.stack().stack() && state.stack().stack().label() == symbol_type::AXIOM)
 		  impl.operation_reduce(*this, feats, theta, state, grammar.sentence_);
 		else
 		  impl.operation_reduce(*this, feats, theta, state, grammar.sentence_binarized_);

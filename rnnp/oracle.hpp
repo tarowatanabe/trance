@@ -33,7 +33,7 @@ namespace rnnp
       
       Action() : operation_(operation_type::AXIOM), label_(), head_() {}
       Action(const operation_type& operation)
-	: operation_(operation), label_(symbol_type::EPSILON), head_(symbol_type::EPSILON) {}
+	: operation_(operation), label_(symbol_type::AXIOM), head_(symbol_type::EPSILON) {}
       Action(const operation_type& operation, const symbol_type& label)
 	: operation_(operation), label_(label), head_(symbol_type::EPSILON) {}
       Action(const operation_type& operation, const symbol_type& label, const symbol_type& head)
