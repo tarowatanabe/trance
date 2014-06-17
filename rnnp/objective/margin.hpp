@@ -1193,7 +1193,7 @@ namespace rnnp
 	    const size_type offset3 = offset2 + theta.embedding_;
 	
 	    const size_type offset_classification = theta.offset_classification(state.label());
-	    const size_type offset_category       = theta.offset_category(state.derivation().label());
+	    const size_type offset_category       = theta.offset_category(state.label());
 	    
 	    const size_type head_id = theta.terminal(state.head());
 	    
@@ -1206,8 +1206,8 @@ namespace rnnp
 		  * (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_).transpose()
 		     * backward.loss_).array());
 	    
-	    tensor_type& Wsh = g.Wsh(state.derivation().label());
-	    tensor_type& Bsh = g.Bsh(state.derivation().label());
+	    tensor_type& Wsh = g.Wsh(state.label());
+	    tensor_type& Bsh = g.Bsh(state.label());
 
 	    Wsh.block(0, offset1, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
@@ -1238,7 +1238,7 @@ namespace rnnp
 	    const size_type offset2 = offset1 + theta.hidden_;
 	    
 	    const size_type offset_classification = theta.offset_classification(state.label());
-	    const size_type offset_category       = theta.offset_category(state.derivation().label());
+	    const size_type offset_category       = theta.offset_category(state.label());
 	    
 	    // classification
 	    g.Wc(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
@@ -1249,8 +1249,8 @@ namespace rnnp
 		  * (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_).transpose()
 		     * backward.loss_).array());
 	    
-	    tensor_type& Wre = g.Wre(state.derivation().label());
-	    tensor_type& Bre = g.Bre(state.derivation().label());
+	    tensor_type& Wre = g.Wre(state.label());
+	    tensor_type& Bre = g.Bre(state.label());
 	    
 	    Wre.block(0, offset1, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
@@ -1276,7 +1276,7 @@ namespace rnnp
 	    const size_type offset2 = offset1 + theta.hidden_;
 	    
 	    const size_type offset_classification = theta.offset_classification(state.label());
-	    const size_type offset_category       = theta.offset_category(state.derivation().label());
+	    const size_type offset_category       = theta.offset_category(state.label());
 	      
 	    // classification
 	    g.Wc(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
@@ -1287,8 +1287,8 @@ namespace rnnp
 		  * (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_).transpose()
 		     * backward.loss_).array());
 
-	    tensor_type& Wu = g.Wu(state.derivation().label());
-	    tensor_type& Bu = g.Bu(state.derivation().label());
+	    tensor_type& Wu = g.Wu(state.label());
+	    tensor_type& Bu = g.Bu(state.label());
 	    
 	    Wu.block(0, offset1, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.derivation().layer(theta.hidden_).transpose();

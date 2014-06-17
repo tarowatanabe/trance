@@ -54,7 +54,7 @@ namespace rnnp
 						 *state_new.feature_vector());
 	
 	const size_type offset_classification = theta.offset_classification(label);
-	const size_type offset_category       = theta.offset_category(state.label());
+	const size_type offset_category       = theta.offset_category(label);
 	
 	state_new.layer(theta.hidden_) = (theta.Bsh_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wsh_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
@@ -108,7 +108,7 @@ namespace rnnp
 						 *state_new.feature_vector());
 	
 	const size_type offset_classification = theta.offset_classification(label);
-	const size_type offset_category       = theta.offset_category(state.label());
+	const size_type offset_category       = theta.offset_category(label);
 	
 	state_new.layer(theta.hidden_) = (theta.Bre_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
@@ -156,7 +156,7 @@ namespace rnnp
 						 *state_new.feature_vector());
 	
 	const size_type offset_classification = theta.offset_classification(label);
-	const size_type offset_category       = theta.offset_category(state.label());
+	const size_type offset_category       = theta.offset_category(label);
 
 	state_new.layer(theta.hidden_) = (theta.Bu_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
