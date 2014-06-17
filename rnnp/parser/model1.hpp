@@ -244,7 +244,7 @@ namespace rnnp
 	state_new.unary() = 0;
       
 	state_new.operation() = operation_type::AXIOM;
-	state_new.label()     = symbol_type::EPSILON;
+	state_new.label()     = symbol_type::AXIOM;
 	state_new.head()      = symbol_type::EPSILON;
 	state_new.span()      = span_type(-1, 0);
       

@@ -80,11 +80,14 @@ namespace rnnp
     }
     
     // unary index
+    if (symbol_type::AXIOM.non_terminal_id() >= vocab_category_.size())
+      vocab_category_.resize(symbol_type::AXIOM.non_terminal_id() + 1);
     if (symbol_type::FINAL.non_terminal_id() >= vocab_category_.size())
       vocab_category_.resize(symbol_type::FINAL.non_terminal_id() + 1);
     if (symbol_type::IDLE.non_terminal_id() >= vocab_category_.size())
       vocab_category_.resize(symbol_type::IDLE.non_terminal_id() + 1);
     
+    vocab_category_[symbol_type::AXIOM.non_terminal_id()] = symbol_type::AXIOM;
     vocab_category_[symbol_type::FINAL.non_terminal_id()] = symbol_type::FINAL;
     vocab_category_[symbol_type::IDLE.non_terminal_id()]  = symbol_type::IDLE;
     
