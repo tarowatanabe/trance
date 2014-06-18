@@ -333,6 +333,9 @@ struct Task
   typedef utils::lockfree_list_queue<tree_type, std::allocator<tree_type> >       queue_tree_type;
   typedef utils::lockfree_list_queue<encoded_type, std::allocator<encoded_type> > queue_gradient_type;
   
+  typedef rnnp::Evalb       evalb_type;
+  typedef rnnp::EvalbScorer scorer_type;
+  
   Task(const Optimizer& optimizer,
        const Objective& objective,
        const option_type& option,
@@ -379,6 +382,9 @@ struct Task
   size_type instances_;
   size_type parsed_;
   size_type updated_;
+
+  evalb_type  evalb_;
+  scorer_type scorer_;
   
   buffer_type   buffer_;
   gradient_type gradient_;
@@ -444,6 +450,11 @@ struct Task
 	  parsed_ += (! candidates.empty());
 	  ++ instances_;
 	  ++ batch_learn;
+
+	  if (! candidates.empty()) {
+	    scorer_.assign(tree);
+	    evalb_ += scorer_(candidates.front());
+	  }
 	  
 	  loss_ += objective_(theta_, parser_, parser_oracle_, option_, gradient_batch_);
 	}
@@ -507,6 +518,8 @@ struct Task
     instances_ = 0;
     parsed_    = 0;
     updated_   = 0;
+    
+    evalb_.clear();
   }
 };
 
@@ -934,12 +947,15 @@ void learn_root(const Optimizer& optimizer,
     size_type instances = task.instances_;
     size_type parsed    = task.parsed_;
     size_type updated   = task.updated_;
+
+    typename task_type::evalb_type evalb = task.evalb_;
     
     for (int rank = 1; rank != mpi_size; ++ rank) {
       loss_type l;
       size_type i;
       size_type p;
       size_type u;
+      typename task_type::evalb_type e;
       
       boost::iostreams::filtering_istream is;
       is.push(utils::mpi_device_source(rank, loss_tag, 4096));
@@ -947,15 +963,18 @@ void learn_root(const Optimizer& optimizer,
       is.read((char*) &i, sizeof(size_type));
       is.read((char*) &p, sizeof(size_type));
       is.read((char*) &u, sizeof(size_type));
+      is.read((char*) &e, sizeof(typename task_type::evalb_type));
       
       loss      += l;
       instances += i;
       parsed    += p;
       updated   += u;
+      evalb     += e;
     }
     
     if (debug)
       std::cerr << "loss: " << static_cast<double>(loss) << std::endl
+		<< "evalb: " << evalb() << std::endl
 		<< "instances: " << instances << std::endl
 		<< "parsed: " << parsed << std::endl
 		<< "updated: " << updated << std::endl;
@@ -1307,10 +1326,11 @@ void learn_others(const Optimizer& optimizer,
     {
       boost::iostreams::filtering_ostream os;
       os.push(utils::mpi_device_sink(0, loss_tag, 4096));
-      os.write((char*) &task.loss_, sizeof(task.loss_));
+      os.write((char*) &task.loss_,      sizeof(task.loss_));
       os.write((char*) &task.instances_, sizeof(task.instances_));
-      os.write((char*) &task.parsed_, sizeof(task.parsed_));
-      os.write((char*) &task.updated_, sizeof(task.updated_));
+      os.write((char*) &task.parsed_,    sizeof(task.parsed_));
+      os.write((char*) &task.updated_,   sizeof(task.updated_));
+      os.write((char*) &task.evalb_,     sizeof(task.evalb_));
     }
     
     // mixing

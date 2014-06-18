@@ -294,6 +294,9 @@ struct Task
 
   typedef std::deque<gradient_type, std::allocator<gradient_type> > gradient_set_type;
   
+  typedef rnnp::Evalb       evalb_type;
+  typedef rnnp::EvalbScorer scorer_type;
+  
   Task(const Optimizer& optimizer,
        const Objective& objective,
        const option_type& option,
@@ -344,6 +347,9 @@ struct Task
   size_type instances_;
   size_type parsed_;
   size_type updated_;
+  
+  evalb_type  evalb_;
+  scorer_type scorer_;
   
   gradient_set_type gradients_;
   
@@ -412,6 +418,11 @@ struct Task
 	    parsed_ += (! candidates.empty());
 	    ++ instances_;
 
+	    if (! candidates.empty()) {
+	      scorer_.assign(tree);
+	      evalb_ += scorer_(candidates.front());
+	    }
+	    
 	    if (debug >= 3) {
 	      if (! candidates.empty()) {
 		derivation.assign(candidates.front());
@@ -493,6 +504,8 @@ struct Task
     instances_ = 0;
     parsed_    = 0;
     updated_   = 0;
+
+    evalb_.clear();
     
     working_curr_.clear();
   }
@@ -793,6 +806,8 @@ void learn(const Optimizer& optimizer,
     size_type instances = 0;
     size_type parsed    = 0;
     size_type updated   = 0;
+
+    typename task_type::evalb_type evalb;
     
     if (option.shrinking_) {
       working.clear();
@@ -801,6 +816,7 @@ void learn(const Optimizer& optimizer,
 	instances += tasks[i].instances_;
 	parsed    += tasks[i].parsed_;
 	updated   += tasks[i].updated_;
+	evalb     += tasks[i].evalb_;
 	
 	working.insert(working.end(), tasks[i].working_curr_.begin(), tasks[i].working_curr_.end());
       }
@@ -821,6 +837,7 @@ void learn(const Optimizer& optimizer,
     
     if (debug)
       std::cerr << "loss: " << static_cast<double>(loss) << std::endl
+		<< "evalb: " << evalb() << std::endl
 		<< "instances: " << instances << std::endl
 		<< "parsed: " << parsed << std::endl
 		<< "updated: " << updated << std::endl;
