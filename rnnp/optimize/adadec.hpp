@@ -10,6 +10,10 @@
 //
 // ICASSP 2013
 //
+// http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6638963
+//
+// slightly differ in that we do not memorize the history of delta, but
+// use decaying (0.95)
 
 #include <rnnp/optimize.hpp>
 #include <rnnp/model_traits.hpp>
