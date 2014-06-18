@@ -832,6 +832,7 @@ void learn(const Optimizer& optimizer,
 	instances += tasks[i].instances_;
 	parsed    += tasks[i].parsed_;
 	updated   += tasks[i].updated_;
+	evalb     += tasks[i].evalb_;
       }
     }
     
