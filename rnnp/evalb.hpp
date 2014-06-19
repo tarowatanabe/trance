@@ -9,13 +9,12 @@
 #include <cstddef>
 
 #include <iostream>
+#include <vector>
 
 #include <rnnp/symbol.hpp>
 #include <rnnp/span.hpp>
 #include <rnnp/state.hpp>
 #include <rnnp/tree.hpp>
-
-#include <utils/compact_set.hpp>
 
 namespace rnnp
 {
@@ -103,10 +102,7 @@ namespace rnnp
     typedef Operation operation_type;
     
     typedef std::pair<span_type, symbol_type> stat_type;
-    typedef utils::compact_set<stat_type,
-			       utils::unassigned<stat_type>, utils::unassigned<stat_type>,
-			       boost::hash<stat_type>, std::equal_to<stat_type>,
-			       std::allocator<stat_type> > stat_set_type;
+    typedef std::vector<stat_type, std::allocator<stat_type> > stat_set_type;
     
   public:
     EvalbScorer() {}
@@ -127,29 +123,44 @@ namespace rnnp
     {
       collect(state, const_cast<stat_set_type&>(test_));
       
-      count_type match = 0;
       
-      stat_set_type::const_iterator titer_end = test_.end();
-      for (stat_set_type::const_iterator titer = test_.begin(); titer != titer_end; ++ titer)
-	match += (gold_.find(*titer) != gold_.end());
-      
-      return evalb_type(match, gold_.size(), test_.size());
+      return evalb_type(matched(), gold_.size(), test_.size());
     }
 
     evalb_type operator()(const tree_type& tree) const
     {
       collect(tree, const_cast<stat_set_type&>(test_));
       
-      count_type match = 0;
-      
-      stat_set_type::const_iterator titer_end = test_.end();
-      for (stat_set_type::const_iterator titer = test_.begin(); titer != titer_end; ++ titer)
-	match += (gold_.find(*titer) != gold_.end());
-      
-      return evalb_type(match, gold_.size(), test_.size());
+      return evalb_type(matched(), gold_.size(), test_.size());
     }
 
   private:
+
+    count_type matched() const
+    {
+      stat_set_type::const_iterator giter     = gold_.begin();
+      stat_set_type::const_iterator giter_end = gold_.end();
+      
+      stat_set_type::const_iterator titer     = test_.begin();
+      stat_set_type::const_iterator titer_end = test_.end();
+
+      count_type match = 0;
+      
+      while (giter != giter_end && titer != titer_end) {
+	if (*giter < *titer)
+	  ++ giter;
+	else if (*titer < *giter)
+	  ++ titer;
+	else {
+	  ++ match;
+	  ++ giter;
+	  ++ titer;
+	}
+      }
+      
+      return match;
+    }
+
     void collect(state_type state, stat_set_type& stats) const
     {
       stats.clear();
@@ -161,13 +172,15 @@ namespace rnnp
 	case operation_type::REDUCE_RIGHT:
 	case operation_type::UNARY:
 	  if (! state.label().binarized())
-	    stats.insert(stat_type(state.span(), state.label()));
+	    stats.push_back(stat_type(state.span(), state.label()));
 	  break;
 	default:
 	  break;
 	}
 	state = state.derivation();
       }
+
+      std::sort(stats.begin(), stats.end(), std::less<stat_type>());
     }
     
     void collect(const tree_type& tree, stat_set_type& stats) const
@@ -176,6 +189,8 @@ namespace rnnp
       
       span_type span(0, 0);
       collect(tree, span, stats);
+
+      std::sort(stats.begin(), stats.end(), std::less<stat_type>());
     }
     
     void collect(const tree_type& tree, span_type& span, stat_set_type& stats) const
@@ -199,7 +214,7 @@ namespace rnnp
 
       // post-traversal
       if (! pos && tree.label_.non_terminal() && ! tree.label_.binarized())
-	stats.insert(stat_type(span, tree.label_));
+	stats.push_back(stat_type(span, tree.label_));
     }
     
   private:
