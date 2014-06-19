@@ -975,9 +975,9 @@ void learn_root(const Optimizer& optimizer,
     if (debug)
       std::cerr << "loss: " << static_cast<double>(loss) << std::endl
 		<< "evalb: " << evalb() << std::endl
-		<< "instances: " << instances << std::endl
-		<< "parsed: " << parsed << std::endl
-		<< "updated: " << updated << std::endl;
+		<< "instances: " << instances
+		<< " parsed: " << parsed
+		<< " updated: " << updated << std::endl;
     
     if (debug)
       std::cerr << "cpu time:    " << end.cpu_time() - start.cpu_time() << std::endl
