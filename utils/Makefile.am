@@ -84,3 +84,17 @@ IGNORES = \
 config.h \
 config.h.in \
 stamp-h1
+
+noinst_DATA = .gitignore
+
+.gitignore: Makefile.am
+	cat $(top_builddir)/.gitignore > .gitignore
+	for bin in $(PROGRAMS); do \
+	  echo $$bin >> .gitignore; \
+	done; \
+	for bin in $(SCRIPTS); do \
+	  echo $$bin >> .gitignore; \
+	done; \
+	for bin in $(IGNORES); do \
+	  echo $$bin >> .gitignore; \
+	done
