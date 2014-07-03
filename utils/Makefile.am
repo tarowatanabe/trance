@@ -29,7 +29,6 @@ allocinfo_allocator.hpp \
 array_power2.hpp \
 atomicop.hpp \
 bithack.hpp \
-bit_vector.hpp \
 byte_aligned_code.hpp \
 c_string_generator.hpp \
 c_string_parser.hpp \
