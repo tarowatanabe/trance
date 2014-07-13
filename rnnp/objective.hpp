@@ -34,7 +34,7 @@ namespace rnnp
     typedef model_type::word_type      word_type;
     typedef model_type::parameter_type parameter_type;
     typedef model_type::tensor_type    tensor_type;
-    typedef model_type::matrix_type    matrix_type;
+    typedef model_type::adapted_type   adapted_type;
 
     typedef LearnOption option_type;
 

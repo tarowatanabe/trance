@@ -35,7 +35,7 @@ namespace rnnp
     typedef model_type::symbol_type    symbol_type;
     typedef model_type::parameter_type parameter_type;
     typedef model_type::tensor_type    tensor_type;
-    typedef model_type::matrix_type    matrix_type;
+    typedef model_type::adapted_type   adapted_type;
 
     typedef FeatureState                                                   feature_state_type;
     typedef FeatureVector<parameter_type, std::allocator<parameter_type> > feature_vector_type;
@@ -159,14 +159,14 @@ namespace rnnp
     inline const score_type& score() const { return *reinterpret_cast<const score_type*>(buffer_ + offset_score); }
     inline       score_type& score()       { return *reinterpret_cast<score_type*>(buffer_ + offset_score); }
     
-    inline const matrix_type layer(const size_type rows) const
+    inline const adapted_type layer(const size_type rows) const
     {
-      return matrix_type(const_cast<parameter_type*>(reinterpret_cast<const parameter_type*>(buffer_ + offset_layer)), rows, 1);
+      return adapted_type(const_cast<parameter_type*>(reinterpret_cast<const parameter_type*>(buffer_ + offset_layer)), rows, 1);
     }
 
-    inline       matrix_type layer(const size_type rows)
+    inline       adapted_type layer(const size_type rows)
     {
-      return matrix_type(reinterpret_cast<parameter_type*>(buffer_ + offset_layer), rows, 1);
+      return adapted_type(reinterpret_cast<parameter_type*>(buffer_ + offset_layer), rows, 1);
     }
     
   public:

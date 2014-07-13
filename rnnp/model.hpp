@@ -44,7 +44,7 @@ namespace rnnp
     typedef boost::filesystem::path path_type;
     
     typedef Eigen::Matrix<parameter_type, Eigen::Dynamic, Eigen::Dynamic> tensor_type;
-    typedef Eigen::Map<tensor_type>                                       matrix_type;
+    typedef Eigen::Map<tensor_type>                                       adapted_type;
 
     typedef WeightVector<parameter_type, std::allocator<parameter_type> > weights_type;
 

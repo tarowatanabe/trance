@@ -38,7 +38,7 @@ namespace rnnp
 
     typedef model_type::parameter_type parameter_type;
     typedef model_type::tensor_type    tensor_type;
-    typedef model_type::matrix_type    matrix_type;
+    typedef model_type::adapted_type   adapted_type;
     
     typedef utils::unordered_map<word_type, tensor_type,
 				 boost::hash<word_type>, std::equal_to<word_type>,
