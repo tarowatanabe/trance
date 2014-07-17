@@ -541,8 +541,10 @@ namespace rnnp
       model_impl_type& G = const_cast<model_impl_type&>(G_);
       model_impl_type& X = const_cast<model_impl_type&>(X_);
       
-      if (option.learn_embedding())
+      if (option.learn_embedding()) {
 	update(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
+	update(theta.category_, G.category_, X.category_, gradient.category_, scale, false);
+      }
       
       if (option.learn_classification()) {
 	update(theta.Wc_,  G.Wc_,  X.Wc_,  gradient.Wc_, scale, true);

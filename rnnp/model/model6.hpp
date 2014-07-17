@@ -67,14 +67,15 @@ namespace rnnp
       {
 	const double range_embed = std::sqrt(6.0 / (embedding_ + 1));
 	const double range_c  = std::sqrt(6.0 / (hidden_ + 1));
-	const double range_sh = std::sqrt(6.0 / (hidden_ + embedding_ + hidden_ * 4));
-	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ * 4));
-	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ * 4));
+	const double range_sh = std::sqrt(6.0 / (hidden_ + embedding_ + hidden_ * 2));
+	const double range_re = std::sqrt(6.0 / (hidden_ + embedding_ * 2 + hidden_ * 4));
+	const double range_u  = std::sqrt(6.0 / (hidden_ + embedding_ + hidden_ * 3));
 	const double range_qu = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
 	const double range_f  = std::sqrt(6.0 / (hidden_ + hidden_));
 	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
+	category_ = category_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
       
 	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
       
@@ -95,6 +96,7 @@ namespace rnnp
 	Model::swap(static_cast<Model&>(x));
 	
 	terminal_.swap(x.terminal_);
+	category_.swap(x.category_);
       
 	Wc_.swap(x.Wc_);
 	Wfe_.swap(x.Wfe_);
@@ -126,6 +128,7 @@ namespace rnnp
 	Model::clear();
 
 	terminal_.setZero();
+	category_.setZero();
       
 	Wc_.setZero();
 	Wfe_.clear();
@@ -190,8 +193,9 @@ namespace rnnp
       }
       
     public:
-      // terminal embedding
+      // terminal/non-terminal embedding
       tensor_type terminal_;
+      tensor_type category_;
     
       // classification
       tensor_type Wc_;

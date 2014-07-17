@@ -16,19 +16,20 @@ namespace rnnp
       Gradient::initialize(hidden, embedding);
     
       terminal_.clear();
+      category_.clear();
     
       // initialize matrix    
       Wc_.clear();
       Wfe_.clear();
     
-      Wsh_.clear();
-      Bsh_.clear();
-    
-      Wre_.clear();
-      Bre_.clear();
-
-      Wu_.clear();
-      Bu_.clear();
+      Wsh_ = tensor_type::Zero(hidden_, embedding_ + hidden_ * 2);
+      Bsh_ = tensor_type::Zero(hidden_, 1);
+      
+      Wre_ = tensor_type::Zero(hidden_, embedding_ * 2 + hidden_ * 4);
+      Bre_ = tensor_type::Zero(hidden_, 1);
+      
+      Wu_  = tensor_type::Zero(hidden_, embedding_ + hidden_ * 3);
+      Bu_  = tensor_type::Zero(hidden_, 1);
       
       Wf_ = tensor_type::Zero(hidden_, hidden_);
       Bf_ = tensor_type::Zero(hidden_, 1);
@@ -45,6 +46,7 @@ namespace rnnp
 
 #define GRADIENT_STREAM_OPERATOR(Theta, Op, Stream)	\
     Theta.Op(Stream, Theta.terminal_);			\
+    Theta.Op(Stream, Theta.category_);			\
 							\
     Theta.Op(Stream, Theta.Wc_);			\
     Theta.Op(Stream, Theta.Wfe_);			\
@@ -96,6 +98,7 @@ namespace rnnp
 
 #define GRADIENT_BINARY_OPERATOR(Op)	\
     Op(terminal_, x.terminal_);			\
+    Op(category_, x.category_);			\
 						\
     Op(Wc_,  x.Wc_);				\
     Op(Wfe_, x.Wfe_);				\
@@ -120,7 +123,6 @@ namespace rnnp
     Op(Bqe_, x.Bqe_);				\
 						\
     Op(Ba_, x.Ba_);
-
   
     Model6& Model6::operator+=(const Model6& x)
     {
