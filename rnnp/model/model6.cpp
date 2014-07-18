@@ -13,8 +13,8 @@
 
 #include "model/model6.hpp"
 
-#include "utils/repository.hpp"
 #include "utils/compress_stream.hpp"
+#include "utils/repository.hpp"
 #include "utils/lexical_cast.hpp"
 
 namespace rnnp
@@ -26,37 +26,36 @@ namespace rnnp
 			    const grammar_type& grammar)
     {
       Model::initialize(hidden, embedding, grammar);
-    
+
       // initialize matrix
       terminal_ = tensor_type::Zero(embedding_, vocab_terminal_.size());
-      category_ = tensor_type::Zero(embedding_ * vocab_category_.size(), 1);
       
       Wc_  = tensor_type::Zero(1 * vocab_category_.size(), hidden_);
       Wfe_.clear();
-    
-      Wsh_ = tensor_type::Zero(hidden_, embedding_ + hidden_ * 2);
-      Bsh_ = tensor_type::Zero(hidden_, 1);
       
-      Wre_ = tensor_type::Zero(hidden_, embedding_ * 2 + hidden_ * 4);
-      Bre_ = tensor_type::Zero(hidden_, 1);
+      Wsh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + embedding_ + hidden_);
+      Bsh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
       
-      Wu_  = tensor_type::Zero(hidden_, embedding_ + hidden_ * 3);
-      Bu_  = tensor_type::Zero(hidden_, 1);
-    
+      Vre_ = tensor_type::Zero(hidden_ * hidden_, hidden_);
+      Wre_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + hidden_ + hidden_ + hidden_);
+      Bre_ = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
+      
+      Wu_  = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + hidden_ + hidden_);
+      Bu_  = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
+      
       Wf_ = tensor_type::Zero(hidden_, hidden_);
       Bf_ = tensor_type::Zero(hidden_, 1);
-
+      
       Wi_ = tensor_type::Zero(hidden_, hidden_);
       Bi_ = tensor_type::Zero(hidden_, 1);
       
       Wqu_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
       Bqu_ = tensor_type::Zero(hidden_, 1);
       Bqe_ = tensor_type::Zero(hidden_, 1);
-    
+      
       Ba_ = tensor_type::Zero(hidden_, 1);
     }
-  
-  
+    
     void Model6::write(const path_type& path) const
     {
       typedef utils::repository repository_type;
@@ -68,19 +67,19 @@ namespace rnnp
       rep["hidden"]    = utils::lexical_cast<std::string>(hidden_);
       
       Model::write_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_);
-      Model::write_category(rep.path("category.txt.gz"), rep.path("category.bin"), category_, embedding_, 1);
-      
+    
       Model::write_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_);
       Model::write_weights(rep.path("Wfe.txt.gz"), Wfe_);
-      
-      Model::write_matrix(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_);
-      Model::write_matrix(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_);
     
-      Model::write_matrix(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_);
-      Model::write_matrix(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_);
+      Model::write_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_ + hidden_);
+      Model::write_category(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, hidden_, 1);
+    
+      Model::write_matrix(rep.path("Vre.txt.gz"), rep.path("Vre.bin"), Vre_);
+      Model::write_category(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, hidden_, hidden_ + hidden_ + hidden_ + hidden_);
+      Model::write_category(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, hidden_, 1);
 
-      Model::write_matrix(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_);
-      Model::write_matrix(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_);
+      Model::write_category(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_, hidden_, hidden_ + hidden_ + hidden_);
+      Model::write_category(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_, hidden_, 1);
     
       Model::write_matrix(rep.path("Wf.txt.gz"), rep.path("Wf.bin"), Wf_);
       Model::write_matrix(rep.path("Bf.txt.gz"), rep.path("Bf.bin"), Bf_);
@@ -130,23 +129,23 @@ namespace rnnp
       
       // first, resize
       terminal_ = tensor_type::Zero(embedding_, terminal_.cols());
-      category_ = tensor_type::Zero(category_.rows(), 1);
-
+      
       Wc_  = tensor_type::Zero(Wc_.rows(), hidden_);
       Wfe_.clear();
       
-      Wsh_ = tensor_type::Zero(hidden_, embedding_ + hidden_ * 2);
-      Bsh_ = tensor_type::Zero(hidden_, 1);
+      Wsh_ = tensor_type::Zero(Wsh_.rows(), hidden_ + embedding_ + hidden_);
+      Bsh_ = tensor_type::Zero(Bsh_.rows(), 1);
       
-      Wre_ = tensor_type::Zero(hidden_, embedding_ * 2 + hidden_ * 4);
-      Bre_ = tensor_type::Zero(hidden_, 1);
-      
-      Wu_  = tensor_type::Zero(hidden_, embedding_ + hidden_ * 3);
-      Bu_  = tensor_type::Zero(hidden_, 1);
+      Vre_ = tensor_type::Zero(hidden_ * hidden_, hidden_);
+      Wre_ = tensor_type::Zero(Wre_.rows(), hidden_ + hidden_ + hidden_ + hidden_);
+      Bre_ = tensor_type::Zero(Bre_.rows(), 1);
+
+      Wu_  = tensor_type::Zero(Wu_.rows(), hidden_ + hidden_ + hidden_);
+      Bu_  = tensor_type::Zero(Bu_.rows(), 1);
       
       Wf_ = tensor_type::Zero(hidden_, hidden_);
       Bf_ = tensor_type::Zero(hidden_, 1);
-    
+      
       Wi_ = tensor_type::Zero(hidden_, hidden_);
       Bi_ = tensor_type::Zero(hidden_, 1);
     
@@ -158,19 +157,19 @@ namespace rnnp
     
       // then, read!
       Model::read_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_);
-      Model::read_category(rep.path("category.txt.gz"), rep.path("category.bin"), category_, embedding_, 1);
     
       Model::read_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_);
       Model::write_weights(rep.path("Wfe.txt.gz"), Wfe_);
     
-      Model::read_matrix(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_);
-      Model::read_matrix(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_);
+      Model::read_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_ + hidden_);
+      Model::read_category(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, hidden_, 1);
     
-      Model::read_matrix(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_);
-      Model::read_matrix(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_);
+      Model::read_matrix(rep.path("Vre.txt.gz"), rep.path("Vre.bin"), Vre_);
+      Model::read_category(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, hidden_, hidden_ + hidden_ + hidden_ + hidden_);
+      Model::read_category(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, hidden_, 1);
 
-      Model::read_matrix(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_);
-      Model::read_matrix(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_);
+      Model::read_category(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_, hidden_, hidden_ + hidden_ + hidden_);
+      Model::read_category(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_, hidden_, 1);
     
       Model::read_matrix(rep.path("Wf.txt.gz"), rep.path("Wf.bin"), Wf_);
       Model::read_matrix(rep.path("Bf.txt.gz"), rep.path("Bf.bin"), Bf_);
@@ -237,28 +236,31 @@ namespace rnnp
     }
     
 #define MODEL_STREAM_OPERATOR(Theta, OpEmbedding, OpCategory, OpWeights, OpMatrix, Stream) \
-    Theta.OpEmbedding(Stream, Theta.terminal_);			    \
-    Theta.OpCategory(Stream, Theta.category_, Theta.embedding_, 1); \
-    								    \
-    Theta.OpCategory(Stream, Theta.Wc_,  1, Theta.hidden_);	    \
-    Theta.OpWeights(Stream,  Theta.Wfe_);			    \
-								    \
-    Theta.OpMatrix(Stream, Theta.Wsh_);				    \
-    Theta.OpMatrix(Stream, Theta.Bsh_);				    \
-    								    \
-    Theta.OpMatrix(Stream, Theta.Wre_);				    \
-    Theta.OpMatrix(Stream, Theta.Bre_);				    \
-    								    \
-    Theta.OpMatrix(Stream, Theta.Wf_);				    \
-    Theta.OpMatrix(Stream, Theta.Bf_);				    \
-    								    \
-    Theta.OpMatrix(Stream, Theta.Wi_);				    \
-    Theta.OpMatrix(Stream, Theta.Bi_);				    \
-    								    \
-    Theta.OpMatrix(Stream, Theta.Wqu_);				    \
-    Theta.OpMatrix(Stream, Theta.Bqu_);				    \
-    Theta.OpMatrix(Stream, Theta.Bqe_);				    \
-    								    \
+    Theta.OpEmbedding(Stream, Theta.terminal_);				\
+									\
+    Theta.OpCategory(Stream, Theta.Wc_,  1, Theta.hidden_);		\
+    Theta.OpWeights(Stream,  Theta.Wfe_);				\
+									\
+    Theta.OpCategory(Stream, Theta.Wsh_, Theta.hidden_, Theta.hidden_ + Theta.embedding_ + Theta.hidden_); \
+    Theta.OpCategory(Stream, Theta.Bsh_, Theta.hidden_, 1);		\
+									\
+    Theta.OpMatrix(Stream, Theta.Vre_);					\
+    Theta.OpCategory(Stream, Theta.Wre_, Theta.hidden_, Theta.hidden_ + Theta.hidden_ + Theta.hidden_ + Theta.hidden_); \
+    Theta.OpCategory(Stream, Theta.Bre_, Theta.hidden_, 1);		\
+									\
+    Theta.OpCategory(Stream, Theta.Wu_,  Theta.hidden_, Theta.hidden_ + Theta.hidden_ + Theta.hidden_); \
+    Theta.OpCategory(Stream, Theta.Bu_,  Theta.hidden_, 1);		\
+									\
+    Theta.OpMatrix(Stream, Theta.Wf_);					\
+    Theta.OpMatrix(Stream, Theta.Bf_);					\
+									\
+    Theta.OpMatrix(Stream, Theta.Wi_);					\
+    Theta.OpMatrix(Stream, Theta.Bi_);					\
+									\
+    Theta.OpMatrix(Stream, Theta.Wqu_);					\
+    Theta.OpMatrix(Stream, Theta.Bqu_);					\
+    Theta.OpMatrix(Stream, Theta.Bqe_);					\
+									\
     Theta.OpMatrix(Stream, Theta.Ba_);
     
     std::ostream& operator<<(std::ostream& os, const Model6& theta)
@@ -283,32 +285,32 @@ namespace rnnp
     
 #undef MODEL_STREAM_OPERATOR
   
-#define MODEL_BINARY_OPERATOR(Op, Theta) \
-    Op(terminal_, Theta.terminal_);	 \
-    Op(category_, Theta.category_);	 \
-    					 \
-    Op(Wc_,  Theta.Wc_);		 \
-    Op(Wfe_, Theta.Wfe_);		 \
-    					 \
-    Op(Wsh_, Theta.Wsh_);		 \
-    Op(Bsh_, Theta.Bsh_);		 \
-    					 \
-    Op(Wre_, Theta.Wre_);		 \
-    Op(Bre_, Theta.Bre_);		 \
-    					 \
-    Op(Wu_,  Theta.Wu_);		 \
-    Op(Bu_,  Theta.Bu_);		 \
-    					 \
-    Op(Wf_, Theta.Wf_);			 \
-    Op(Bf_, Theta.Bf_);			 \
-    					 \
-    Op(Wi_, Theta.Wi_);			 \
-    Op(Bi_, Theta.Bi_);			 \
-    					 \
-    Op(Wqu_, Theta.Wqu_);		 \
-    Op(Bqu_, Theta.Bqu_);		 \
-    Op(Bqe_, Theta.Bqe_);		 \
-    					 \
+#define MODEL_BINARY_OPERATOR(Op, Theta)	\
+    Op(terminal_, Theta.terminal_);		\
+						\
+    Op(Wc_,  Theta.Wc_);			\
+    Op(Wfe_, Theta.Wfe_);			\
+						\
+    Op(Wsh_, Theta.Wsh_);			\
+    Op(Bsh_, Theta.Bsh_);			\
+						\
+    Op(Vre_, Theta.Vre_);			\
+    Op(Wre_, Theta.Wre_);			\
+    Op(Bre_, Theta.Bre_);			\
+						\
+    Op(Wu_,  Theta.Wu_);			\
+    Op(Bu_,  Theta.Bu_);			\
+						\
+    Op(Wf_, Theta.Wf_);				\
+    Op(Bf_, Theta.Bf_);				\
+						\
+    Op(Wi_, Theta.Wi_);				\
+    Op(Bi_, Theta.Bi_);				\
+						\
+    Op(Wqu_, Theta.Wqu_);			\
+    Op(Bqu_, Theta.Bqu_);			\
+    Op(Bqe_, Theta.Bqe_);			\
+						\
     Op(Ba_, Theta.Ba_);
 
     Model6& Model6::operator+=(const Model6& theta)
@@ -327,32 +329,32 @@ namespace rnnp
 
 #undef MODEL_BINARY_OPERATOR
   
-#define MODEL_UNARY_OPERATOR(Op) \
-    terminal_ Op x;		 \
-    category_ Op x;		 \
-				 \
-    Wc_  Op x;			 \
-    Wfe_ Op x;			 \
-				 \
-    Wsh_ Op x;			 \
-    Bsh_ Op x;			 \
-				 \
-    Wre_ Op x;			 \
-    Bre_ Op x;			 \
-				 \
-    Wu_  Op x;			 \
-    Bu_  Op x;			 \
-				 \
-    Wf_ Op x;			 \
-    Bf_ Op x;			 \
-				 \
-    Wi_ Op x;			 \
-    Bi_ Op x;			 \
-				 \
-    Wqu_ Op x;			 \
-    Bqu_ Op x;			 \
-    Bqe_ Op x;			 \
-				 \
+#define MODEL_UNARY_OPERATOR(Op)		\
+    terminal_ Op x;				\
+						\
+    Wc_  Op x;					\
+    Wfe_ Op x;					\
+						\
+    Wsh_ Op x;					\
+    Bsh_ Op x;					\
+						\
+    Vre_ Op x;					\
+    Wre_ Op x;					\
+    Bre_ Op x;					\
+						\
+    Wu_  Op x;					\
+    Bu_  Op x;					\
+						\
+    Wf_ Op x;					\
+    Bf_ Op x;					\
+						\
+    Wi_ Op x;					\
+    Bi_ Op x;					\
+						\
+    Wqu_ Op x;					\
+    Bqu_ Op x;					\
+    Bqe_ Op x;					\
+						\
     Ba_ Op x;
   
     Model6& Model6::operator*=(const double& x)

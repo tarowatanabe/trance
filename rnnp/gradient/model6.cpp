@@ -12,24 +12,25 @@ namespace rnnp
     void Model6::initialize(const size_type& hidden,
 			    const size_type& embedding)
     {
-
       Gradient::initialize(hidden, embedding);
+
+      const size_type reduced = utils::bithack::max(hidden_ >> 3, size_type(2));
     
       terminal_.clear();
-      category_.clear();
     
       // initialize matrix    
       Wc_.clear();
       Wfe_.clear();
     
-      Wsh_ = tensor_type::Zero(hidden_, embedding_ + hidden_ * 2);
-      Bsh_ = tensor_type::Zero(hidden_, 1);
-      
-      Wre_ = tensor_type::Zero(hidden_, embedding_ * 2 + hidden_ * 4);
-      Bre_ = tensor_type::Zero(hidden_, 1);
-      
-      Wu_  = tensor_type::Zero(hidden_, embedding_ + hidden_ * 3);
-      Bu_  = tensor_type::Zero(hidden_, 1);
+      Wsh_.clear();
+      Bsh_.clear();
+    
+      Vre_ = tensor_type::Zero(hidden_ * hidden_, hidden_);
+      Wre_.clear();
+      Bre_.clear();
+
+      Wu_.clear();
+      Bu_.clear();
       
       Wf_ = tensor_type::Zero(hidden_, hidden_);
       Bf_ = tensor_type::Zero(hidden_, 1);
@@ -46,7 +47,6 @@ namespace rnnp
 
 #define GRADIENT_STREAM_OPERATOR(Theta, Op, Stream)	\
     Theta.Op(Stream, Theta.terminal_);			\
-    Theta.Op(Stream, Theta.category_);			\
 							\
     Theta.Op(Stream, Theta.Wc_);			\
     Theta.Op(Stream, Theta.Wfe_);			\
@@ -54,6 +54,7 @@ namespace rnnp
     Theta.Op(Stream, Theta.Wsh_);			\
     Theta.Op(Stream, Theta.Bsh_);			\
 							\
+    Theta.Op(Stream, Theta.Vre_);			\
     Theta.Op(Stream, Theta.Wre_);			\
     Theta.Op(Stream, Theta.Bre_);			\
 							\
@@ -98,7 +99,6 @@ namespace rnnp
 
 #define GRADIENT_BINARY_OPERATOR(Op)	\
     Op(terminal_, x.terminal_);			\
-    Op(category_, x.category_);			\
 						\
     Op(Wc_,  x.Wc_);				\
     Op(Wfe_, x.Wfe_);				\
@@ -106,6 +106,7 @@ namespace rnnp
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\
 						\
+    Op(Vre_, x.Vre_);				\
     Op(Wre_, x.Wre_);				\
     Op(Bre_, x.Bre_);				\
 						\
@@ -123,6 +124,7 @@ namespace rnnp
     Op(Bqe_, x.Bqe_);				\
 						\
     Op(Ba_, x.Ba_);
+
   
     Model6& Model6::operator+=(const Model6& x)
     {

@@ -295,10 +295,8 @@ namespace rnnp
 	
       const double scale = 1.0 / gradient.count_;
 	
-      if (option.learn_embedding()) {
+      if (option.learn_embedding())
 	update(theta.terminal_, gradient.terminal_, scale, false);
-	update(theta.category_, gradient.category_, scale, false);
-      }
       
       if (option.learn_classification()) {
 	update(theta.Wc_,  gradient.Wc_,  scale, true);
@@ -309,6 +307,7 @@ namespace rnnp
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, gradient.Bsh_, scale, false);
 	  
+	update(theta.Vre_, gradient.Vre_, scale, true);
 	update(theta.Wre_, gradient.Wre_, scale, true);
 	update(theta.Bre_, gradient.Bre_, scale, false);
 	

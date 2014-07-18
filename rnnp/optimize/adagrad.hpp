@@ -480,10 +480,8 @@ namespace rnnp
 	
       model_impl_type& G = const_cast<model_impl_type&>(G_);
 	
-      if (option.learn_embedding()) {
+      if (option.learn_embedding())
 	update(theta.terminal_, G.terminal_, gradient.terminal_, scale, false);
-	update(theta.category_, G.category_, gradient.category_, scale, false);
-      }
       
       if (option.learn_classification()) {
 	update(theta.Wc_,  G.Wc_,  gradient.Wc_, scale, true);
@@ -494,6 +492,7 @@ namespace rnnp
 	update(theta.Wsh_, G.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, G.Bsh_, gradient.Bsh_, scale, false);
 	
+	update(theta.Vre_, G.Vre_, gradient.Vre_, scale, true);
 	update(theta.Wre_, G.Wre_, gradient.Wre_, scale, true);
 	update(theta.Bre_, G.Bre_, gradient.Bre_, scale, false);
 	

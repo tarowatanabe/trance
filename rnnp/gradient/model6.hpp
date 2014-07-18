@@ -40,7 +40,6 @@ namespace rnnp
 	Gradient::swap(static_cast<Gradient&>(x));
 	
 	terminal_.swap(x.terminal_);
-	category_.swap(x.category_);
       
 	Wc_.swap(x.Wc_);
 	Wfe_.swap(x.Wfe_);
@@ -48,6 +47,7 @@ namespace rnnp
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
       
+	Vre_.swap(x.Vre_);
 	Wre_.swap(x.Wre_);
 	Bre_.swap(x.Bre_);
 
@@ -72,19 +72,19 @@ namespace rnnp
 	Gradient::clear();
 
 	terminal_.clear();
-	category_.clear();
-	
+
 	Wc_.clear();
 	Wfe_.clear();
       
-	Wsh_.setZero();
-	Bsh_.setZero();
+	Wsh_.clear();
+	Bsh_.clear();
+	
+	Vre_.setZero();
+	Wre_.clear();
+	Bre_.clear();
 
-	Wre_.setZero();
-	Bre_.setZero();
-
-	Wu_.setZero();
-	Bu_.setZero();
+	Wu_.clear();
+	Bu_.clear();
 
 	Wf_.setZero();
 	Bf_.setZero();
@@ -107,14 +107,6 @@ namespace rnnp
 	return tensor;
       }
 
-      tensor_type& category(const word_type& label)
-      {
-	tensor_type& tensor = category_[label];
-	if (! tensor.rows())
-	  tensor = tensor_type::Zero(embedding_, 1);
-	return tensor;
-      }
-
       tensor_type& Wc(const word_type& label)
       {
 	tensor_type& tensor = Wc_[label];
@@ -122,11 +114,58 @@ namespace rnnp
 	  tensor = tensor_type::Zero(1, hidden_);
 	return tensor;
       }
+
+      tensor_type& Wsh(const word_type& label)
+      {
+	tensor_type& tensor = Wsh_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_ + embedding_ + hidden_);
+	return tensor;
+      }
+    
+      tensor_type& Bsh(const word_type& label)
+      {
+	tensor_type& tensor = Bsh_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
+	return tensor;
+      }
+    
+      tensor_type& Wre(const word_type& label)
+      {
+	tensor_type& tensor = Wre_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_);
+	return tensor;
+      }
+    
+      tensor_type& Bre(const word_type& label)
+      {
+	tensor_type& tensor = Bre_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
+	return tensor;
+      }
+
+      tensor_type& Wu(const word_type& label)
+      {
+	tensor_type& tensor = Wu_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_);
+	return tensor;
+      }
+
+      tensor_type& Bu(const word_type& label)
+      {
+	tensor_type& tensor = Bu_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
+	return tensor;
+      }
     
     public:
       // embedding
       matrix_embedding_type terminal_;
-      matrix_category_type  category_;
     
       // classification
       matrix_category_type Wc_;
@@ -135,16 +174,17 @@ namespace rnnp
       weights_type Wfe_;
     
       // shift
-      tensor_type Wsh_;
-      tensor_type Bsh_;
+      matrix_category_type Wsh_;
+      matrix_category_type Bsh_;
     
       // reduce
-      tensor_type Wre_;
-      tensor_type Bre_;
+      tensor_type          Vre_;
+      matrix_category_type Wre_;
+      matrix_category_type Bre_;
       
       // category
-      tensor_type Wu_;
-      tensor_type Bu_;
+      matrix_category_type Wu_;
+      matrix_category_type Bu_;
     
       // final
       tensor_type Wf_;
