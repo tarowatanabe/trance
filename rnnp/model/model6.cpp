@@ -36,7 +36,7 @@ namespace rnnp
       Wsh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + embedding_ + hidden_);
       Bsh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
       
-      Vre_ = tensor_type::Zero(hidden_ * hidden_, hidden_);
+      Vre_ = tensor_type::Zero(hidden_ * hidden_ * vocab_category_.size(), hidden_);
       Wre_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + hidden_ + hidden_ + hidden_);
       Bre_ = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
       
@@ -74,7 +74,7 @@ namespace rnnp
       Model::write_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_ + hidden_);
       Model::write_category(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, hidden_, 1);
     
-      Model::write_matrix(rep.path("Vre.txt.gz"), rep.path("Vre.bin"), Vre_);
+      Model::write_category(rep.path("Vre.txt.gz"), rep.path("Vre.bin"), Vre_, hidden_ * hidden_, hidden_);
       Model::write_category(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, hidden_, hidden_ + hidden_ + hidden_ + hidden_);
       Model::write_category(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, hidden_, 1);
 
@@ -136,7 +136,7 @@ namespace rnnp
       Wsh_ = tensor_type::Zero(Wsh_.rows(), hidden_ + embedding_ + hidden_);
       Bsh_ = tensor_type::Zero(Bsh_.rows(), 1);
       
-      Vre_ = tensor_type::Zero(hidden_ * hidden_, hidden_);
+      Vre_ = tensor_type::Zero(Vre_.rows(), hidden_);
       Wre_ = tensor_type::Zero(Wre_.rows(), hidden_ + hidden_ + hidden_ + hidden_);
       Bre_ = tensor_type::Zero(Bre_.rows(), 1);
 
@@ -164,7 +164,7 @@ namespace rnnp
       Model::read_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_ + hidden_);
       Model::read_category(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, hidden_, 1);
     
-      Model::read_matrix(rep.path("Vre.txt.gz"), rep.path("Vre.bin"), Vre_);
+      Model::read_category(rep.path("Vre.txt.gz"), rep.path("Vre.bin"), Vre_, hidden_ * hidden_, hidden_);
       Model::read_category(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, hidden_, hidden_ + hidden_ + hidden_ + hidden_);
       Model::read_category(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, hidden_, 1);
 
@@ -244,7 +244,7 @@ namespace rnnp
     Theta.OpCategory(Stream, Theta.Wsh_, Theta.hidden_, Theta.hidden_ + Theta.embedding_ + Theta.hidden_); \
     Theta.OpCategory(Stream, Theta.Bsh_, Theta.hidden_, 1);		\
 									\
-    Theta.OpMatrix(Stream, Theta.Vre_);					\
+    Theta.OpCategory(Stream, Theta.Vre_, Theta.hidden_ * Theta.hidden_, Theta.hidden_); \
     Theta.OpCategory(Stream, Theta.Wre_, Theta.hidden_, Theta.hidden_ + Theta.hidden_ + Theta.hidden_ + Theta.hidden_); \
     Theta.OpCategory(Stream, Theta.Bre_, Theta.hidden_, 1);		\
 									\

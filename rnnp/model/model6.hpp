@@ -68,7 +68,7 @@ namespace rnnp
 	const double range_embed = std::sqrt(6.0 / (embedding_ + 1));
 	const double range_c   = std::sqrt(6.0 / (hidden_ + 1));
 	const double range_sh  = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_ + hidden_));
-	const double range_vre = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_));
+	const double range_vre = 0.01;
 	const double range_re  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_));
 	const double range_u   = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_));
 	const double range_qu  = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));

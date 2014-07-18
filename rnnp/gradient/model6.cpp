@@ -25,7 +25,7 @@ namespace rnnp
       Wsh_.clear();
       Bsh_.clear();
     
-      Vre_ = tensor_type::Zero(hidden_ * hidden_, hidden_);
+      Vre_.clear();
       Wre_.clear();
       Bre_.clear();
 

@@ -67,6 +67,7 @@ namespace rnnp
       }
       
       
+      tensor_type buffer_;
       
       template <typename Parser, typename Theta>
       void operation_reduce(Parser& parser,
@@ -107,13 +108,15 @@ namespace rnnp
 	  
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
-	
+	const size_type offset_tensor         = theta.hidden_ * theta.hidden_ * label.non_terminal_id();
+
+	buffer_.resize(theta.hidden_, 1);
 	for (size_type row = 0; row != theta.hidden_; ++ row)
-	  state_new.layer(theta.hidden_).row(row) = (state.layer(theta.hidden_).transpose()
-						     * theta.Vre_.block(theta.hidden_ * row, 0, theta.hidden_, theta.hidden_)
-						     * state_reduced.layer(theta.hidden_));
+	  buffer_.row(row) = (state.layer(theta.hidden_).transpose()
+			      * theta.Vre_.block(offset_tensor + theta.hidden_ * row, 0, theta.hidden_, theta.hidden_)
+			      * state_reduced.layer(theta.hidden_));
 	
-	state_new.layer(theta.hidden_) = (state_new.layer(theta.hidden_)
+	state_new.layer(theta.hidden_) = (buffer_
 					  + theta.Bre_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
 					     * state.layer(theta.hidden_))

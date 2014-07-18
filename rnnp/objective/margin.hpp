@@ -1159,7 +1159,7 @@ namespace rnnp
 			   const option_type& option,
 			   gradient::Model6& g)
     {
-      tensor_type buffer_ee(theta.hidden_, theta.hidden_);
+      tensor_type buffer_vre(theta.hidden_, theta.hidden_);
       
       ++ g.count_;
 
@@ -1218,7 +1218,7 @@ namespace rnnp
 	    Wsh.block(0, offset3, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
 	    Bsh += backward.delta_;
-	      
+	    
 	    // propagate to ancedent
 	    backward_state(theta, state.derivation(), backward.loss_).delta_.array()
 	      += (state.derivation().layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
@@ -1245,6 +1245,7 @@ namespace rnnp
 	      
 	    const size_type offset_classification = theta.offset_classification(state.label());
 	    const size_type offset_category       = theta.offset_category(state.label());
+	    const size_type offset_tensor         = theta.hidden_ * theta.hidden_ * state.label().non_terminal_id();
 	      
 	    // classification
 	    g.Wc(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
@@ -1254,15 +1255,15 @@ namespace rnnp
 	      += (state.layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_).transpose()
 		     * backward.loss_).array());
-
-	    buffer_ee = state.derivation().layer(theta.hidden_) * state.reduced().layer(theta.hidden_).transpose();
 	    
-	    for (size_type row = 0; row != theta.hidden_; ++ row)
-	      g.Vre_.block(theta.hidden_ * row, 0, theta.hidden_, theta.hidden_)
-		+= backward.delta_.row(row)(0,0) * buffer_ee;
-	    
+	    tensor_type& Vre = g.Vre(state.label());
 	    tensor_type& Wre = g.Wre(state.label());
 	    tensor_type& Bre = g.Bre(state.label());
+	    
+	    buffer_vre = state.derivation().layer(theta.hidden_) * state.reduced().layer(theta.hidden_).transpose();
+	    for (size_type row = 0; row != theta.hidden_; ++ row)
+	      Vre.block(theta.hidden_ * row, 0, theta.hidden_, theta.hidden_)
+		+= backward.delta_.row(row)(0,0) * buffer_vre;
 	    
 	    Wre.block(0, offset1, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
@@ -1279,19 +1280,17 @@ namespace rnnp
 	    tensor_type& delta_reduced    = backward_state(theta, state.reduced()).delta_;
 	    tensor_type& delta_stack      = backward_state(theta, state.stack()).delta_;
 	    
-	    // derivation
 	    for (size_type row = 0; row != theta.hidden_; ++ row)
 	      delta_derivation.array()
 		+= (state.derivation().layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
-		    * (backward.delta_.row(row)(0, 0)
-		       * theta.Vre_.block(theta.hidden_ * row, 0, theta.hidden_, theta.hidden_)
-		       * state.reduced().layer(theta.hidden_)).array());
+		    * (theta.Vre_.block(offset_tensor + theta.hidden_ * row, 0, theta.hidden_, theta.hidden_)
+		       * state.reduced().layer(theta.hidden_)
+		       * backward.delta_.row(row)(0, 0)).array());
 	    
-	    // reduced
 	    for (size_type row = 0; row != theta.hidden_; ++ row)
 	      delta_reduced.array()
 		+= (state.reduced().layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
-		    * (theta.Vre_.block(theta.hidden_ * row, 0, theta.hidden_, theta.hidden_).transpose()
+		    * (theta.Vre_.block(offset_tensor + theta.hidden_ * row, 0, theta.hidden_, theta.hidden_).transpose()
 		       * state.derivation().layer(theta.hidden_)
 		       * backward.delta_.row(row)(0, 0)).array());
 	    

@@ -79,7 +79,7 @@ namespace rnnp
 	Wsh_.clear();
 	Bsh_.clear();
 	
-	Vre_.setZero();
+	Vre_.clear();
 	Wre_.clear();
 	Bre_.clear();
 
@@ -131,6 +131,14 @@ namespace rnnp
 	return tensor;
       }
     
+      tensor_type& Vre(const word_type& label)
+      {
+	tensor_type& tensor = Vre_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_ * hidden_, hidden_);
+	return tensor;
+      }
+
       tensor_type& Wre(const word_type& label)
       {
 	tensor_type& tensor = Wre_[label];
@@ -178,7 +186,7 @@ namespace rnnp
       matrix_category_type Bsh_;
     
       // reduce
-      tensor_type          Vre_;
+      matrix_category_type Vre_;
       matrix_category_type Wre_;
       matrix_category_type Bre_;
       
