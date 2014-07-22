@@ -43,14 +43,19 @@ namespace rnnp
       
 	Wc_.swap(x.Wc_);
 	Wfe_.swap(x.Wfe_);
-      
+
+	Psh_.swap(x.Psh_);
+	Qsh_.swap(x.Qsh_);      
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
       
-	Vre_.swap(x.Vre_);
+	Pre_.swap(x.Pre_);
+	Qre_.swap(x.Qre_);
 	Wre_.swap(x.Wre_);
 	Bre_.swap(x.Bre_);
 
+	Pu_.swap(x.Pu_);
+	Qu_.swap(x.Qu_);
 	Wu_.swap(x.Wu_);
 	Bu_.swap(x.Bu_);
 
@@ -75,14 +80,19 @@ namespace rnnp
 
 	Wc_.clear();
 	Wfe_.clear();
-      
+
+	Psh_.setZero();
+	Qsh_.setZero();      
 	Wsh_.clear();
 	Bsh_.clear();
 	
-	Vre_.clear();
+	Pre_.setZero();
+	Qre_.setZero();
 	Wre_.clear();
 	Bre_.clear();
 
+	Pu_.setZero();
+	Qu_.setZero();
 	Wu_.clear();
 	Bu_.clear();
 
@@ -131,14 +141,6 @@ namespace rnnp
 	return tensor;
       }
     
-      tensor_type& Vre(const word_type& label)
-      {
-	tensor_type& tensor = Vre_[label];
-	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_ * hidden_, hidden_);
-	return tensor;
-      }
-
       tensor_type& Wre(const word_type& label)
       {
 	tensor_type& tensor = Wre_[label];
@@ -182,15 +184,20 @@ namespace rnnp
       weights_type Wfe_;
     
       // shift
+      tensor_type Psh_;
+      tensor_type Qsh_;
       matrix_category_type Wsh_;
       matrix_category_type Bsh_;
     
       // reduce
-      matrix_category_type Vre_;
+      tensor_type Pre_;
+      tensor_type Qre_;
       matrix_category_type Wre_;
       matrix_category_type Bre_;
       
-      // category
+      // unary
+      tensor_type Pu_;
+      tensor_type Qu_;
       matrix_category_type Wu_;
       matrix_category_type Bu_;
     

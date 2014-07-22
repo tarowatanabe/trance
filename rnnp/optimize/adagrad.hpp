@@ -489,13 +489,18 @@ namespace rnnp
       }
       
       if (option.learn_hidden()) {
+	update(theta.Psh_, G.Psh_, gradient.Psh_, scale, true);
+	update(theta.Qsh_, G.Qsh_, gradient.Qsh_, scale, true);
 	update(theta.Wsh_, G.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, G.Bsh_, gradient.Bsh_, scale, false);
 	
-	update(theta.Vre_, G.Vre_, gradient.Vre_, scale, true);
+	update(theta.Pre_, G.Pre_, gradient.Pre_, scale, true);
+	update(theta.Qre_, G.Qre_, gradient.Qre_, scale, true);
 	update(theta.Wre_, G.Wre_, gradient.Wre_, scale, true);
 	update(theta.Bre_, G.Bre_, gradient.Bre_, scale, false);
 	
+	update(theta.Pu_, G.Pu_, gradient.Pu_, scale, true);
+	update(theta.Qu_, G.Qu_, gradient.Qu_, scale, true);
 	update(theta.Wu_, G.Wu_, gradient.Wu_, scale, true);
 	update(theta.Bu_, G.Bu_, gradient.Bu_, scale, false);
 

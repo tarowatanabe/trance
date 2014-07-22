@@ -14,7 +14,7 @@ namespace rnnp
     {
       Gradient::initialize(hidden, embedding);
 
-      const size_type reduced = utils::bithack::max(hidden_ >> 3, size_type(2));
+      const size_type reduced = utils::bithack::max(hidden_ >> 3, size_type(8));
     
       terminal_.clear();
     
@@ -22,13 +22,18 @@ namespace rnnp
       Wc_.clear();
       Wfe_.clear();
     
+      Psh_ = tensor_type::Zero(hidden_ * (hidden_ + embedding_ + hidden_), reduced);
+      Qsh_ = tensor_type::Zero(hidden_ * reduced,                          hidden_ + embedding_ + hidden_);
       Wsh_.clear();
       Bsh_.clear();
     
-      Vre_.clear();
+      Pre_ = tensor_type::Zero(hidden_ * hidden_ * 4, reduced);
+      Qre_ = tensor_type::Zero(hidden_ * reduced,     hidden_ * 4);
       Wre_.clear();
       Bre_.clear();
 
+      Pu_  = tensor_type::Zero(hidden_ * hidden_ * 3, reduced);
+      Qu_  = tensor_type::Zero(hidden_ * reduced,     hidden_ * 3);
       Wu_.clear();
       Bu_.clear();
       
@@ -51,13 +56,18 @@ namespace rnnp
     Theta.Op(Stream, Theta.Wc_);			\
     Theta.Op(Stream, Theta.Wfe_);			\
 							\
+    Theta.Op(Stream, Theta.Psh_);			\
+    Theta.Op(Stream, Theta.Qsh_);			\
     Theta.Op(Stream, Theta.Wsh_);			\
     Theta.Op(Stream, Theta.Bsh_);			\
 							\
-    Theta.Op(Stream, Theta.Vre_);			\
+    Theta.Op(Stream, Theta.Pre_);			\
+    Theta.Op(Stream, Theta.Qre_);			\
     Theta.Op(Stream, Theta.Wre_);			\
     Theta.Op(Stream, Theta.Bre_);			\
 							\
+    Theta.Op(Stream, Theta.Pu_);			\
+    Theta.Op(Stream, Theta.Qu_);			\
     Theta.Op(Stream, Theta.Wu_);			\
     Theta.Op(Stream, Theta.Bu_);			\
 							\
@@ -103,13 +113,18 @@ namespace rnnp
     Op(Wc_,  x.Wc_);				\
     Op(Wfe_, x.Wfe_);				\
 						\
+    Op(Psh_, x.Psh_);				\
+    Op(Qsh_, x.Qsh_);				\
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\
 						\
-    Op(Vre_, x.Vre_);				\
+    Op(Pre_, x.Pre_);				\
+    Op(Qre_, x.Qre_);				\
     Op(Wre_, x.Wre_);				\
     Op(Bre_, x.Bre_);				\
 						\
+    Op(Pu_, x.Pu_);				\
+    Op(Qu_, x.Qu_);				\
     Op(Wu_, x.Wu_);				\
     Op(Bu_, x.Bu_);				\
 						\

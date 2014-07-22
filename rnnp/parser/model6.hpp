@@ -14,6 +14,10 @@ namespace rnnp
   {
     struct Model6 : public rnnp::parser::Parser
     {
+      tensor_type buffer_;
+      tensor_type L_;
+      tensor_type R_;
+      
       template <typename Parser, typename Theta>
       void operation_shift(Parser& parser,
 			   const feature_set_type& feats,
@@ -25,6 +29,8 @@ namespace rnnp
 	const size_type offset1 = 0;
 	const size_type offset2 = theta.hidden_;
 	const size_type offset3 = theta.hidden_ + theta.embedding_;
+
+	const size_type reduced = utils::bithack::max(theta.hidden_ >> 3, size_type(8));
 	
 	state_type state_new = parser.state_allocator_.allocate();
 	
@@ -49,8 +55,30 @@ namespace rnnp
       
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
+	
+	buffer_.resize(theta.hidden_, 1);
+	for (size_type row = 0; row != theta.hidden_; ++ row) {
+	  const size_type full = theta.hidden_ + theta.embedding_ + theta.hidden_;
 
-	state_new.layer(theta.hidden_) = (theta.Bsh_.block(offset_category, 0, theta.hidden_, 1)
+	  L_ = ((state.layer(theta.hidden_).transpose()
+		 * theta.Psh_.block(full * row + offset1, 0, theta.hidden_, reduced))
+		+ (theta.terminal_.col(theta.terminal(head)).transpose()
+		   * theta.Psh_.block(full * row + offset2, 0, theta.embedding_, reduced))
+		+ (parser.queue_.col(state.next()).transpose()
+		   * theta.Psh_.block(full * row + offset3, 0, theta.hidden_, reduced)));
+	  
+	  R_ = ((theta.Qsh_.block(reduced * row, offset1, reduced, theta.hidden_)
+		 * state.layer(theta.hidden_))
+		+ (theta.Qsh_.block(reduced * row, offset2, reduced, theta.embedding_)
+		   * theta.terminal_.col(theta.terminal(head)))
+		+ (theta.Qsh_.block(reduced * row, offset3, reduced, theta.hidden_)
+		   * parser.queue_.col(state.next())));
+
+	  buffer_.row(row) = L_ * R_;
+	}
+	
+	state_new.layer(theta.hidden_) = (buffer_
+					  + theta.Bsh_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wsh_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
 					     * state.layer(theta.hidden_))
 					  + (theta.Wsh_.block(offset_category, offset2, theta.hidden_, theta.embedding_)
@@ -66,9 +94,7 @@ namespace rnnp
 	parser.agenda_[state_new.step()].push_back(state_new);
       }
       
-      
-      tensor_type buffer_;
-      
+            
       template <typename Parser, typename Theta>
       void operation_reduce(Parser& parser,
 			    const feature_set_type& feats,
@@ -80,6 +106,8 @@ namespace rnnp
 	const size_type offset2 = theta.hidden_;
 	const size_type offset3 = theta.hidden_ + theta.hidden_;
 	const size_type offset4 = theta.hidden_ + theta.hidden_ + theta.hidden_;
+
+	const size_type reduced = utils::bithack::max(theta.hidden_ >> 3, size_type(8));
       
 	const state_type state_reduced = state.stack();
 	const state_type state_stack   = state_reduced.stack();
@@ -108,13 +136,28 @@ namespace rnnp
 	  
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
-	const size_type offset_tensor         = theta.hidden_ * theta.hidden_ * label.non_terminal_id();
-
+	
 	buffer_.resize(theta.hidden_, 1);
-	for (size_type row = 0; row != theta.hidden_; ++ row)
-	  buffer_.row(row) = (state.layer(theta.hidden_).transpose()
-			      * theta.Vre_.block(offset_tensor + theta.hidden_ * row, 0, theta.hidden_, theta.hidden_)
-			      * state_reduced.layer(theta.hidden_));
+	for (size_type row = 0; row != theta.hidden_; ++ row) {
+	  L_ = ((state.layer(theta.hidden_).transpose()
+		 * theta.Pre_.block(theta.hidden_ * 4 * row + offset1, 0, theta.hidden_, reduced))
+		+ (state_reduced.layer(theta.hidden_).transpose()
+		   * theta.Pre_.block(theta.hidden_ * 4 * row + offset2, 0, theta.hidden_, reduced))
+		+ (state_stack.layer(theta.hidden_).transpose()
+		   * theta.Pre_.block(theta.hidden_ * 4 * row + offset3, 0, theta.hidden_, reduced))
+		+ (parser.queue_.col(state.next()).transpose()
+		   * theta.Pre_.block(theta.hidden_ * 4 * row + offset4, 0, theta.hidden_, reduced)));
+	  R_ = ((theta.Qre_.block(reduced * row, offset1, reduced, theta.hidden_)
+		 * state.layer(theta.hidden_))
+		+ (theta.Qre_.block(reduced * row, offset2, reduced, theta.hidden_)
+		   * state_reduced.layer(theta.hidden_))
+		+ (theta.Qre_.block(reduced * row, offset3, reduced, theta.hidden_)
+		   * state_stack.layer(theta.hidden_))
+		+ (theta.Qre_.block(reduced * row, offset4, reduced, theta.hidden_)
+		   * parser.queue_.col(state.next())));
+	  
+	  buffer_.row(row) = L_ * R_;
+	}
 	
 	state_new.layer(theta.hidden_) = (buffer_
 					  + theta.Bre_.block(offset_category, 0, theta.hidden_, 1)
@@ -145,6 +188,8 @@ namespace rnnp
 	const size_type offset1 = 0;
 	const size_type offset2 = theta.hidden_;
 	const size_type offset3 = theta.hidden_ + theta.hidden_;
+	
+	const size_type reduced = utils::bithack::max(theta.hidden_ >> 3, size_type(8));
 
 	state_type state_new = parser.state_allocator_.allocate();
 
@@ -169,8 +214,28 @@ namespace rnnp
       
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
+
+	buffer_.resize(theta.hidden_, 1);
+	for (size_type row = 0; row != theta.hidden_; ++ row) {
+	  L_ = ((state.layer(theta.hidden_).transpose()
+		 * theta.Pu_.block(theta.hidden_ * 3 * row + offset1, 0, theta.hidden_, reduced))
+		+ (state.stack().layer(theta.hidden_).transpose()
+		   * theta.Pu_.block(theta.hidden_ * 3 * row + offset2, 0, theta.hidden_, reduced))
+		+ (parser.queue_.col(state.next()).transpose()
+		   * theta.Pu_.block(theta.hidden_ * 3 * row + offset3, 0, theta.hidden_, reduced)));
+	  
+	  R_ = ((theta.Qu_.block(reduced * row, offset1, reduced, theta.hidden_)
+		 * state.layer(theta.hidden_))
+		+ (theta.Qu_.block(reduced * row, offset2, reduced, theta.hidden_)
+		   * state.stack().layer(theta.hidden_))
+		+ (theta.Qu_.block(reduced * row, offset3, reduced, theta.hidden_)
+		   * parser.queue_.col(state.next())));
+	  
+	  buffer_.row(row) = L_ * R_;
+	}
       
-	state_new.layer(theta.hidden_) = (theta.Bu_.block(offset_category, 0, theta.hidden_, 1)
+	state_new.layer(theta.hidden_) = (buffer_
+					  + theta.Bu_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
 					     * state.layer(theta.hidden_))
 					  + (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
