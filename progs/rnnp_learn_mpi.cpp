@@ -27,6 +27,7 @@
 #include <rnnp/objective/violation_max.hpp>
 
 #include <rnnp/optimize/adagrad.hpp>
+#include <rnnp/optimize/adagradrda.hpp>
 #include <rnnp/optimize/adadec.hpp>
 #include <rnnp/optimize/adadelta.hpp>
 #include <rnnp/optimize/sgd.hpp>
@@ -1470,6 +1471,8 @@ void learn(const option_type& option,
 
   if (option.optimize_adagrad())
     learn(rnnp::optimize::AdaGrad<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
+  else if (option.optimize_adagradrda())
+    learn(rnnp::optimize::AdaGradRDA<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_adadec())
     learn(rnnp::optimize::AdaDec<Theta>(theta, option.lambda_, option.eta0_, option.gamma_), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_adadelta())

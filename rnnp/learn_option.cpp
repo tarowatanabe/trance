@@ -84,6 +84,8 @@ namespace rnnp
 	  optimize_ = OPTIMIZE_SGD;
 	else if (utils::ipiece(oiter->second) == "adagrad")
 	  optimize_ = OPTIMIZE_ADAGRAD;
+	else if (utils::ipiece(oiter->second) == "adagrad-rda" || utils::ipiece(oiter->second) == "adagradrda")
+	  optimize_ = OPTIMIZE_ADAGRADRDA;
 	else if (utils::ipiece(oiter->second) == "adadec")
 	  optimize_ = OPTIMIZE_ADADEC;
 	else if (utils::ipiece(oiter->second) == "adadelta")
