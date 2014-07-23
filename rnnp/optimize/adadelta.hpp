@@ -28,8 +28,9 @@ namespace rnnp
       
       AdaDelta(const Theta& theta,
 	       const double& lambda,
-	       const double& eta0)
-	: G_(theta), X_(theta), lambda_(lambda), eta0_(eta0) { G_.clear(); X_.clear(); }
+	       const double& eta0,
+	       const double& gamma)
+	: G_(theta), X_(theta), lambda_(lambda), eta0_(eta0), gamma_(gamma) { G_.clear(); X_.clear(); }
 
       double decay()
       {
@@ -55,8 +56,9 @@ namespace rnnp
 				  const tensor_type& g,
 				  const double& scale,
 				  const double& lambda,
-				  const double& eta0)
-	  : theta_(theta), G_(G), X_(X), g_(g), scale_(scale), lambda_(lambda), eta0_(eta0) {}
+				  const double& eta0,
+				  const double& gamma)
+	  : theta_(theta), G_(G), X_(X), g_(g), scale_(scale), lambda_(lambda), eta0_(eta0), gamma_(gamma) {}
       
 	void init(const tensor_type::Scalar& value, tensor_type::Index i, tensor_type::Index j)
 	{
@@ -67,13 +69,13 @@ namespace rnnp
 	{
 	  if (g_(i, j) == 0) return;
 	
-	  G_(i, j) = G_(i, j) * 0.95 + (g_(i, j) * scale_) * (g_(i, j) * scale_);
+	  G_(i, j) = G_(i, j) * gamma_ + (g_(i, j) * scale_) * (g_(i, j) * scale_);
 	
 	  const double rate = learning_rate(eta0_, X_(i, j), G_(i, j));
 	  const double x1 = theta_(i, j) - rate * scale_ * g_(i, j);
 	  const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
 	
-	  X_(i, j) = X_(i, j) * 0.95 + (x2 - theta_(i, j)) * (x2 - theta_(i, j));
+	  X_(i, j) = X_(i, j) * gamma_ + (x2 - theta_(i, j)) * (x2 - theta_(i, j));
 	
 	  theta_(i, j) = x2;
 	}
@@ -86,6 +88,7 @@ namespace rnnp
 	const double scale_;
 	const double lambda_;
 	const double eta0_;
+	const double gamma_;
       };
 
       struct update_visitor
@@ -95,8 +98,9 @@ namespace rnnp
 		       tensor_type& X,
 		       const tensor_type& g,
 		       const double& scale,
-		       const double& eta0)
-	  : theta_(theta), G_(G), X_(X), g_(g), scale_(scale), eta0_(eta0) {}
+		       const double& eta0,
+		       const double& gamma)
+	  : theta_(theta), G_(G), X_(X), g_(g), scale_(scale), eta0_(eta0), gamma_(gamma) {}
       
 	void init(const tensor_type::Scalar& value, tensor_type::Index i, tensor_type::Index j)
 	{
@@ -107,12 +111,12 @@ namespace rnnp
 	{
 	  if (g_(i, j) == 0) return;
 	
-	  G_(i, j) = G_(i, j) * 0.95 + (g_(i, j) * scale_) * (g_(i, j) * scale_);
+	  G_(i, j) = G_(i, j) * gamma_ + (g_(i, j) * scale_) * (g_(i, j) * scale_);
 	  
 	  const double rate = learning_rate(eta0_, X_(i, j), G_(i, j));
 	  const double x1 = theta_(i, j) - rate * scale_ * g_(i, j);
 	  
-	  X_(i, j) = X_(i, j) * 0.95 + (x1 - theta_(i, j)) * (x1 - theta_(i, j));
+	  X_(i, j) = X_(i, j) * gamma_ + (x1 - theta_(i, j)) * (x1 - theta_(i, j));
 	  
 	  theta_(i, j) = x1;
 	}
@@ -124,6 +128,7 @@ namespace rnnp
       
 	const double scale_;
 	const double eta0_;
+	const double gamma_;
       };
 
       void update(tensor_type& theta,
@@ -141,13 +146,13 @@ namespace rnnp
 	    
 	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
 	      if (g(row, 0) != 0.0) {
-		G(row, col) = G(row, col) * 0.95 + (g(row, 0) * scale) * (g(row, 0) * scale);
+		G(row, col) = G(row, col) * gamma_ + (g(row, 0) * scale) * (g(row, 0) * scale);
 		
 		const double rate = learning_rate(eta0_, X(row, col), G(row, col));
 		const double x1 = theta(row, col) - rate * scale * g(row, 0);
 		const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
 		
-		X(row, col) = X(row, col) * 0.95 + (x2 - theta(row, col)) * (x2 - theta(row, col));
+		X(row, col) = X(row, col) * gamma_ + (x2 - theta(row, col)) * (x2 - theta(row, col));
 		
 		theta(row, col) = x2;
 	      }
@@ -160,12 +165,12 @@ namespace rnnp
 	    
 	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
 	      if (g(row, 0) != 0.0) {
-		G(row, col) = G(row, col) * 0.95 + (g(row, 0) * scale) * (g(row, 0) * scale);
+		G(row, col) = G(row, col) * gamma_ + (g(row, 0) * scale) * (g(row, 0) * scale);
 		
 		const double rate = learning_rate(eta0_,  X(row, col), G(row, col));
 		const double x1 = theta(row, col) - rate * scale * g(row, 0);
 		
-		X(row, col) = X(row, col) * 0.95 + (x1 - theta(row, col)) * (x1 - theta(row, col));
+		X(row, col) = X(row, col) * gamma_ + (x1 - theta(row, col)) * (x1 - theta(row, col));
 		
 		theta(row, col) = x1;
 	      }
@@ -190,13 +195,13 @@ namespace rnnp
 	      model_type::weights_type::value_type& X = Xs[fiter->first];
 	      const gradient_type::weights_type::mapped_type& g = fiter->second;
 	      
-	      G = G * 0.95 + (g * scale) * (g * scale);
+	      G = G * gamma_ + (g * scale) * (g * scale);
 	      
 	      const double rate = learning_rate(eta0_, X, G);
 	      const double x1 = x - rate * scale * g;
 	      const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
 	      
-	      X = X * 0.95 + (x2 - x) * (x2 - x);
+	      X = X * gamma_ + (x2 - x) * (x2 - x);
 	      
 	      x = x2;
 	    }
@@ -209,12 +214,12 @@ namespace rnnp
 	      model_type::weights_type::value_type& X = Xs[fiter->first];
 	      const gradient_type::weights_type::mapped_type& g = fiter->second;
 	      
-	      G = G * 0.95 + (g * scale) * (g * scale);
+	      G = G * gamma_ + (g * scale) * (g * scale);
 	      
 	      const double rate = learning_rate(eta0_, X, G);
 	      const double x1 = x - rate * scale * g;
 	      
-	      X = X * 0.95 + (x1 - x) * (x1 - x);
+	      X = X * gamma_ + (x1 - x) * (x1 - x);
 	      
 	      x = x1;
 	    }
@@ -241,7 +246,7 @@ namespace rnnp
 	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
 		if (g(row, col) != 0) {
 		  G.block(offset, 0, rows, cols)(row, col) =
-		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + (g(row, col) * scale) * (g(row, col) * scale);
+		    G.block(offset, 0, rows, cols)(row, col) * gamma_ + (g(row, col) * scale) * (g(row, col) * scale);
 
 		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
 		  
@@ -253,7 +258,7 @@ namespace rnnp
 		  const double x2 = utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - rate * lambda_);
 		  
 		  X.block(offset, 0, rows, cols)(row, col)
-		    = X.block(offset, 0, rows, cols)(row, col) * 0.95 + (x2 - x) * (x2 - x);
+		    = X.block(offset, 0, rows, cols)(row, col) * gamma_ + (x2 - x) * (x2 - x);
 		  
 		  x = x2;
 		}
@@ -271,7 +276,7 @@ namespace rnnp
 	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
 		if (g(row, col) != 0) {
 		  G.block(offset, 0, rows, cols)(row, col) =
-		    G.block(offset, 0, rows, cols)(row, col) * 0.95 + (g(row, col) * scale) * (g(row, col) * scale);
+		    G.block(offset, 0, rows, cols)(row, col) * gamma_ + (g(row, col) * scale) * (g(row, col) * scale);
 
 		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
 		  
@@ -281,7 +286,7 @@ namespace rnnp
 		  const double x1 = x - rate * scale * g(row, col);
 		  
 		  X.block(offset, 0, rows, cols)(row, col)
-		    = X.block(offset, 0, rows, cols)(row, col) * 0.95 + (x1 - x) * (x1 - x);
+		    = X.block(offset, 0, rows, cols)(row, col) * gamma_ + (x1 - x) * (x1 - x);
 		  
 		  x = x1;
 		}
@@ -297,11 +302,11 @@ namespace rnnp
 		  const bool regularize) const
       {
 	if (regularize && lambda_ != 0.0) {
-	  update_visitor_regularize visitor(theta, G, X, g, scale, lambda_, eta0_);
+	  update_visitor_regularize visitor(theta, G, X, g, scale, lambda_, eta0_, gamma_);
 	  
 	  theta.visit(visitor);
 	} else {
-	  update_visitor visitor(theta, G, X, g, scale, eta0_);
+	  update_visitor visitor(theta, G, X, g, scale, eta0_, gamma_);
 	  
 	  theta.visit(visitor);
 	}
@@ -313,6 +318,7 @@ namespace rnnp
     
       double lambda_;
       double eta0_;
+      double gamma_;
     };
 
     template <>

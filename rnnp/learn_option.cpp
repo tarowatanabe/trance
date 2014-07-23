@@ -21,6 +21,7 @@ namespace rnnp
       batch_(4),
       lambda_(0),
       eta0_(0.01),
+      gamma_(0.95),
       shrinking_(false),
       decay_(false),
       margin_all_(false),
@@ -37,6 +38,7 @@ namespace rnnp
       batch_(4),
       lambda_(0),
       eta0_(0.01),
+      gamma_(0.95),
       shrinking_(false),
       decay_(false),
       margin_all_(false),
@@ -118,6 +120,8 @@ namespace rnnp
 	lambda_ = utils::lexical_cast<double>(oiter->second);
       else if (utils::ipiece(oiter->first) == "eta0" || utils::ipiece(oiter->first) == "eta")
 	eta0_ = utils::lexical_cast<double>(oiter->second);
+      else if (utils::ipiece(oiter->first) == "gamma")
+	gamma_ = utils::lexical_cast<double>(oiter->second);
       else if (utils::ipiece(oiter->first) == "shrinking" || utils::ipiece(oiter->first) == "shrink")
 	shrinking_ = utils::lexical_cast<bool>(oiter->second);
       else if (utils::ipiece(oiter->first) == "decay")
@@ -138,6 +142,8 @@ namespace rnnp
       throw std::runtime_error("negative lambda?");
     if (eta0_ <= 0.0)
       throw std::runtime_error("zero or negative eta0?");
+    if (gamma_ <= 0.0)
+      throw std::runtime_error("negative gamma?");
 
     if (margin_evalb()) {
       if (scale_ == 0)
@@ -222,6 +228,9 @@ namespace rnnp
     
     if (option.eta0_ > 0)
       opt.push_back(std::make_pair("eta0", utils::lexical_cast<std::string>(option.eta0_)));
+
+    if (option.gamma_ > 0)
+      opt.push_back(std::make_pair("gamma", utils::lexical_cast<std::string>(option.gamma_)));
 
     if (option.shrinking_)
       opt.push_back(std::make_pair("shrinking", utils::lexical_cast<std::string>(option.shrinking_)));

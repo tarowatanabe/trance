@@ -1471,9 +1471,9 @@ void learn(const option_type& option,
   if (option.optimize_adagrad())
     learn(rnnp::optimize::AdaGrad<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_adadec())
-    learn(rnnp::optimize::AdaDec<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
+    learn(rnnp::optimize::AdaDec<Theta>(theta, option.lambda_, option.eta0_, option.gamma_), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_adadelta())
-    learn(rnnp::optimize::AdaDelta<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
+    learn(rnnp::optimize::AdaDelta<Theta>(theta, option.lambda_, option.eta0_, option.gamma_), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_sgd())
     learn(rnnp::optimize::SGD<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
   else
