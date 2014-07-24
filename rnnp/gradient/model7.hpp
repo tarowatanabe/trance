@@ -41,7 +41,11 @@ namespace rnnp
 	
 	terminal_.swap(x.terminal_);
       
-	Wc_.swap(x.Wc_);
+	Wcsh_.swap(x.Wcsh_);
+	Wcre_.swap(x.Wcre_);
+	Wcu_.swap(x.Wcu_);
+	Wcf_.swap(x.Wcf_);
+	Wci_.swap(x.Wci_);
 	Wfe_.swap(x.Wfe_);
       
 	Wsh_.swap(x.Wsh_);
@@ -72,11 +76,15 @@ namespace rnnp
 
 	terminal_.clear();
 
-	Wc_.clear();
+	Wcsh_.clear();
+	Wcre_.clear();
+	Wcu_.clear();
+	Wcf_.setZero();
+	Wci_.setZero();
 	Wfe_.clear();
       
-	Wsh_.setZero();
-	Bsh_.setZero();
+	Wsh_.clear();
+	Bsh_.clear();
 
 	Wre_.clear();
 	Bre_.clear();
@@ -105,11 +113,43 @@ namespace rnnp
 	return tensor;
       }
 
-      tensor_type& Wc(const word_type& label)
+      tensor_type& Wcsh(const word_type& label)
       {
-	tensor_type& tensor = Wc_[label];
+	tensor_type& tensor = Wcsh_[label];
 	if (! tensor.rows())
 	  tensor = tensor_type::Zero(1, hidden_);
+	return tensor;
+      }
+
+      tensor_type& Wcre(const word_type& label)
+      {
+	tensor_type& tensor = Wcre_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(1, hidden_);
+	return tensor;
+      }
+
+      tensor_type& Wcu(const word_type& label)
+      {
+	tensor_type& tensor = Wcu_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(1, hidden_);
+	return tensor;
+      }
+
+      tensor_type& Wsh(const word_type& label)
+      {
+	tensor_type& tensor = Wsh_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_ + embedding_ + hidden_);
+	return tensor;
+      }
+    
+      tensor_type& Bsh(const word_type& label)
+      {
+	tensor_type& tensor = Bsh_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
 	return tensor;
       }
     
@@ -150,14 +190,18 @@ namespace rnnp
       matrix_embedding_type terminal_;
     
       // classification
-      matrix_category_type Wc_;
+      matrix_category_type Wcsh_;
+      matrix_category_type Wcre_;
+      matrix_category_type Wcu_;
+      tensor_type          Wcf_;
+      tensor_type          Wci_;
 
       // features
       weights_type Wfe_;
     
       // shift
-      tensor_type Wsh_;
-      tensor_type Bsh_;
+      matrix_category_type Wsh_;
+      matrix_category_type Bsh_;
     
       // reduce
       matrix_category_type Wre_;

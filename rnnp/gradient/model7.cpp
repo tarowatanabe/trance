@@ -18,11 +18,15 @@ namespace rnnp
       terminal_.clear();
     
       // initialize matrix    
-      Wc_.clear();
+      Wcsh_.clear();
+      Wcre_.clear();
+      Wcu_.clear();
+      Wcf_ = tensor_type::Zero(1, hidden_);
+      Wci_ = tensor_type::Zero(1, hidden_);
       Wfe_.clear();
     
-      Wsh_ = tensor_type::Zero(hidden_, hidden_ + embedding_ + hidden_);
-      Bsh_ = tensor_type::Zero(hidden_, 1);
+      Wsh_.clear();
+      Bsh_.clear();
     
       Wre_.clear();
       Bre_.clear();
@@ -46,7 +50,11 @@ namespace rnnp
 #define GRADIENT_STREAM_OPERATOR(Theta, Op, Stream)	\
     Theta.Op(Stream, Theta.terminal_);			\
 							\
-    Theta.Op(Stream, Theta.Wc_);			\
+    Theta.Op(Stream, Theta.Wcsh_);			\
+    Theta.Op(Stream, Theta.Wcre_);			\
+    Theta.Op(Stream, Theta.Wcu_);			\
+    Theta.Op(Stream, Theta.Wcf_);			\
+    Theta.Op(Stream, Theta.Wci_);			\
     Theta.Op(Stream, Theta.Wfe_);			\
 							\
     Theta.Op(Stream, Theta.Wsh_);			\
@@ -97,8 +105,12 @@ namespace rnnp
 #define GRADIENT_BINARY_OPERATOR(Op)	\
     Op(terminal_, x.terminal_);			\
 						\
-    Op(Wc_,  x.Wc_);				\
-    Op(Wfe_, x.Wfe_);				\
+    Op(Wcsh_, x.Wcsh_);				\
+    Op(Wcre_, x.Wcre_);				\
+    Op(Wcu_,  x.Wcu_);				\
+    Op(Wcf_,  x.Wcf_);				\
+    Op(Wci_,  x.Wci_);				\
+    Op(Wfe_,  x.Wfe_);				\
 						\
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\

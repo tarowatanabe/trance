@@ -347,8 +347,12 @@ namespace rnnp
 	update(theta.terminal_, gradient.terminal_, scale, false);
       
       if (option.learn_classification()) {
-	update(theta.Wc_,  gradient.Wc_,  scale, true);
-	update(theta.Wfe_, gradient.Wfe_, scale, true);
+	update(theta.Wcsh_, gradient.Wcsh_, scale, true);
+	update(theta.Wcre_, gradient.Wcre_, scale, true);
+	update(theta.Wcu_,  gradient.Wcu_,  scale, true);
+	update(theta.Wcf_,  gradient.Wcf_,  scale, true);
+	update(theta.Wci_,  gradient.Wci_,  scale, true);
+	update(theta.Wfe_,  gradient.Wfe_,  scale, true);
       }
 	
       if (option.learn_hidden()) {

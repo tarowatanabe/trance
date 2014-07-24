@@ -540,8 +540,12 @@ namespace rnnp
 	update(theta.terminal_, G.terminal_, gradient.terminal_, scale, false);
       
       if (option.learn_classification()) {
-	update(theta.Wc_,  G.Wc_,  gradient.Wc_, scale, true);
-	update(theta.Wfe_, G.Wfe_, gradient.Wfe_, scale, true);
+	update(theta.Wcsh_, G.Wcsh_, gradient.Wcsh_, scale, true);
+	update(theta.Wcre_, G.Wcre_, gradient.Wcre_, scale, true);
+	update(theta.Wcu_,  G.Wcu_,  gradient.Wcu_,  scale, true);
+	update(theta.Wcf_,  G.Wcf_,  gradient.Wcf_,  scale, true);
+	update(theta.Wci_,  G.Wci_,  gradient.Wci_,  scale, true);
+	update(theta.Wfe_,  G.Wfe_,  gradient.Wfe_,  scale, true);
       }
       
       if (option.learn_hidden()) {

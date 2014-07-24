@@ -48,7 +48,7 @@ namespace rnnp
 						 *state_new.feature_vector());
       
 	const size_type offset_classification = theta.offset_classification(label);
-	const size_type offset_category       = 0;
+	const size_type offset_category       = theta.offset_category(label);
 	
 	state_new.layer(theta.hidden_) = (theta.Bsh_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wsh_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
@@ -59,7 +59,7 @@ namespace rnnp
 					     * parser.queue_.col(state.next()))
 					  ).array().unaryExpr(model_type::activation());
 	
-	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	const double score = (theta.Wcsh_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
 	
 	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector()) + state.score() + score;
       
@@ -104,7 +104,7 @@ namespace rnnp
 						 *state_new.feature_vector());
 	  
 	const size_type offset_classification = theta.offset_classification(label);
-	const size_type offset_category       = theta.offset_category(state.label());
+	const size_type offset_category       = theta.offset_category(label);
 	  
 	state_new.layer(theta.hidden_) = (theta.Bre_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
@@ -117,7 +117,7 @@ namespace rnnp
 					     * parser.queue_.col(state.next()))
 					  ).array().unaryExpr(model_type::activation());
 	  
-	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	const double score = (theta.Wcre_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
 	  
 	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector()) + state.score() + score;
 	  
@@ -157,7 +157,7 @@ namespace rnnp
 						 *state_new.feature_vector());
       
 	const size_type offset_classification = theta.offset_classification(label);
-	const size_type offset_category       = theta.offset_category(state.label());
+	const size_type offset_category       = theta.offset_category(label);
       
 	state_new.layer(theta.hidden_) = (theta.Bu_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
@@ -168,7 +168,7 @@ namespace rnnp
 					     * parser.queue_.col(state.next()))
 					  ).array().unaryExpr(model_type::activation());
 	
-	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	const double score = (theta.Wcu_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
 	
 	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector()) + state.score() + score;
 	
@@ -200,14 +200,12 @@ namespace rnnp
 	state_new.feature_state()  = feats.apply(state_new.operation(),
 						 state.feature_state(),
 						 *state_new.feature_vector());
-
-	const size_type offset_classification = theta.offset_classification(symbol_type::FINAL);
-      
+	
 	state_new.layer(theta.hidden_) = (theta.Bf_
 					  + theta.Wf_ * state.layer(theta.hidden_)
 					  ).array().unaryExpr(model_type::activation());
-      
-	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	
+	const double score = (theta.Wcf_ * state_new.layer(theta.hidden_))(0, 0);
       
 	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector()) + state.score() + score;
       
@@ -240,13 +238,11 @@ namespace rnnp
 						 state.feature_state(),
 						 *state_new.feature_vector());
 
-	const size_type offset_classification = theta.offset_classification(symbol_type::IDLE);
-      
 	state_new.layer(theta.hidden_) = (theta.Bi_
 					  + theta.Wi_ * state.layer(theta.hidden_)
 					  ).array().unaryExpr(model_type::activation());
       
-	const double score = (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_) * state_new.layer(theta.hidden_))(0, 0);
+	const double score = (theta.Wci_ * state_new.layer(theta.hidden_))(0, 0);
       
 	state_new.score() = rnnp::dot_product(theta.Wfe_, *state_new.feature_vector()) + state.score() + score;
       

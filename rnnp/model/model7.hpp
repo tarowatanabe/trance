@@ -76,7 +76,11 @@ namespace rnnp
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
       
-	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
+	Wcsh_ = Wcsh_.array().unaryExpr(__randomize<Gen>(gen, range_c));
+	Wcre_ = Wcre_.array().unaryExpr(__randomize<Gen>(gen, range_c));
+	Wcu_  = Wcu_.array().unaryExpr(__randomize<Gen>(gen, range_c));
+	Wcf_  = Wcf_.array().unaryExpr(__randomize<Gen>(gen, range_c));
+	Wci_  = Wci_.array().unaryExpr(__randomize<Gen>(gen, range_c));
       
 	Wsh_ = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
 	Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
@@ -96,7 +100,11 @@ namespace rnnp
 	
 	terminal_.swap(x.terminal_);
       
-	Wc_.swap(x.Wc_);
+	Wcsh_.swap(x.Wcsh_);
+	Wcre_.swap(x.Wcre_);
+	Wcu_.swap(x.Wcu_);
+	Wcf_.swap(x.Wcf_);
+	Wci_.swap(x.Wci_);
 	Wfe_.swap(x.Wfe_);
       
 	Wsh_.swap(x.Wsh_);
@@ -127,7 +135,11 @@ namespace rnnp
 
 	terminal_.setZero();
       
-	Wc_.setZero();
+	Wcsh_.setZero();
+	Wcre_.setZero();
+	Wcu_.setZero();
+	Wcf_.setZero();
+	Wci_.setZero();
 	Wfe_.clear();
       
 	Wsh_.setZero();
@@ -157,7 +169,11 @@ namespace rnnp
       {
 	double norm = 0.0;
       
-	norm += Wc_.lpNorm<1>();
+	norm += Wcsh_.lpNorm<1>();
+	norm += Wcre_.lpNorm<1>();
+	norm += Wcu_.lpNorm<1>();
+	norm += Wcf_.lpNorm<1>();
+	norm += Wci_.lpNorm<1>();
 	
 	norm += Wsh_.lpNorm<1>();
 	norm += Wre_.lpNorm<1>();
@@ -175,7 +191,11 @@ namespace rnnp
       {
 	double norm = 0.0;
       
-	norm += Wc_.squaredNorm();
+	norm += Wcsh_.squaredNorm();
+	norm += Wcre_.squaredNorm();
+	norm += Wcu_.squaredNorm();
+	norm += Wcf_.squaredNorm();
+	norm += Wci_.squaredNorm();
       
 	norm += Wsh_.squaredNorm();
 	norm += Wre_.squaredNorm();
@@ -194,7 +214,11 @@ namespace rnnp
       tensor_type terminal_;
     
       // classification
-      tensor_type Wc_;
+      tensor_type Wcsh_;
+      tensor_type Wcre_;
+      tensor_type Wcu_;
+      tensor_type Wcf_;
+      tensor_type Wci_;
       
       // features
       weights_type Wfe_;
