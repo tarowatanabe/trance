@@ -79,6 +79,7 @@ namespace rnnp
     int    batch_;
     double lambda_;
     double eta0_;
+    double epsilon_;
     double gamma_;
     bool   shrinking_;
     bool   decay_;
