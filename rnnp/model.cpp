@@ -50,6 +50,7 @@ namespace rnnp
     case 4: return model::MODEL4;
     case 5: return model::MODEL5;
     case 6: return model::MODEL6;
+    case 7: return model::MODEL7;
     default: return model::NONE;
     }
   }

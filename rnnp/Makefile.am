@@ -49,7 +49,8 @@ gradient/model2.hpp \
 gradient/model3.hpp \
 gradient/model4.hpp \
 gradient/model5.hpp \
-gradient/model6.hpp
+gradient/model6.hpp \
+gradient/model7.hpp
 
 librnnp_gradient_la_SOURCES = \
 gradient/model1.cpp \
@@ -57,7 +58,8 @@ gradient/model2.cpp \
 gradient/model3.cpp \
 gradient/model4.cpp \
 gradient/model5.cpp \
-gradient/model6.cpp
+gradient/model6.cpp \
+gradient/model7.cpp
 librnnp_gradient_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 dist_model_HEADERS = \
@@ -67,7 +69,8 @@ model/model2.hpp \
 model/model3.hpp \
 model/model4.hpp \
 model/model5.hpp \
-model/model6.hpp
+model/model6.hpp \
+model/model7.hpp
 
 librnnp_model_la_SOURCES = \
 model/model1.cpp \
@@ -75,7 +78,8 @@ model/model2.cpp \
 model/model3.cpp \
 model/model4.cpp \
 model/model5.cpp \
-model/model6.cpp
+model/model6.cpp \
+model/model7.cpp
 librnnp_model_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 dist_parser_HEADERS = \
@@ -85,6 +89,7 @@ parser/model3.hpp \
 parser/model4.hpp \
 parser/model5.hpp \
 parser/model6.hpp \
+parser/model7.hpp \
 parser/parser.hpp
 
 dist_semiring_HEADERS = \

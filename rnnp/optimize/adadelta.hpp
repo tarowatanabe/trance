@@ -592,6 +592,51 @@ namespace rnnp
 	update(theta.Ba_, G.Ba_, X.Ba_, gradient.Ba_, scale, false);
       }
     }
+
+    template <>
+    inline
+    void AdaDelta<model::Model7>::operator()(model::Model7& theta,
+					     const gradient::Model7& gradient,
+					     const option_type& option) const
+    {
+      if (! gradient.count_) return;
+
+      const double scale = 1.0 / gradient.count_;
+      
+      model_impl_type& G = const_cast<model_impl_type&>(G_);
+      model_impl_type& X = const_cast<model_impl_type&>(X_);
+      
+      if (option.learn_embedding())
+	update(theta.terminal_, G.terminal_, X.terminal_, gradient.terminal_, scale, false);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  G.Wc_,  X.Wc_,  gradient.Wc_, scale, true);
+	update(theta.Wfe_, G.Wfe_, X.Wfe_, gradient.Wfe_, scale, true);
+      }
+	
+      if (option.learn_hidden()) {
+	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, G.Bsh_, X.Bsh_, gradient.Bsh_, scale, false);
+	
+	update(theta.Wre_, G.Wre_, X.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, G.Bre_, X.Bre_, gradient.Bre_, scale, false);
+	
+	update(theta.Wu_, G.Wu_, X.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, G.Bu_, X.Bu_, gradient.Bu_, scale, false);
+
+	update(theta.Wf_, G.Wf_, X.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, G.Bf_, X.Bf_, gradient.Bf_, scale, false);
+	  
+	update(theta.Wi_, G.Wi_, X.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, G.Bi_, X.Bi_, gradient.Bi_, scale, false);
+	
+	update(theta.Wqu_, G.Wqu_, X.Wqu_, gradient.Wqu_, scale, true);
+	update(theta.Bqu_, G.Bqu_, X.Bqu_, gradient.Bqu_, scale, false);
+	update(theta.Bqe_, G.Bqe_, X.Bqe_, gradient.Bqe_, scale, false);
+	
+	update(theta.Ba_, G.Ba_, X.Ba_, gradient.Ba_, scale, false);
+      }
+    }
   };
 };
 
