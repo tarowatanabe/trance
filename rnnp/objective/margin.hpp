@@ -1649,6 +1649,9 @@ namespace rnnp
 
       queue_.resize(candidates.queue_.rows(), candidates.queue_.cols());
       queue_.setZero();
+
+      buffer_.resize(candidates.buffer_.rows(), candidates.buffer_.cols());
+      buffer_.setZero();
       
       for (difference_type step = states_.size() - 1; step >= 0; -- step) {
 	state_set_type::iterator siter_end = states_[step].end();
@@ -1677,6 +1680,7 @@ namespace rnnp
 	    const size_type offset1 = 0;
 	    const size_type offset2 = theta.hidden_;
 	    const size_type offset3 = theta.hidden_ + theta.embedding_;
+	    const size_type offset4 = theta.hidden_ + theta.embedding_ + theta.hidden_;
 	
 	    const size_type offset_classification = theta.offset_classification(state.label());
 	    const size_type offset_category       = theta.offset_category(state.label());
@@ -1684,23 +1688,25 @@ namespace rnnp
 	    const size_type head_id = theta.terminal(state.head());
 	    
 	    // classification
-	    g.Wcsh(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
+	    g.Wc(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
 	    
 	    // propagate to delta
 	    backward.delta_.array()
 	      += (state.layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
-		  * (theta.Wcsh_.block(offset_classification, 0, 1, theta.hidden_).transpose()
+		  * (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_).transpose()
 		     * backward.loss_).array());
 
 	    tensor_type& Wsh = g.Wsh(state.label());
 	    tensor_type& Bsh = g.Bsh(state.label());
-	    
+
 	    Wsh.block(0, offset1, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
 	    Wsh.block(0, offset2, theta.hidden_, theta.embedding_)
 	      += backward.delta_ * theta.terminal_.col(head_id).transpose();
 	    Wsh.block(0, offset3, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	    Wsh.block(0, offset4, theta.hidden_, theta.hidden_)
+	      += backward.delta_ * candidates.buffer_.col(state.derivation().next()).transpose();
 	    Bsh += backward.delta_;
 	      
 	    // propagate to ancedent
@@ -1718,6 +1724,11 @@ namespace rnnp
 		  * (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
+	    buffer_.col(state.derivation().next()).array()
+	      += (candidates.buffer_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+		  * (theta.Wsh_.block(offset_category, offset4, theta.hidden_, theta.hidden_).transpose()
+		     * backward.delta_).array());
+	    
 	    // register state
 	    states_[state.derivation().step()].insert(state.derivation());
 	  } break;
@@ -1726,17 +1737,18 @@ namespace rnnp
 	    const size_type offset2 = theta.hidden_;
 	    const size_type offset3 = theta.hidden_ + theta.hidden_;
 	    const size_type offset4 = theta.hidden_ + theta.hidden_ + theta.hidden_;
+	    const size_type offset5 = theta.hidden_ + theta.hidden_ + theta.hidden_ + theta.hidden_;
 	      
 	    const size_type offset_classification = theta.offset_classification(state.label());
 	    const size_type offset_category       = theta.offset_category(state.label());
 	      
 	    // classification
-	    g.Wcre(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
+	    g.Wc(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
 	      
 	    // propagate to delta
 	    backward.delta_.array()
 	      += (state.layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
-		  * (theta.Wcre_.block(offset_classification, 0, 1, theta.hidden_).transpose()
+		  * (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_).transpose()
 		     * backward.loss_).array());
 	    
 	    tensor_type& Wre = g.Wre(state.label());
@@ -1750,6 +1762,8 @@ namespace rnnp
 	      += backward.delta_ * state.stack().layer(theta.hidden_).transpose();	    
 	    Wre.block(0, offset4, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	    Wre.block(0, offset5, theta.hidden_, theta.hidden_)
+	      += backward.delta_ * candidates.buffer_.col(state.reduced().span().first_).transpose();
 	    Bre += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -1773,6 +1787,11 @@ namespace rnnp
 		  * (theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
+	    buffer_.col(state.reduced().span().first_).array()
+	      += (candidates.buffer_.col(state.reduced().span().first_).array().unaryExpr(model_type::dactivation())
+		  * (theta.Wre_.block(offset_category, offset5, theta.hidden_, theta.hidden_).transpose()
+		     * backward.delta_).array());
+	    
 	    // register state
 	    states_[state.derivation().step()].insert(state.derivation());
 	  } break;
@@ -1780,17 +1799,18 @@ namespace rnnp
 	    const size_type offset1 = 0;
 	    const size_type offset2 = theta.hidden_;
 	    const size_type offset3 = theta.hidden_ + theta.hidden_;
+	    const size_type offset4 = theta.hidden_ + theta.hidden_ + theta.hidden_;
 	    
 	    const size_type offset_classification = theta.offset_classification(state.label());
 	    const size_type offset_category       = theta.offset_category(state.label());
 	      
 	    // classification
-	    g.Wcu(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
+	    g.Wc(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
 	      
 	    // propagate to delta
 	    backward.delta_.array()
 	      += (state.layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
-		  * (theta.Wcu_.block(offset_classification, 0, 1, theta.hidden_).transpose()
+		  * (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_).transpose()
 		     * backward.loss_).array());
 
 	    tensor_type& Wu = g.Wu(state.label());
@@ -1802,6 +1822,8 @@ namespace rnnp
 	      += backward.delta_ * state.stack().layer(theta.hidden_).transpose();
 	    Wu.block(0, offset3, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	    Wu.block(0, offset4, theta.hidden_, theta.hidden_)
+	      += backward.delta_ * candidates.buffer_.col(state.derivation().span().first_).transpose();
 	    Bu += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -1820,6 +1842,11 @@ namespace rnnp
 		  * (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
+	    buffer_.col(state.derivation().span().first_).array()
+	      += (candidates.buffer_.col(state.derivation().span().first_).array().unaryExpr(model_type::dactivation())
+		  * (theta.Wu_.block(offset_category, offset4, theta.hidden_, theta.hidden_).transpose()
+		     * backward.delta_).array());
+	    
 	    // register state
 	    states_[state.derivation().step()].insert(state.derivation());
 	  } break;
@@ -1827,12 +1854,12 @@ namespace rnnp
 	    const size_type offset_classification = theta.offset_classification(state.label());
 	      
 	    // classification
-	    g.Wcf_ += backward.loss_ * state.layer(theta.hidden_).transpose();
+	    g.Wc(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
 	      
 	    // propagate to delta
 	    backward.delta_.array()
 	      += (state.layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
-		  * (theta.Wcf_.transpose()
+		  * (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_).transpose()
 		     * backward.loss_).array());
 	    
 	    g.Wf_ += backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
@@ -1850,12 +1877,12 @@ namespace rnnp
 	    const size_type offset_classification = theta.offset_classification(state.label());
 	    
 	    // classification
-	    g.Wci_ += backward.loss_ * state.layer(theta.hidden_).transpose();
+	    g.Wc(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
 	    
 	    // propagate to delta
 	    backward.delta_.array()
 	      += (state.layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
-		  * (theta.Wci_.transpose()
+		  * (theta.Wc_.block(offset_classification, 0, 1, theta.hidden_).transpose()
 		     * backward.loss_).array());
 	    
 	    g.Wi_ += backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
@@ -1900,7 +1927,31 @@ namespace rnnp
       }
       
       g.Bqe_ += queue_.col(input.size());
-    }    
+      
+      // then, buffer context...
+      for (size_type i = input.size(); i; -- i) {
+	const size_type offset1 = 0;
+	const size_type offset2 = theta.hidden_;
+	
+	const word_type::id_type word_id = theta.terminal(input[i - 1]);
+	
+	g.Wbu_.block(0, offset1, theta.hidden_, theta.hidden_)
+	  += buffer_.col(i) * candidates.buffer_.col(i - 1).transpose();
+	g.Wbu_.block(0, offset2, theta.hidden_, theta.embedding_)
+	  += buffer_.col(i) * theta.terminal_.col(word_id).transpose();
+	g.Bbu_ += buffer_.col(i);
+	
+	buffer_.col(i - 1).array()
+	  += (candidates.buffer_.col(i - 1).array().unaryExpr(model_type::dactivation())
+	      * (theta.Wbu_.block(0, offset1, theta.hidden_, theta.hidden_).transpose()
+		 * buffer_.col(i)).array());
+	
+	g.terminal(word_id) += (theta.Wbu_.block(0, offset2, theta.hidden_, theta.embedding_).transpose()
+				* buffer_.col(i));
+      }
+      
+      g.Bbs_ += buffer_.col(0);
+    }
   };
 };
 

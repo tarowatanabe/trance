@@ -347,12 +347,8 @@ namespace rnnp
 	update(theta.terminal_, gradient.terminal_, scale, false);
       
       if (option.learn_classification()) {
-	update(theta.Wcsh_, gradient.Wcsh_, scale, true);
-	update(theta.Wcre_, gradient.Wcre_, scale, true);
-	update(theta.Wcu_,  gradient.Wcu_,  scale, true);
-	update(theta.Wcf_,  gradient.Wcf_,  scale, true);
-	update(theta.Wci_,  gradient.Wci_,  scale, true);
-	update(theta.Wfe_,  gradient.Wfe_,  scale, true);
+	update(theta.Wc_,  gradient.Wc_,  scale, true);
+	update(theta.Wfe_, gradient.Wfe_, scale, true);
       }
 	
       if (option.learn_hidden()) {
@@ -374,6 +370,10 @@ namespace rnnp
 	update(theta.Wqu_, gradient.Wqu_, scale, true);
 	update(theta.Bqu_, gradient.Bqu_, scale, false);
 	update(theta.Bqe_, gradient.Bqe_, scale, false);
+
+	update(theta.Wbu_, gradient.Wbu_, scale, true);
+	update(theta.Bbu_, gradient.Bbu_, scale, false);
+	update(theta.Bbs_, gradient.Bbs_, scale, false);
 	
 	update(theta.Ba_, gradient.Ba_, scale, false);
       }

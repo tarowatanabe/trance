@@ -67,20 +67,17 @@ namespace rnnp
       {
 	const double range_embed = std::sqrt(6.0 / (embedding_ + 1));
 	const double range_c  = std::sqrt(6.0 / (hidden_ + 1));
-	const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_ + hidden_));
-	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_));
-	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_));
+	const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_ + hidden_+ hidden_));
+	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_+ hidden_));
+	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_+ hidden_));
 	const double range_qu = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
+	const double range_bu = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
 	const double range_f  = std::sqrt(6.0 / (hidden_ + hidden_));
 	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
       
-	Wcsh_ = Wcsh_.array().unaryExpr(__randomize<Gen>(gen, range_c));
-	Wcre_ = Wcre_.array().unaryExpr(__randomize<Gen>(gen, range_c));
-	Wcu_  = Wcu_.array().unaryExpr(__randomize<Gen>(gen, range_c));
-	Wcf_  = Wcf_.array().unaryExpr(__randomize<Gen>(gen, range_c));
-	Wci_  = Wci_.array().unaryExpr(__randomize<Gen>(gen, range_c));
+	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
       
 	Wsh_ = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
 	Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
@@ -88,6 +85,7 @@ namespace rnnp
 	Wu_  = Wu_.array().unaryExpr(__randomize<Gen>(gen, range_u));
 	
 	Wqu_ = Wqu_.array().unaryExpr(__randomize<Gen>(gen, range_qu));
+	Wbu_ = Wbu_.array().unaryExpr(__randomize<Gen>(gen, range_bu));
       
 	Wf_ = Wf_.array().unaryExpr(__randomize<Gen>(gen, range_f));
 	Wi_ = Wi_.array().unaryExpr(__randomize<Gen>(gen, range_i));
@@ -100,11 +98,7 @@ namespace rnnp
 	
 	terminal_.swap(x.terminal_);
       
-	Wcsh_.swap(x.Wcsh_);
-	Wcre_.swap(x.Wcre_);
-	Wcu_.swap(x.Wcu_);
-	Wcf_.swap(x.Wcf_);
-	Wci_.swap(x.Wci_);
+	Wc_.swap(x.Wc_);
 	Wfe_.swap(x.Wfe_);
       
 	Wsh_.swap(x.Wsh_);
@@ -119,6 +113,10 @@ namespace rnnp
 	Wqu_.swap(x.Wqu_);
 	Bqu_.swap(x.Bqu_);
 	Bqe_.swap(x.Bqe_);
+
+	Wbu_.swap(x.Wbu_);
+	Bbu_.swap(x.Bbu_);
+	Bbs_.swap(x.Bbs_);
 
 	Wf_.swap(x.Wf_);
 	Bf_.swap(x.Bf_);
@@ -135,11 +133,7 @@ namespace rnnp
 
 	terminal_.setZero();
       
-	Wcsh_.setZero();
-	Wcre_.setZero();
-	Wcu_.setZero();
-	Wcf_.setZero();
-	Wci_.setZero();
+	Wc_.setZero();
 	Wfe_.clear();
       
 	Wsh_.setZero();
@@ -160,6 +154,10 @@ namespace rnnp
 	Wqu_.setZero();
 	Bqu_.setZero();
 	Bqe_.setZero();
+
+	Wbu_.setZero();
+	Bbu_.setZero();
+	Bbs_.setZero();
 	
 	Ba_.setZero();
       }
@@ -169,11 +167,7 @@ namespace rnnp
       {
 	double norm = 0.0;
       
-	norm += Wcsh_.lpNorm<1>();
-	norm += Wcre_.lpNorm<1>();
-	norm += Wcu_.lpNorm<1>();
-	norm += Wcf_.lpNorm<1>();
-	norm += Wci_.lpNorm<1>();
+	norm += Wc_.lpNorm<1>();
 	
 	norm += Wsh_.lpNorm<1>();
 	norm += Wre_.lpNorm<1>();
@@ -183,6 +177,7 @@ namespace rnnp
 	norm += Wi_.lpNorm<1>();
 	
 	norm += Wqu_.lpNorm<1>();
+	norm += Wbu_.lpNorm<1>();
 	
 	return norm;
       }
@@ -191,11 +186,7 @@ namespace rnnp
       {
 	double norm = 0.0;
       
-	norm += Wcsh_.squaredNorm();
-	norm += Wcre_.squaredNorm();
-	norm += Wcu_.squaredNorm();
-	norm += Wcf_.squaredNorm();
-	norm += Wci_.squaredNorm();
+	norm += Wc_.squaredNorm();
       
 	norm += Wsh_.squaredNorm();
 	norm += Wre_.squaredNorm();
@@ -205,6 +196,7 @@ namespace rnnp
 	norm += Wi_.squaredNorm();
 	
 	norm += Wqu_.squaredNorm();
+	norm += Wbu_.squaredNorm();
 	
 	return std::sqrt(norm);
       }
@@ -214,11 +206,7 @@ namespace rnnp
       tensor_type terminal_;
     
       // classification
-      tensor_type Wcsh_;
-      tensor_type Wcre_;
-      tensor_type Wcu_;
-      tensor_type Wcf_;
-      tensor_type Wci_;
+      tensor_type Wc_;
       
       // features
       weights_type Wfe_;
@@ -247,6 +235,11 @@ namespace rnnp
       tensor_type Wqu_;
       tensor_type Bqu_;
       tensor_type Bqe_;
+
+      // buffer
+      tensor_type Wbu_;
+      tensor_type Bbu_;
+      tensor_type Bbs_;
       
       // axiom
       tensor_type Ba_;

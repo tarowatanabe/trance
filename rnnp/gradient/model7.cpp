@@ -18,11 +18,7 @@ namespace rnnp
       terminal_.clear();
     
       // initialize matrix    
-      Wcsh_.clear();
-      Wcre_.clear();
-      Wcu_.clear();
-      Wcf_ = tensor_type::Zero(1, hidden_);
-      Wci_ = tensor_type::Zero(1, hidden_);
+      Wc_.clear();
       Wfe_.clear();
     
       Wsh_.clear();
@@ -43,6 +39,10 @@ namespace rnnp
       Wqu_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
       Bqu_ = tensor_type::Zero(hidden_, 1);
       Bqe_ = tensor_type::Zero(hidden_, 1);
+
+      Wbu_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
+      Bbu_ = tensor_type::Zero(hidden_, 1);
+      Bbs_ = tensor_type::Zero(hidden_, 1);
       
       Ba_ = tensor_type::Zero(hidden_, 1);
     }
@@ -50,11 +50,7 @@ namespace rnnp
 #define GRADIENT_STREAM_OPERATOR(Theta, Op, Stream)	\
     Theta.Op(Stream, Theta.terminal_);			\
 							\
-    Theta.Op(Stream, Theta.Wcsh_);			\
-    Theta.Op(Stream, Theta.Wcre_);			\
-    Theta.Op(Stream, Theta.Wcu_);			\
-    Theta.Op(Stream, Theta.Wcf_);			\
-    Theta.Op(Stream, Theta.Wci_);			\
+    Theta.Op(Stream, Theta.Wc_);			\
     Theta.Op(Stream, Theta.Wfe_);			\
 							\
     Theta.Op(Stream, Theta.Wsh_);			\
@@ -75,6 +71,10 @@ namespace rnnp
     Theta.Op(Stream, Theta.Wqu_);			\
     Theta.Op(Stream, Theta.Bqu_);			\
     Theta.Op(Stream, Theta.Bqe_);			\
+							\
+    Theta.Op(Stream, Theta.Wbu_);			\
+    Theta.Op(Stream, Theta.Bbu_);			\
+    Theta.Op(Stream, Theta.Bbs_);			\
 							\
     Theta.Op(Stream, Theta.Bi_);
 
@@ -105,12 +105,8 @@ namespace rnnp
 #define GRADIENT_BINARY_OPERATOR(Op)	\
     Op(terminal_, x.terminal_);			\
 						\
-    Op(Wcsh_, x.Wcsh_);				\
-    Op(Wcre_, x.Wcre_);				\
-    Op(Wcu_,  x.Wcu_);				\
-    Op(Wcf_,  x.Wcf_);				\
-    Op(Wci_,  x.Wci_);				\
-    Op(Wfe_,  x.Wfe_);				\
+    Op(Wc_,  x.Wc_);				\
+    Op(Wfe_, x.Wfe_);				\
 						\
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\
@@ -130,6 +126,10 @@ namespace rnnp
     Op(Wqu_, x.Wqu_);				\
     Op(Bqu_, x.Bqu_);				\
     Op(Bqe_, x.Bqe_);				\
+						\
+    Op(Wbu_, x.Wbu_);				\
+    Op(Bbu_, x.Bbu_);				\
+    Op(Bbs_, x.Bbs_);				\
 						\
     Op(Ba_, x.Ba_);
 
