@@ -65,7 +65,6 @@ namespace rnnp
       template <typename Gen>
       void random(Gen& gen)
       {
-#if 0
 	const double range_embed = std::sqrt(6.0 / (embedding_ + 1));
 	const double range_c  = std::sqrt(6.0 / (hidden_ + 1));
 	const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_ + hidden_));
@@ -74,15 +73,6 @@ namespace rnnp
 	const double range_qu = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
 	const double range_f  = std::sqrt(6.0 / (hidden_ + hidden_));
 	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
-#endif
-	const double range_embed = 0.001;
-	const double range_c  = 0.001;
-	const double range_sh = 0.001;
-	const double range_re = 0.001;
-	const double range_u  = 0.001;
-	const double range_qu = 0.001;
-	const double range_f  = 0.001;
-	const double range_i  = 0.001;
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
       
