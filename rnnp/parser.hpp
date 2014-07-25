@@ -313,7 +313,6 @@ namespace rnnp
     
     // additional information required by some models...
     tensor_type queue_;
-    tensor_type buffer_;
   };
 };
 

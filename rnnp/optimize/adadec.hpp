@@ -578,10 +578,6 @@ namespace rnnp
 	update(theta.Bqu_, G.Bqu_, gradient.Bqu_, scale, false);
 	update(theta.Bqe_, G.Bqe_, gradient.Bqe_, scale, false);
 
-	update(theta.Wbu_, G.Wbu_, gradient.Wbu_, scale, true);
-	update(theta.Bbu_, G.Bbu_, gradient.Bbu_, scale, false);
-	update(theta.Bbs_, G.Bbs_, gradient.Bbs_, scale, false);
-	
 	update(theta.Ba_, G.Ba_, gradient.Ba_, scale, false);
       }
     }

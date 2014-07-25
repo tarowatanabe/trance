@@ -40,10 +40,6 @@ namespace rnnp
       Bqu_ = tensor_type::Zero(hidden_, 1);
       Bqe_ = tensor_type::Zero(hidden_, 1);
 
-      Wbu_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
-      Bbu_ = tensor_type::Zero(hidden_, 1);
-      Bbs_ = tensor_type::Zero(hidden_, 1);
-      
       Ba_ = tensor_type::Zero(hidden_, 1);
     }
 
@@ -71,10 +67,6 @@ namespace rnnp
     Theta.Op(Stream, Theta.Wqu_);			\
     Theta.Op(Stream, Theta.Bqu_);			\
     Theta.Op(Stream, Theta.Bqe_);			\
-							\
-    Theta.Op(Stream, Theta.Wbu_);			\
-    Theta.Op(Stream, Theta.Bbu_);			\
-    Theta.Op(Stream, Theta.Bbs_);			\
 							\
     Theta.Op(Stream, Theta.Bi_);
 
@@ -126,10 +118,6 @@ namespace rnnp
     Op(Wqu_, x.Wqu_);				\
     Op(Bqu_, x.Bqu_);				\
     Op(Bqe_, x.Bqe_);				\
-						\
-    Op(Wbu_, x.Wbu_);				\
-    Op(Bbu_, x.Bbu_);				\
-    Op(Bbs_, x.Bbs_);				\
 						\
     Op(Ba_, x.Ba_);
 

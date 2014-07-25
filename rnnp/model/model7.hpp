@@ -67,11 +67,10 @@ namespace rnnp
       {
 	const double range_embed = std::sqrt(6.0 / (embedding_ + 1));
 	const double range_c  = std::sqrt(6.0 / (hidden_ + 1));
-	const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_ + hidden_+ hidden_));
-	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_+ hidden_));
-	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_+ hidden_));
+	const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_ + hidden_));
+	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_ + hidden_ + hidden_));
+	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_));
 	const double range_qu = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
-	const double range_bu = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
 	const double range_f  = std::sqrt(6.0 / (hidden_ + hidden_));
 	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
 	
@@ -85,7 +84,6 @@ namespace rnnp
 	Wu_  = Wu_.array().unaryExpr(__randomize<Gen>(gen, range_u));
 	
 	Wqu_ = Wqu_.array().unaryExpr(__randomize<Gen>(gen, range_qu));
-	Wbu_ = Wbu_.array().unaryExpr(__randomize<Gen>(gen, range_bu));
       
 	Wf_ = Wf_.array().unaryExpr(__randomize<Gen>(gen, range_f));
 	Wi_ = Wi_.array().unaryExpr(__randomize<Gen>(gen, range_i));
@@ -113,10 +111,6 @@ namespace rnnp
 	Wqu_.swap(x.Wqu_);
 	Bqu_.swap(x.Bqu_);
 	Bqe_.swap(x.Bqe_);
-
-	Wbu_.swap(x.Wbu_);
-	Bbu_.swap(x.Bbu_);
-	Bbs_.swap(x.Bbs_);
 
 	Wf_.swap(x.Wf_);
 	Bf_.swap(x.Bf_);
@@ -155,10 +149,6 @@ namespace rnnp
 	Bqu_.setZero();
 	Bqe_.setZero();
 
-	Wbu_.setZero();
-	Bbu_.setZero();
-	Bbs_.setZero();
-	
 	Ba_.setZero();
       }
     
@@ -177,7 +167,6 @@ namespace rnnp
 	norm += Wi_.lpNorm<1>();
 	
 	norm += Wqu_.lpNorm<1>();
-	norm += Wbu_.lpNorm<1>();
 	
 	return norm;
       }
@@ -196,7 +185,6 @@ namespace rnnp
 	norm += Wi_.squaredNorm();
 	
 	norm += Wqu_.squaredNorm();
-	norm += Wbu_.squaredNorm();
 	
 	return std::sqrt(norm);
       }
@@ -235,11 +223,6 @@ namespace rnnp
       tensor_type Wqu_;
       tensor_type Bqu_;
       tensor_type Bqe_;
-
-      // buffer
-      tensor_type Wbu_;
-      tensor_type Bbu_;
-      tensor_type Bbs_;
       
       // axiom
       tensor_type Ba_;

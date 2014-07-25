@@ -108,7 +108,6 @@ namespace rnnp
     state_map_type    states_;
     
     tensor_type queue_;
-    tensor_type buffer_;
   };
   
 };

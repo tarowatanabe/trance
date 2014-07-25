@@ -371,10 +371,6 @@ namespace rnnp
 	update(theta.Bqu_, gradient.Bqu_, scale, false);
 	update(theta.Bqe_, gradient.Bqe_, scale, false);
 
-	update(theta.Wbu_, gradient.Wbu_, scale, true);
-	update(theta.Bbu_, gradient.Bbu_, scale, false);
-	update(theta.Bbs_, gradient.Bbs_, scale, false);
-	
 	update(theta.Ba_, gradient.Ba_, scale, false);
       }
     }
