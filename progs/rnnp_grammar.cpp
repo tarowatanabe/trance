@@ -414,10 +414,10 @@ void estimate(const grammar_count_type& counts,
       std::fill(d1, d1 + 4, double(0));
       std::fill(d2, d2 + 4, double(0));
       
-      for (int k = 1; k != 3; ++ k)
+      for (int k = 1; k != 4; ++ k)
 	d1[k] = double(k) - double((k + 1) * t1[1] * t1[k+1]) / double((t1[1] + 2 * t1[2]) * t1[k]);
       
-      for (int k = 1; k != 3; ++ k)
+      for (int k = 1; k != 4; ++ k)
 	d2[k] = double(k) - double((k + 1) * t2[1] * t2[k+1]) / double((t2[1] + 2 * t2[2]) * t2[k]);
       
       // estimate unigram probability...
@@ -539,10 +539,10 @@ void estimate(const grammar_count_type& counts,
       std::fill(d1, d1 + 4, double(0));
       std::fill(d2, d2 + 4, double(0));
       
-      for (int k = 1; k != 3; ++ k)
+      for (int k = 1; k != 4; ++ k)
 	d1[k] = double(k) - double((k + 1) * t1[1] * t1[k+1]) / double((t1[1] + 2 * t1[2]) * t1[k]);
       
-      for (int k = 1; k != 3; ++ k)
+      for (int k = 1; k != 4; ++ k)
 	d2[k] = double(k) - double((k + 1) * t2[1] * t2[k+1]) / double((t2[1] + 2 * t2[2]) * t2[k]);
       
       // estimate unigram probability...
@@ -657,10 +657,10 @@ void estimate(const grammar_count_type& counts,
     std::fill(d1, d1 + 4, double(0));
     std::fill(d2, d2 + 4, double(0));
       
-    for (int k = 1; k != 3; ++ k)
+    for (int k = 1; k != 4; ++ k)
       d1[k] = double(k) - double((k + 1) * t1[1] * t1[k+1]) / double((t1[1] + 2 * t1[2]) * t1[k]);
       
-    for (int k = 1; k != 3; ++ k)
+    for (int k = 1; k != 4; ++ k)
       d2[k] = double(k) - double((k + 1) * t2[1] * t2[k+1]) / double((t2[1] + 2 * t2[2]) * t2[k]);
       
     // estimate unigram probability...
