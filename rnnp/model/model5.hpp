@@ -75,21 +75,21 @@ namespace rnnp
 	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
-      
-	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
-      
+	
+	Wc_.block(0, 0, Wc_.rows(), hidden_)
+	  = Wc_.block(0, 0, Wc_.rows(), hidden_).array().unaryExpr(__randomize<Gen>(gen, range_c));
+	
 	Wsh_ = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
 	Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
-      
+	
 	Wu_  = Wu_.array().unaryExpr(__randomize<Gen>(gen, range_u));
 	
 	Wqu_ = Wqu_.array().unaryExpr(__randomize<Gen>(gen, range_qu));
-      
+	
 	Wf_ = Wf_.array().unaryExpr(__randomize<Gen>(gen, range_f));
 	Wi_ = Wi_.array().unaryExpr(__randomize<Gen>(gen, range_i));
       }
-    
-    
+      
       void swap(Model5& x)
       {
 	Model::swap(static_cast<Model&>(x));

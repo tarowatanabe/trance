@@ -121,7 +121,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wc_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(1, hidden_);
+	  tensor = tensor_type::Zero(1, hidden_ + 1);
 	return tensor;
       }
 

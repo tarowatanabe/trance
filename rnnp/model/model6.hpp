@@ -77,7 +77,8 @@ namespace rnnp
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
 	
-	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
+	Wc_.block(0, 0, Wc_.rows(), hidden_)
+	  = Wc_.block(0, 0, Wc_.rows(), hidden_).array().unaryExpr(__randomize<Gen>(gen, range_c));
 	
 	Psh_ = Psh_.array().unaryExpr(__randomize<Gen>(gen, 0.001));
 	Qsh_ = Qsh_.array().unaryExpr(__randomize<Gen>(gen, 0.001));
