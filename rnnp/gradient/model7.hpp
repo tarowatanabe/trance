@@ -93,7 +93,7 @@ namespace rnnp
 	Wqu_.setZero();
 	Bqu_.setZero();
 	Bqe_.setZero();
-
+      
 	Ba_.setZero();
       }
     
@@ -133,7 +133,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wre_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_ + hidden_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_);
 	return tensor;
       }
     
@@ -149,7 +149,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wu_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_ * 3, hidden_ + hidden_ + hidden_);
 	return tensor;
       }
 
@@ -157,7 +157,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Bu_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, 1);
+	  tensor = tensor_type::Zero(hidden_ * 3, 1);
 	return tensor;
       }
     
@@ -195,7 +195,7 @@ namespace rnnp
       tensor_type Wqu_;
       tensor_type Bqu_;
       tensor_type Bqe_;
-
+    
       // axiom
       tensor_type Ba_;
     };

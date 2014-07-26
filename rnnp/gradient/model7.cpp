@@ -39,7 +39,7 @@ namespace rnnp
       Wqu_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
       Bqu_ = tensor_type::Zero(hidden_, 1);
       Bqe_ = tensor_type::Zero(hidden_, 1);
-
+      
       Ba_ = tensor_type::Zero(hidden_, 1);
     }
 

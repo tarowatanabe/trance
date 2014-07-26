@@ -1636,7 +1636,7 @@ namespace rnnp
       
       g.Bqe_ += queue_.col(input.size());
     }
-
+    
     template <>
     inline
     void Margin::propagate(const model::Model7& theta,
@@ -1649,7 +1649,7 @@ namespace rnnp
 
       queue_.resize(candidates.queue_.rows(), candidates.queue_.cols());
       queue_.setZero();
-
+      
       for (difference_type step = states_.size() - 1; step >= 0; -- step) {
 	state_set_type::iterator siter_end = states_[step].end();
 	for (state_set_type::iterator siter = states_[step].begin(); siter != siter_end; ++ siter) {
@@ -1723,11 +1723,9 @@ namespace rnnp
 	  } break;
 	  case operation_type::REDUCE: {
 	    const size_type offset1 = 0;
-	    const size_type offset2 = offset1 + theta.hidden_;
-	    const size_type offset3 = offset2 + theta.hidden_;
-	    const size_type offset4 = offset3 + theta.hidden_;
-	    const size_type offset5 = offset4 + theta.hidden_;
-	    const size_type offset6 = offset5 + theta.hidden_;
+	    const size_type offset2 = theta.hidden_;
+	    const size_type offset3 = theta.hidden_ + theta.hidden_;
+	    const size_type offset4 = theta.hidden_ + theta.hidden_ + theta.hidden_;
 	      
 	    const size_type offset_classification = theta.offset_classification(state.label());
 	    const size_type offset_category       = theta.offset_category(state.label());
@@ -1752,15 +1750,6 @@ namespace rnnp
 	      += backward.delta_ * state.stack().layer(theta.hidden_).transpose();	    
 	    Wre.block(0, offset4, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
-	    
-	    if (state.derivation().operation().unary() || state.derivation().operation().reduce())
-	      Wre.block(0, offset5, theta.hidden_, theta.hidden_)
-		+= backward.delta_ * state.derivation().derivation().layer(theta.hidden_).transpose();
-	    
-	    if (state.reduced().operation().unary() || state.reduced().operation().reduce())
-	      Wre.block(0, offset6, theta.hidden_, theta.hidden_)
-		+= backward.delta_ * state.reduced().derivation().layer(theta.hidden_).transpose();
-	    
 	    Bre += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -1784,18 +1773,6 @@ namespace rnnp
 		  * (theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    if (state.derivation().operation().unary() || state.derivation().operation().reduce())
-	      backward_state(theta, state.derivation().derivation()).delta_.array()
-		+= (state.derivation().derivation().layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
-		    * (theta.Wre_.block(offset_category, offset5, theta.hidden_, theta.hidden_).transpose()
-		       * backward.delta_).array());
-	    
-	    if (state.reduced().operation().unary() || state.reduced().operation().reduce())
-	      backward_state(theta, state.reduced().derivation()).delta_.array()
-		+= (state.reduced().derivation().layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
-		    * (theta.Wre_.block(offset_category, offset6, theta.hidden_, theta.hidden_).transpose()
-		       * backward.delta_).array());
-	    
 	    // register state
 	    states_[state.derivation().step()].insert(state.derivation());
 	  } break;
@@ -1803,11 +1780,11 @@ namespace rnnp
 	    const size_type offset1 = 0;
 	    const size_type offset2 = theta.hidden_;
 	    const size_type offset3 = theta.hidden_ + theta.hidden_;
-	    const size_type offset4 = theta.hidden_ + theta.hidden_ + theta.hidden_;
 	    
 	    const size_type offset_classification = theta.offset_classification(state.label());
-	    const size_type offset_category       = theta.offset_category(state.label());
-	      
+	    const size_type offset_closure        = utils::bithack::min(size_type(2), state.derivation().operation().closure()) * theta.hidden_;
+	    const size_type offset_category       = theta.offset_category(state.label()) * 3 + offset_closure;
+	    
 	    // classification
 	    g.Wc(state.label()) += backward.loss_ * state.layer(theta.hidden_).transpose();
 	      
@@ -1820,18 +1797,14 @@ namespace rnnp
 	    tensor_type& Wu = g.Wu(state.label());
 	    tensor_type& Bu = g.Bu(state.label());
 	    
-	    Wu.block(0, offset1, theta.hidden_, theta.hidden_)
+	    Wu.block(offset_closure, offset1, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
-	    Wu.block(0, offset2, theta.hidden_, theta.hidden_)
+	    Wu.block(offset_closure, offset2, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.stack().layer(theta.hidden_).transpose();
-	    Wu.block(0, offset3, theta.hidden_, theta.hidden_)
+	    Wu.block(offset_closure, offset3, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
-	    
-	    if (state.derivation().operation().unary() || state.derivation().operation().reduce())
-	      Wu.block(0, offset4, theta.hidden_, theta.hidden_)
-		+= backward.delta_ * state.derivation().derivation().layer(theta.hidden_).transpose();
-	    
-	    Bu += backward.delta_;
+	    Bu.block(offset_closure, 0, theta.hidden_, 1)
+	      += backward.delta_;
 	    
 	    // propagate to ancedent
 	    backward_state(theta, state.derivation(), backward.loss_).delta_.array()
@@ -1848,12 +1821,6 @@ namespace rnnp
 	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
-	    
-	    if (state.derivation().operation().unary() || state.derivation().operation().reduce())
-	      backward_state(theta, state.derivation().derivation()).delta_.array()
-		+= (state.derivation().derivation().layer(theta.hidden_).array().unaryExpr(model_type::dactivation())
-		    * (theta.Wu_.block(offset_category, offset4, theta.hidden_, theta.hidden_).transpose()
-		       * backward.delta_).array());
 	    
 	    // register state
 	    states_[state.derivation().step()].insert(state.derivation());
