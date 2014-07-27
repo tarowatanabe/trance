@@ -30,7 +30,7 @@ namespace rnnp
 		 const double& lambda,
 		 const double& eta0,
 		 const double& epsilon)
-	: G_(theta), X_(theta), lambda_(lambda), eta0_(eta0), epsilon_(epsilon), t_(0) { G_.clear(); X_.clear(); }
+	: G_(theta), X_(theta), lambda_(lambda), eta0_(eta0), epsilon_(epsilon), t_(0) { G_.clear(); }
 
       double decay()
       {
@@ -284,6 +284,8 @@ namespace rnnp
       }
     
     private:
+      Theta base_;
+      
       Theta G_;
       Theta X_;
     
