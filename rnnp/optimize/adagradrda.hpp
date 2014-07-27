@@ -71,11 +71,11 @@ namespace rnnp
 	  if (g_(i, j) == 0) return;
 	  
 	  G_(i, j) += (g_(i, j) * scale_) * (g_(i, j) * scale_);
-	  X_(i, j) += g_(i, j) * scale_;
+	  X_(i, j) -= g_(i, j) * scale_;
 	  
 	  const double rate = learning_rate(eta0_, epsilon_, G_(i, j));
 	  
-	  theta_(i, j) = rate * utils::mathop::sgn(- X_(i, j)) * std::max(0.0, std::fabs(X_(i, j)) - t_ * lambda_);
+	  theta_(i, j) = rate * utils::mathop::sgn(X_(i, j)) * std::max(0.0, std::fabs(X_(i, j)) - t_ * lambda_);
 	}
       
 	tensor_type&       theta_;
@@ -112,9 +112,9 @@ namespace rnnp
 	  if (g_(i, j) == 0) return;
 	
 	  G_(i, j) += (g_(i, j) * scale_) * (g_(i, j) * scale_);
-	  X_(i, j) += g_(i, j) * scale_;
+	  X_(i, j) -= g_(i, j) * scale_;
 	  
-	  theta_(i, j) = - learning_rate(eta0_, epsilon_, G_(i, j)) * X_(i, j);
+	  theta_(i, j) = learning_rate(eta0_, epsilon_, G_(i, j)) * X_(i, j);
 	}
       
 	tensor_type&       theta_;
@@ -144,11 +144,11 @@ namespace rnnp
 	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
 	      if (g(row, 0) != 0.0) {
 		G(row, col) += (g(row, 0) * scale) * (g(row, 0) * scale);
-		X(row, col) += g(row, 0) * scale;
+		X(row, col) -= g(row, 0) * scale;
 		
 		const double rate = learning_rate(eta0_, epsilon_, G(row, col));
 		
-		theta(row, col) = rate * utils::mathop::sgn(- X(row, col)) * std::max(0.0, std::fabs(X(row, col)) - t_ * lambda_);
+		theta(row, col) = rate * utils::mathop::sgn(X(row, col)) * std::max(0.0, std::fabs(X(row, col)) - t_ * lambda_);
 	      }
 	  }
 	} else {
@@ -160,9 +160,9 @@ namespace rnnp
 	    for (tensor_type::Index row = 0; row != eiter->second.rows(); ++ row) 
 	      if (g(row, 0) != 0.0) {
 		G(row, col) += (g(row, 0) * scale) * (g(row, 0) * scale);
-		X(row, col) += g(row, 0) * scale;
+		X(row, col) -= g(row, 0) * scale;
 		
-		theta(row, col) = - learning_rate(eta0_, epsilon_, G(row, col)) * X(row, col);
+		theta(row, col) = learning_rate(eta0_, epsilon_, G(row, col)) * X(row, col);
 	      }
 	  }
 	}
@@ -186,11 +186,11 @@ namespace rnnp
 	      const gradient_type::weights_type::mapped_type& g = fiter->second;
 	      
 	      G += (g * scale) * (g * scale);
-	      X += g * scale;
+	      X -= g * scale;
 	      
 	      const double rate = learning_rate(eta0_, epsilon_, G);
 	      
-	      x = rate * utils::mathop::sgn(- X) * std::max(0.0, std::fabs(X) - t_ * lambda_);
+	      x = rate * utils::mathop::sgn(X) * std::max(0.0, std::fabs(X) - t_ * lambda_);
 	    }
 	} else {
 	  gradient_type::weights_type::const_iterator fiter_end = grad.end();
@@ -202,9 +202,9 @@ namespace rnnp
 	      const gradient_type::weights_type::mapped_type& g = fiter->second;
 	      
 	      G += (g * scale) * (g * scale);
-	      X += g * scale;
+	      X -= g * scale;
 	      
-	      x = - learning_rate(eta0_, epsilon_, G) * X;
+	      x = learning_rate(eta0_, epsilon_, G) * X;
 	    }
 	}
       }
@@ -229,7 +229,7 @@ namespace rnnp
 	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
 		if (g(row, col) != 0) {
 		  G.block(offset, 0, rows, cols)(row, col) += (g(row, col) * scale) * (g(row, col) * scale);
-		  X.block(offset, 0, rows, cols)(row, col) += g(row, col) * scale;
+		  X.block(offset, 0, rows, cols)(row, col) -= g(row, col) * scale;
 		  
 		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
 		  
@@ -237,7 +237,7 @@ namespace rnnp
 		  
 		  const tensor_type::Scalar& x1 = X.block(offset, 0, rows, cols)(row, col);
 		  
-		  x = rate * utils::mathop::sgn(- x1) * std::max(0.0, std::fabs(x1) - t_ * lambda_);
+		  x = rate * utils::mathop::sgn(x1) * std::max(0.0, std::fabs(x1) - t_ * lambda_);
 		}
 	  }
 	} else {
@@ -253,13 +253,13 @@ namespace rnnp
 	      for (tensor_type::Index row = 0; row != g.rows(); ++ row) 
 		if (g(row, col) != 0) {
 		  G.block(offset, 0, rows, cols)(row, col) += (g(row, col) * scale) * (g(row, col) * scale);
-		  X.block(offset, 0, rows, cols)(row, col) += g(row, col) * scale;
+		  X.block(offset, 0, rows, cols)(row, col) -= g(row, col) * scale;
 		  
 		  tensor_type::Scalar& x = theta.block(offset, 0, rows, cols)(row, col);
 		  
 		  const double rate = learning_rate(eta0_, epsilon_, G.block(offset, 0, rows, cols)(row, col));
 		  
-		  x = - rate * X.block(offset, 0, rows, cols)(row, col);
+		  x = rate * X.block(offset, 0, rows, cols)(row, col);
 		}
 	  }
 	}
