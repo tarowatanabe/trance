@@ -559,6 +559,9 @@ namespace rnnp
       }
 	
       if (option.learn_hidden()) {
+	update(theta.Wh_, G.Wh_, gradient.Wh_, scale, true);
+	update(theta.Bh_, G.Bh_, gradient.Bh_, scale, false);
+	
 	update(theta.Wsh_, G.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, G.Bsh_, gradient.Bsh_, scale, false);
 	

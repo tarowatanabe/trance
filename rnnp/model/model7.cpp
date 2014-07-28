@@ -29,9 +29,12 @@ namespace rnnp
     
       // initialize matrix
       terminal_ = tensor_type::Zero(embedding_, vocab_terminal_.size());
-    
+      
       Wc_  = tensor_type::Zero(1 * vocab_category_.size(), hidden_ + 1);
       Wfe_.clear();
+      
+      Wh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_);
+      Bh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
     
       Wsh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + embedding_ + hidden_);
       Bsh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
@@ -39,8 +42,8 @@ namespace rnnp
       Wre_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + hidden_ + hidden_ + hidden_);
       Bre_ = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
 
-      Wu_  = tensor_type::Zero(hidden_ * 3 * vocab_category_.size(), hidden_ + hidden_ + hidden_);
-      Bu_  = tensor_type::Zero(hidden_ * 3 * vocab_category_.size(), 1);
+      Wu_  = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + hidden_ + hidden_);
+      Bu_  = tensor_type::Zero(hidden_ * vocab_category_.size(), 1);
     
       Wf_ = tensor_type::Zero(hidden_, hidden_);
       Bf_ = tensor_type::Zero(hidden_, 1);
@@ -70,6 +73,9 @@ namespace rnnp
     
       Model::write_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_ + 1);
       Model::write_weights(rep.path("Wfe.txt.gz"), Wfe_);
+
+      Model::write_category(rep.path("Wh.txt.gz"), rep.path("Wh.bin"), Wh_, hidden_, hidden_);
+      Model::write_category(rep.path("Bh.txt.gz"), rep.path("Bh.bin"), Bh_, hidden_, 1);
     
       Model::write_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_ + hidden_);
       Model::write_category(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, hidden_, 1);
@@ -77,8 +83,8 @@ namespace rnnp
       Model::write_category(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, hidden_, hidden_ + hidden_ + hidden_ + hidden_);
       Model::write_category(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, hidden_, 1);
 
-      Model::write_category(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_, hidden_ * 3, hidden_ + hidden_ + hidden_);
-      Model::write_category(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_, hidden_ * 3, 1);
+      Model::write_category(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_, hidden_, hidden_ + hidden_ + hidden_);
+      Model::write_category(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_, hidden_, 1);
     
       Model::write_matrix(rep.path("Wf.txt.gz"), rep.path("Wf.bin"), Wf_);
       Model::write_matrix(rep.path("Bf.txt.gz"), rep.path("Bf.bin"), Bf_);
@@ -131,7 +137,10 @@ namespace rnnp
 
       Wc_  = tensor_type::Zero(Wc_.rows(), hidden_ + 1);
       Wfe_.clear();
-    
+      
+      Wh_ = tensor_type::Zero(Wh_.rows(), hidden_);
+      Bh_ = tensor_type::Zero(Bh_.rows(), 1);
+      
       Wsh_ = tensor_type::Zero(Wsh_.rows(), hidden_ + embedding_ + hidden_);
       Bsh_ = tensor_type::Zero(Bsh_.rows(), 1);
     
@@ -158,6 +167,9 @@ namespace rnnp
     
       Model::read_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_ + 1);
       Model::write_weights(rep.path("Wfe.txt.gz"), Wfe_);
+
+      Model::read_category(rep.path("Wh.txt.gz"), rep.path("Wh.bin"), Wh_, hidden_, hidden_);
+      Model::read_category(rep.path("Bh.txt.gz"), rep.path("Bh.bin"), Bh_, hidden_, 1);
     
       Model::read_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_ + hidden_);
       Model::read_category(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, hidden_, 1);
@@ -165,8 +177,8 @@ namespace rnnp
       Model::read_category(rep.path("Wre.txt.gz"), rep.path("Wre.bin"), Wre_, hidden_, hidden_ + hidden_ + hidden_ + hidden_);
       Model::read_category(rep.path("Bre.txt.gz"), rep.path("Bre.bin"), Bre_, hidden_, 1);
 
-      Model::read_category(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_, hidden_ * 3, hidden_ + hidden_ + hidden_);
-      Model::read_category(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_, hidden_ * 3, 1);
+      Model::read_category(rep.path("Wu.txt.gz"),  rep.path("Wu.bin"),  Wu_, hidden_, hidden_ + hidden_ + hidden_);
+      Model::read_category(rep.path("Bu.txt.gz"),  rep.path("Bu.bin"),  Bu_, hidden_, 1);
     
       Model::read_matrix(rep.path("Wf.txt.gz"), rep.path("Wf.bin"), Wf_);
       Model::read_matrix(rep.path("Bf.txt.gz"), rep.path("Bf.bin"), Bf_);
@@ -238,14 +250,17 @@ namespace rnnp
     Theta.OpCategory(Stream, Theta.Wc_,  1, Theta.hidden_ + 1);		\
     Theta.OpWeights(Stream,  Theta.Wfe_);				\
 									\
+    Theta.OpCategory(Stream, Theta.Wh_, Theta.hidden_, Theta.hidden_);	\
+    Theta.OpCategory(Stream, Theta.Bh_, Theta.hidden_, 1);		\
+									\
     Theta.OpCategory(Stream, Theta.Wsh_, Theta.hidden_, Theta.hidden_ + Theta.embedding_ + Theta.hidden_); \
     Theta.OpCategory(Stream, Theta.Bsh_, Theta.hidden_, 1);		\
 									\
     Theta.OpCategory(Stream, Theta.Wre_, Theta.hidden_, Theta.hidden_ + Theta.hidden_ + Theta.hidden_ + Theta.hidden_); \
     Theta.OpCategory(Stream, Theta.Bre_, Theta.hidden_, 1);		\
 									\
-    Theta.OpCategory(Stream, Theta.Wu_,  Theta.hidden_ * 3, Theta.hidden_ + Theta.hidden_ + Theta.hidden_); \
-    Theta.OpCategory(Stream, Theta.Bu_,  Theta.hidden_ * 3, 1);		\
+    Theta.OpCategory(Stream, Theta.Wu_,  Theta.hidden_, Theta.hidden_ + Theta.hidden_ + Theta.hidden_); \
+    Theta.OpCategory(Stream, Theta.Bu_,  Theta.hidden_, 1);		\
 									\
     Theta.OpMatrix(Stream, Theta.Wf_);					\
     Theta.OpMatrix(Stream, Theta.Bf_);					\
@@ -286,6 +301,9 @@ namespace rnnp
 						\
     Op(Wc_,  Theta.Wc_);			\
     Op(Wfe_, Theta.Wfe_);			\
+						\
+    Op(Wh_, Theta.Wh_);				\
+    Op(Bh_, Theta.Bh_);				\
 						\
     Op(Wsh_, Theta.Wsh_);			\
     Op(Bsh_, Theta.Bsh_);			\
@@ -330,6 +348,9 @@ namespace rnnp
     Wc_  Op x;					\
     Wfe_ Op x;					\
 						\
+    Wh_ Op x;					\
+    Bh_ Op x;					\
+						\					    
     Wsh_ Op x;					\
     Bsh_ Op x;					\
 						\

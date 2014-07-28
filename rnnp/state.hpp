@@ -84,6 +84,7 @@ namespace rnnp
     
     // neural network
     // tensor_type layer_;
+    // tensor_type layer2_;
     
   public:
     static const size_type offset_step       = 0;
@@ -110,7 +111,13 @@ namespace rnnp
   public:
     static size_type size(const size_type rows)
     {
-      return offset_layer + rows * sizeof(parameter_type);
+      return offset_layer + size_rows(rows) * sizeof(parameter_type) * 2;
+    }
+    
+    static size_type size_rows(const size_type rows)
+    {
+      // multiple of four, given that the sizeof(parameter_type) is four
+      return (rows + 3) & (~3);
     }
     
   public:
@@ -167,6 +174,16 @@ namespace rnnp
     inline       adapted_type layer(const size_type rows)
     {
       return adapted_type(reinterpret_cast<parameter_type*>(buffer_ + offset_layer), rows, 1);
+    }
+    
+    inline const adapted_type layer2(const size_type rows) const
+    {
+      return adapted_type(const_cast<parameter_type*>(reinterpret_cast<const parameter_type*>(buffer_ + offset_layer)) + size_rows(rows), rows, 1);
+    }
+    
+    inline       adapted_type layer2(const size_type rows)
+    {
+      return adapted_type(reinterpret_cast<parameter_type*>(buffer_ + offset_layer) + size_rows(rows), rows, 1);
     }
     
   public:

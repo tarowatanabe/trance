@@ -43,6 +43,9 @@ namespace rnnp
       
 	Wc_.swap(x.Wc_);
 	Wfe_.swap(x.Wfe_);
+
+	Wh_.swap(x.Wh_);
+	Bh_.swap(x.Bh_);
       
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
@@ -74,6 +77,9 @@ namespace rnnp
 
 	Wc_.clear();
 	Wfe_.clear();
+
+	Wh_.clear();
+	Bh_.clear();
       
 	Wsh_.clear();
 	Bsh_.clear();
@@ -113,6 +119,22 @@ namespace rnnp
 	return tensor;
       }
 
+      tensor_type& Wh(const word_type& label)
+      {
+	tensor_type& tensor = Wh_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_);
+	return tensor;
+      }
+    
+      tensor_type& Bh(const word_type& label)
+      {
+	tensor_type& tensor = Bh_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
+	return tensor;
+      }
+
       tensor_type& Wsh(const word_type& label)
       {
 	tensor_type& tensor = Wsh_[label];
@@ -149,7 +171,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wu_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_ * 3, hidden_ + hidden_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_);
 	return tensor;
       }
 
@@ -157,7 +179,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Bu_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_ * 3, 1);
+	  tensor = tensor_type::Zero(hidden_, 1);
 	return tensor;
       }
     
@@ -170,6 +192,10 @@ namespace rnnp
 
       // features
       weights_type Wfe_;
+
+      // pre-classification
+      matrix_category_type Wh_;
+      matrix_category_type Bh_;
     
       // shift
       matrix_category_type Wsh_;

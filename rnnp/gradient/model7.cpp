@@ -20,6 +20,9 @@ namespace rnnp
       // initialize matrix    
       Wc_.clear();
       Wfe_.clear();
+
+      Wh_.clear();
+      Bh_.clear();
     
       Wsh_.clear();
       Bsh_.clear();
@@ -48,6 +51,9 @@ namespace rnnp
 							\
     Theta.Op(Stream, Theta.Wc_);			\
     Theta.Op(Stream, Theta.Wfe_);			\
+							\
+    Theta.Op(Stream, Theta.Wh_);			\
+    Theta.Op(Stream, Theta.Bh_);			\
 							\
     Theta.Op(Stream, Theta.Wsh_);			\
     Theta.Op(Stream, Theta.Bsh_);			\
@@ -99,6 +105,9 @@ namespace rnnp
 						\
     Op(Wc_,  x.Wc_);				\
     Op(Wfe_, x.Wfe_);				\
+						\
+    Op(Wh_, x.Wh_);				\
+    Op(Bh_, x.Bh_);				\
 						\
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\
