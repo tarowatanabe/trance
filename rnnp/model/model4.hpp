@@ -78,6 +78,11 @@ namespace rnnp
 	Wc_.block(0, 0, Wc_.rows(), hidden_)
 	  = Wc_.block(0, 0, Wc_.rows(), hidden_).array().unaryExpr(__randomize<Gen>(gen, range_c));
 
+	const size_type num_category = (vocab_category_.size()
+					- std::count(vocab_category_.begin(), vocab_category_.end(), category_type()));
+	
+	Wc_.block(0, hidden_, Wc_.rows(), 1).setConstant(- std::log(double(num_category)));
+
 	Wsh_ = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
 	Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
       
