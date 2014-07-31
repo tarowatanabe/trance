@@ -20,6 +20,7 @@ namespace rnnp
     
       // initialize matrix    
       Wc_.clear();
+      Bc_.clear();
       Wfe_.clear();
     
       Psh_ = tensor_type::Zero(hidden_ * (hidden_ + embedding_ + hidden_), reduced);
@@ -54,6 +55,7 @@ namespace rnnp
     Theta.Op(Stream, Theta.terminal_);			\
 							\
     Theta.Op(Stream, Theta.Wc_);			\
+    Theta.Op(Stream, Theta.Bc_);			\
     Theta.Op(Stream, Theta.Wfe_);			\
 							\
     Theta.Op(Stream, Theta.Psh_);			\
@@ -111,6 +113,7 @@ namespace rnnp
     Op(terminal_, x.terminal_);			\
 						\
     Op(Wc_,  x.Wc_);				\
+    Op(Bc_,  x.Bc_);				\
     Op(Wfe_, x.Wfe_);				\
 						\
     Op(Psh_, x.Psh_);				\

@@ -42,6 +42,7 @@ namespace rnnp
 	terminal_.swap(x.terminal_);
       
 	Wc_.swap(x.Wc_);
+	Bc_.swap(x.Bc_);
 	Wfe_.swap(x.Wfe_);
       
 	Wsh_.swap(x.Wsh_);
@@ -73,6 +74,7 @@ namespace rnnp
 	terminal_.clear();
 
 	Wc_.clear();
+	Bc_.clear();
 	Wfe_.clear();
       
 	Wsh_.clear();
@@ -109,7 +111,15 @@ namespace rnnp
       {
 	tensor_type& tensor = Wc_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(1, hidden_ + 1);
+	  tensor = tensor_type::Zero(1, hidden_ * 3);
+	return tensor;
+      }
+
+      tensor_type& Bc(const word_type& label)
+      {
+	tensor_type& tensor = Bc_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(1, 3);
 	return tensor;
       }
 
@@ -167,6 +177,7 @@ namespace rnnp
     
       // classification
       matrix_category_type Wc_;
+      matrix_category_type Bc_;
       
       // features
       weights_type Wfe_;

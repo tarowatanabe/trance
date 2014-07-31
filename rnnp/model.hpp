@@ -15,6 +15,7 @@
 #include <rnnp/grammar.hpp>
 #include <rnnp/signature.hpp>
 #include <rnnp/weight_vector.hpp>
+#include <rnnp/operation.hpp>
 
 #include <rnnp/model/model_type.hpp>
 
@@ -40,6 +41,8 @@ namespace rnnp
 
     typedef Grammar   grammar_type;
     typedef Signature signature_type;
+
+    typedef Operation operation_type;
     
     typedef boost::filesystem::path path_type;
     
@@ -206,6 +209,28 @@ namespace rnnp
     size_type offset_category(const category_type& cat) const
     {
       return cat.non_terminal_id() * hidden_;
+    }
+
+    size_type index_operation(const operation_type& operation) const
+    {
+      return index_operation(operation.operation());
+    }
+    
+    size_type index_operation(const operation_type::operation_type& operation) const
+    {
+      switch (operation) {
+      case operation_type::SHIFT:
+	return 0;
+      case operation_type::REDUCE:
+      case operation_type::REDUCE_LEFT:
+      case operation_type::REDUCE_RIGHT:
+	return 1;
+      case operation_type::UNARY:
+      case operation_type::FINAL:
+      case operation_type::IDLE:
+	return 2;
+      default: return -1;
+      }
     }
     
   public:

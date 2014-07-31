@@ -30,7 +30,8 @@ namespace rnnp
       // initialize matrixx
       terminal_ = tensor_type::Zero(embedding_, vocab_terminal_.size());
     
-      Wc_  = tensor_type::Zero(1 * vocab_category_.size(), hidden_ + 1);
+      Wc_  = tensor_type::Zero(1 * vocab_category_.size(), hidden_ * 3);
+      Bc_  = tensor_type::Zero(1 * vocab_category_.size(), 3);
       Wfe_.clear();
     
       Wsh_ = tensor_type::Zero(hidden_ * vocab_category_.size(), hidden_ + embedding_);
@@ -64,7 +65,8 @@ namespace rnnp
     
       Model::write_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_);
     
-      Model::write_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_ + 1);
+      Model::write_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_ * 3);
+      Model::write_category(rep.path("Bc.txt.gz"), rep.path("Bc.bin"),  Bc_,  1, 3);
       Model::write_weights(rep.path("Wfe.txt.gz"), Wfe_);
     
       Model::write_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_);
@@ -121,7 +123,8 @@ namespace rnnp
       // first, resize
       terminal_ = tensor_type::Zero(embedding_, terminal_.cols());
 
-      Wc_  = tensor_type::Zero(Wc_.rows(), hidden_ + 1);
+      Wc_  = tensor_type::Zero(Wc_.rows(), hidden_ * 3);
+      Bc_  = tensor_type::Zero(Bc_.rows(), 3);
       Wfe_.clear();
     
       Wsh_ = tensor_type::Zero(Wsh_.rows(), hidden_ + embedding_);
@@ -144,7 +147,8 @@ namespace rnnp
       // then, read!
       Model::read_embedding(rep.path("terminal.txt.gz"), rep.path("terminal.bin"), terminal_);
     
-      Model::read_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_ + 1);
+      Model::read_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_ * 3);
+      Model::read_category(rep.path("Bc.txt.gz"), rep.path("Bc.bin"),  Bc_,  1, 3);
       Model::read_weights(rep.path("Wfe.txt.gz"), Wfe_);
     
       Model::read_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_);
@@ -219,7 +223,8 @@ namespace rnnp
 #define MODEL_STREAM_OPERATOR(Theta, OpEmbedding, OpCategory, OpWeights, OpMatrix, Stream) \
     Theta.OpEmbedding(Stream, Theta.terminal_);				\
 									\
-    Theta.OpCategory(Stream, Theta.Wc_,  1, Theta.hidden_ + 1);		\
+    Theta.OpCategory(Stream, Theta.Wc_,  1, Theta.hidden_ * 3);		\
+    Theta.OpCategory(Stream, Theta.Bc_,  1, 3);				\
     Theta.OpWeights(Stream,  Theta.Wfe_);				\
 									\
     Theta.OpCategory(Stream, Theta.Wsh_, Theta.hidden_, Theta.hidden_ + Theta.embedding_); \
@@ -265,6 +270,7 @@ namespace rnnp
     Op(terminal_, Theta.terminal_);		\
 						\
     Op(Wc_,  Theta.Wc_);			\
+    Op(Bc_,  Theta.Bc_);			\
     Op(Wfe_, Theta.Wfe_);			\
 						\
     Op(Wsh_, Theta.Wsh_);			\
@@ -304,6 +310,7 @@ namespace rnnp
     terminal_ Op x;				\
 						\
     Wc_  Op x;					\
+    Bc_  Op x;					\
     Wfe_ Op x;					\
 						\
     Wsh_ Op x;					\

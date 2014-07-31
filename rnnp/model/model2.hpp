@@ -75,14 +75,8 @@ namespace rnnp
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
       
-	Wc_.block(0, 0, Wc_.rows(), hidden_)
-	  = Wc_.block(0, 0, Wc_.rows(), hidden_).array().unaryExpr(__randomize<Gen>(gen, range_c));
+	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
 	
-	const size_type num_category = (vocab_category_.size()
-					- std::count(vocab_category_.begin(), vocab_category_.end(), category_type()));
-	
-	Wc_.block(0, hidden_, Wc_.rows(), 1).setConstant(- std::log(double(num_category)));
-
 	Wsh_ = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
 	Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
       
@@ -100,6 +94,7 @@ namespace rnnp
 	terminal_.swap(x.terminal_);
       
 	Wc_.swap(x.Wc_);
+	Bc_.swap(x.Bc_);
 	Wfe_.swap(x.Wfe_);
       
 	Wsh_.swap(x.Wsh_);
@@ -127,6 +122,7 @@ namespace rnnp
 	terminal_.setZero();
       
 	Wc_.setZero();
+	Bc_.setZero();
 	Wfe_.clear();
       
 	Wsh_.setZero();
@@ -186,6 +182,7 @@ namespace rnnp
     
       // classification
       tensor_type Wc_;
+      tensor_type Bc_;
 
       // features
       weights_type Wfe_;
