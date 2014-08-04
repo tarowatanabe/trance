@@ -21,9 +21,6 @@ namespace rnnp
       Wc_.clear();
       Bc_.clear();
       Wfe_.clear();
-
-      Wh_.clear();
-      Bh_.clear();
     
       Wsh_.clear();
       Bsh_.clear();
@@ -40,6 +37,10 @@ namespace rnnp
       Wi_ = tensor_type::Zero(hidden_, hidden_);
       Bi_ = tensor_type::Zero(hidden_, 1);
 
+      Wbu_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
+      Bbu_ = tensor_type::Zero(hidden_, 1);
+      Bbs_ = tensor_type::Zero(hidden_, 1);
+      
       Wqu_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
       Bqu_ = tensor_type::Zero(hidden_, 1);
       Bqe_ = tensor_type::Zero(hidden_, 1);
@@ -53,9 +54,6 @@ namespace rnnp
     Theta.Op(Stream, Theta.Wc_);			\
     Theta.Op(Stream, Theta.Bc_);			\
     Theta.Op(Stream, Theta.Wfe_);			\
-							\
-    Theta.Op(Stream, Theta.Wh_);			\
-    Theta.Op(Stream, Theta.Bh_);			\
 							\
     Theta.Op(Stream, Theta.Wsh_);			\
     Theta.Op(Stream, Theta.Bsh_);			\
@@ -71,6 +69,10 @@ namespace rnnp
 							\
     Theta.Op(Stream, Theta.Wi_);			\
     Theta.Op(Stream, Theta.Bi_);			\
+							\
+    Theta.Op(Stream, Theta.Wbu_);			\
+    Theta.Op(Stream, Theta.Bbu_);			\
+    Theta.Op(Stream, Theta.Bbs_);			\
 							\
     Theta.Op(Stream, Theta.Wqu_);			\
     Theta.Op(Stream, Theta.Bqu_);			\
@@ -108,9 +110,6 @@ namespace rnnp
     Op(Wc_,  x.Wc_);				\
     Op(Bc_,  x.Bc_);				\
     Op(Wfe_, x.Wfe_);				\
-						\
-    Op(Wh_, x.Wh_);				\
-    Op(Bh_, x.Bh_);				\
 						\
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\

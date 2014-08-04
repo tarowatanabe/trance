@@ -44,9 +44,6 @@ namespace rnnp
 	Wc_.swap(x.Wc_);
 	Bc_.swap(x.Bc_);
 	Wfe_.swap(x.Wfe_);
-
-	Wh_.swap(x.Wh_);
-	Bh_.swap(x.Bh_);
       
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
@@ -62,7 +59,11 @@ namespace rnnp
 
 	Wi_.swap(x.Wi_);
 	Bi_.swap(x.Bi_);
-      
+
+	Wbu_.swap(x.Wbu_);
+	Bbu_.swap(x.Bbu_);
+	Bbs_.swap(x.Bbs_);
+	
 	Wqu_.swap(x.Wqu_);
 	Bqu_.swap(x.Bqu_);
 	Bqe_.swap(x.Bqe_);
@@ -79,9 +80,6 @@ namespace rnnp
 	Wc_.clear();
 	Bc_.clear();
 	Wfe_.clear();
-
-	Wh_.clear();
-	Bh_.clear();
       
 	Wsh_.clear();
 	Bsh_.clear();
@@ -98,6 +96,10 @@ namespace rnnp
 	Wi_.setZero();
 	Bi_.setZero();
 
+	Wbu_.setZero();
+	Bbu_.setZero();
+	Bbs_.setZero();
+	
 	Wqu_.setZero();
 	Bqu_.setZero();
 	Bqe_.setZero();
@@ -129,27 +131,11 @@ namespace rnnp
 	return tensor;
       }
 
-      tensor_type& Wh(const word_type& label)
-      {
-	tensor_type& tensor = Wh_[label];
-	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ * 3);
-	return tensor;
-      }
-    
-      tensor_type& Bh(const word_type& label)
-      {
-	tensor_type& tensor = Bh_[label];
-	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, 3);
-	return tensor;
-      }
-
       tensor_type& Wsh(const word_type& label)
       {
 	tensor_type& tensor = Wsh_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + embedding_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_);
 	return tensor;
       }
     
@@ -165,7 +151,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wre_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_ + hidden_);
 	return tensor;
       }
     
@@ -181,7 +167,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wu_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_);
 	return tensor;
       }
 
@@ -203,10 +189,6 @@ namespace rnnp
 
       // features
       weights_type Wfe_;
-
-      // pre-classification
-      matrix_category_type Wh_;
-      matrix_category_type Bh_;
     
       // shift
       matrix_category_type Wsh_;
@@ -227,6 +209,11 @@ namespace rnnp
       // idle
       tensor_type Wi_;
       tensor_type Bi_;
+
+      // buffer
+      tensor_type Wbu_;
+      tensor_type Bbu_;
+      tensor_type Bbs_;
 
       // queue
       tensor_type Wqu_;

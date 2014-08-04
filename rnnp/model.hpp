@@ -64,7 +64,9 @@ namespace rnnp
       Tp operator()(const Tp& x) const
       {
 	//return std::min(std::max(x, Tp(0)), Tp(63));
+	//return Tp(1) / (Tp(1) + std::exp(-x));
 	return std::min(std::max(x, Tp(-1)), Tp(1));
+	//return std::tanh(x);
       }
     };
     
@@ -74,7 +76,9 @@ namespace rnnp
       Tp operator()(const Tp& x) const
       {
 	//return Tp(0) < x && x < Tp(63);
+	//return x * (Tp(1) - x);
 	return Tp(- 1) < x && x < Tp(1);
+	//return Tp(1) - x * x;
       }
     };
 
@@ -229,7 +233,8 @@ namespace rnnp
       case operation_type::FINAL:
       case operation_type::IDLE:
 	return 2;
-      default: return -1;
+      default:
+	return size_type(-1);
       }
     }
     

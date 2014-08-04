@@ -552,9 +552,6 @@ namespace rnnp
       }
       
       if (option.learn_hidden()) {
-	update(theta.Wh_, G.Wh_, gradient.Wh_, scale, true);
-	update(theta.Bh_, G.Bh_, gradient.Bh_, scale, false);
-	
 	update(theta.Wsh_, G.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, G.Bsh_, gradient.Bsh_, scale, false);
 	
@@ -569,6 +566,10 @@ namespace rnnp
 
 	update(theta.Wi_, G.Wi_, gradient.Wi_, scale, true);
 	update(theta.Bi_, G.Bi_, gradient.Bi_, scale, false);
+
+	update(theta.Wbu_, G.Wbu_, gradient.Wbu_, scale, true);
+	update(theta.Bbu_, G.Bbu_, gradient.Bbu_, scale, false);
+	update(theta.Bbs_, G.Bbs_, gradient.Bbs_, scale, false);
 
 	update(theta.Wqu_, G.Wqu_, gradient.Wqu_, scale, true);
 	update(theta.Bqu_, G.Bqu_, gradient.Bqu_, scale, false);

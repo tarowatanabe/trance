@@ -67,10 +67,10 @@ namespace rnnp
       {
 	const double range_embed = std::sqrt(6.0 / (embedding_ + 1));
 	const double range_c  = std::sqrt(6.0 / (hidden_ + 1));
-	const double range_h  = std::sqrt(6.0 / (hidden_ + hidden_));
-	const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_ + hidden_));
-	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_));
-	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_));
+	const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_));
+	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_ + hidden_));
+	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_));
+	const double range_bu = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
 	const double range_qu = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
 	const double range_f  = std::sqrt(6.0 / (hidden_ + hidden_));
 	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
@@ -79,13 +79,12 @@ namespace rnnp
 	
 	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
 	
-	Wh_ = Wh_.array().unaryExpr(__randomize<Gen>(gen, range_h));
-	
 	Wsh_ = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
 	Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
 	
 	Wu_  = Wu_.array().unaryExpr(__randomize<Gen>(gen, range_u));
 	
+	Wbu_ = Wbu_.array().unaryExpr(__randomize<Gen>(gen, range_bu));
 	Wqu_ = Wqu_.array().unaryExpr(__randomize<Gen>(gen, range_qu));
 	
 	Wf_ = Wf_.array().unaryExpr(__randomize<Gen>(gen, range_f));
@@ -101,9 +100,6 @@ namespace rnnp
 	Wc_.swap(x.Wc_);
 	Bc_.swap(x.Bc_);
 	Wfe_.swap(x.Wfe_);
-	
-	Wh_.swap(x.Wh_);
-	Bh_.swap(x.Bh_);
       
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
@@ -113,6 +109,10 @@ namespace rnnp
 
 	Wu_.swap(x.Wu_);
 	Bu_.swap(x.Bu_);
+
+	Wbu_.swap(x.Wbu_);
+	Bbu_.swap(x.Bbu_);
+	Bbs_.swap(x.Bbs_);
 
 	Wqu_.swap(x.Wqu_);
 	Bqu_.swap(x.Bqu_);
@@ -137,9 +137,6 @@ namespace rnnp
 	Bc_.setZero();
 	Wfe_.clear();
       
-	Wh_.setZero();
-	Bh_.setZero();
-
 	Wsh_.setZero();
 	Bsh_.setZero();
 
@@ -155,6 +152,10 @@ namespace rnnp
 	Wi_.setZero();
 	Bi_.setZero();
 
+	Wbu_.setZero();
+	Bbu_.setZero();
+	Bbs_.setZero();
+
 	Wqu_.setZero();
 	Bqu_.setZero();
 	Bqe_.setZero();
@@ -169,8 +170,6 @@ namespace rnnp
       
 	norm += Wc_.lpNorm<1>();
 	
-	norm += Wh_.lpNorm<1>();
-	
 	norm += Wsh_.lpNorm<1>();
 	norm += Wre_.lpNorm<1>();
       
@@ -178,6 +177,7 @@ namespace rnnp
 	norm += Wf_.lpNorm<1>();
 	norm += Wi_.lpNorm<1>();
 	
+	norm += Wbu_.lpNorm<1>();
 	norm += Wqu_.lpNorm<1>();
 	
 	return norm;
@@ -188,8 +188,6 @@ namespace rnnp
 	double norm = 0.0;
       
 	norm += Wc_.squaredNorm();
-	
-	norm += Wh_.squaredNorm();
       
 	norm += Wsh_.squaredNorm();
 	norm += Wre_.squaredNorm();
@@ -198,6 +196,7 @@ namespace rnnp
 	norm += Wf_.squaredNorm();
 	norm += Wi_.squaredNorm();
 	
+	norm += Wbu_.squaredNorm();
 	norm += Wqu_.squaredNorm();
 	
 	return std::sqrt(norm);
@@ -213,10 +212,6 @@ namespace rnnp
       
       // features
       weights_type Wfe_;
-      
-      // pre-classification
-      tensor_type Wh_;
-      tensor_type Bh_;
     
       // shift
       tensor_type Wsh_;
@@ -237,6 +232,11 @@ namespace rnnp
       // idle
       tensor_type Wi_;
       tensor_type Bi_;
+ 
+      // buffer
+      tensor_type Wbu_;
+      tensor_type Bbu_;
+      tensor_type Bbs_;
       
       // queue
       tensor_type Wqu_;

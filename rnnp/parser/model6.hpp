@@ -14,7 +14,7 @@ namespace rnnp
   {
     struct Model6 : public rnnp::parser::Parser
     {
-      tensor_type buffer_;
+      tensor_type temp_;
       tensor_type L_;
       tensor_type R_;
       
@@ -58,7 +58,7 @@ namespace rnnp
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
 	
-	buffer_.resize(theta.hidden_, 1);
+	temp_.resize(theta.hidden_, 1);
 	for (size_type row = 0; row != theta.hidden_; ++ row) {
 	  const size_type full = theta.hidden_ + theta.embedding_ + theta.hidden_;
 
@@ -76,10 +76,10 @@ namespace rnnp
 		+ (theta.Qsh_.block(reduced * row, offset3, reduced, theta.hidden_)
 		   * parser.queue_.col(state.next())));
 
-	  buffer_.row(row) = L_ * R_;
+	  temp_.row(row) = L_ * R_;
 	}
 	
-	state_new.layer(theta.hidden_) = (buffer_
+	state_new.layer(theta.hidden_) = (temp_
 					  + theta.Bsh_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wsh_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
 					     * state.layer(theta.hidden_))
@@ -142,7 +142,7 @@ namespace rnnp
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
 	
-	buffer_.resize(theta.hidden_, 1);
+	temp_.resize(theta.hidden_, 1);
 	for (size_type row = 0; row != theta.hidden_; ++ row) {
 	  L_ = ((state.layer(theta.hidden_).transpose()
 		 * theta.Pre_.block(theta.hidden_ * 4 * row + offset1, 0, theta.hidden_, reduced))
@@ -161,10 +161,10 @@ namespace rnnp
 		+ (theta.Qre_.block(reduced * row, offset4, reduced, theta.hidden_)
 		   * parser.queue_.col(state.next())));
 	  
-	  buffer_.row(row) = L_ * R_;
+	  temp_.row(row) = L_ * R_;
 	}
 	
-	state_new.layer(theta.hidden_) = (buffer_
+	state_new.layer(theta.hidden_) = (temp_
 					  + theta.Bre_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
 					     * state.layer(theta.hidden_))
@@ -223,7 +223,7 @@ namespace rnnp
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
 
-	buffer_.resize(theta.hidden_, 1);
+	temp_.resize(theta.hidden_, 1);
 	for (size_type row = 0; row != theta.hidden_; ++ row) {
 	  L_ = ((state.layer(theta.hidden_).transpose()
 		 * theta.Pu_.block(theta.hidden_ * 3 * row + offset1, 0, theta.hidden_, reduced))
@@ -239,10 +239,10 @@ namespace rnnp
 		+ (theta.Qu_.block(reduced * row, offset3, reduced, theta.hidden_)
 		   * parser.queue_.col(state.next())));
 	  
-	  buffer_.row(row) = L_ * R_;
+	  temp_.row(row) = L_ * R_;
 	}
       
-	state_new.layer(theta.hidden_) = (buffer_
+	state_new.layer(theta.hidden_) = (temp_
 					  + theta.Bu_.block(offset_category, 0, theta.hidden_, 1)
 					  + (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
 					     * state.layer(theta.hidden_))
