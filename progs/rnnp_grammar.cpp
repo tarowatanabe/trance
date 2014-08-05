@@ -429,8 +429,7 @@ void estimate(const grammar_count_type& counts,
 	
 	estimate_type::rhs_set_type::iterator uiter_end = unigram.end();
 	for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter)
-	  if (uiter->second.first <= 3)
-	    backoff += d1[uiter->second.first];
+	  backoff += d1[utils::bithack::min(uiter->second.first, count_type(3))];
 	
 	double sum = 0.0;
 	
@@ -461,8 +460,7 @@ void estimate(const grammar_count_type& counts,
 	
 	double backoff = 0.0;
 	for (estimate_type::rule_set_type::iterator riter = uiter->second.begin(); riter != riter_end; ++ riter)
-	  if (riter->second.first <= 3)
-	    backoff += d2[riter->second.first];
+	  backoff += d2[utils::bithack::min(riter->second.first, count_type(3))];
 	
 	for (estimate_type::rule_set_type::iterator riter = uiter->second.begin(); riter != riter_end; ++ riter) {
 	  const prob_type lower = unigram[riter->first.rhs_].second;
@@ -485,8 +483,7 @@ void estimate(const grammar_count_type& counts,
 	
 	double backoff = 0.0;
 	for (estimate_type::rule_set_type::iterator riter = biter->second.begin(); riter != riter_end; ++ riter)
-	  if (riter->second.first <= 3)
-	    backoff += d2[riter->second.first];
+	  backoff += d2[utils::bithack::min(riter->second.first, count_type(3))];
 	
 	for (estimate_type::rule_set_type::iterator riter = biter->second.begin(); riter != riter_end; ++ riter) {
 	  const prob_type lower = unigram[riter->first.rhs_].second;
@@ -553,8 +550,7 @@ void estimate(const grammar_count_type& counts,
       
       estimate_type::rhs_set_type::iterator uiter_end = unigram.end();
       for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter)
-	if (uiter->second.first <= 3)
-	  backoff += d1[uiter->second.first];
+	backoff += d1[utils::bithack::min(uiter->second.first, count_type(3))];
 
       double sum = 0.0;
       
@@ -584,8 +580,7 @@ void estimate(const grammar_count_type& counts,
 	
 	double backoff = 0.0;
 	for (estimate_type::rule_set_type::iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
-	  if (riter->second.first <= 3)
-	    backoff += d2[riter->second.first];
+	  backoff += d2[utils::bithack::min(riter->second.first, count_type(3))];
 	
 	for (estimate_type::rule_set_type::iterator riter = piter->second.begin(); riter != riter_end; ++ riter) {
 	  const prob_type lower = unigram[riter->first.rhs_].second;
@@ -672,8 +667,7 @@ void estimate(const grammar_count_type& counts,
 
       estimate_type::rhs_set_type::iterator uiter_end = unigram.end();
       for (estimate_type::rhs_set_type::iterator uiter = unigram.begin(); uiter != uiter_end; ++ uiter)
-	if (uiter->second.first <= 3)
-	  backoff += d1[uiter->second.first];
+	backoff += d1[utils::bithack::min(uiter->second.first, count_type(3))];
 
       double sum = 0.0;
 	
@@ -704,8 +698,7 @@ void estimate(const grammar_count_type& counts,
 	
       double backoff = 0.0;
       for (estimate_type::rule_set_type::iterator riter = uiter->second.begin(); riter != riter_end; ++ riter)
-	if (riter->second.first <= 3)
-	  backoff += d2[riter->second.first];
+	backoff += d2[utils::bithack::min(riter->second.first, count_type(3))];
 	
       for (estimate_type::rule_set_type::iterator riter = uiter->second.begin(); riter != riter_end; ++ riter) {
 	const prob_type lower = unigram[riter->first.rhs_].second;
@@ -728,8 +721,7 @@ void estimate(const grammar_count_type& counts,
 	
       double backoff = 0.0;
       for (estimate_type::rule_set_type::iterator riter = biter->second.begin(); riter != riter_end; ++ riter)
-	if (riter->second.first <= 3)
-	  backoff += d2[riter->second.first];
+	backoff += d2[utils::bithack::min(riter->second.first, count_type(3))];
 	
       for (estimate_type::rule_set_type::iterator riter = biter->second.begin(); riter != riter_end; ++ riter) {
 	const prob_type lower = unigram[riter->first.rhs_].second;
@@ -752,8 +744,7 @@ void estimate(const grammar_count_type& counts,
 	
       double backoff = 0.0;
       for (estimate_type::rule_set_type::iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
-	if (riter->second.first <= 3)
-	  backoff += d2[riter->second.first];
+	backoff += d2[utils::bithack::min(riter->second.first, count_type(3))];
 	
       for (estimate_type::rule_set_type::iterator riter = piter->second.begin(); riter != riter_end; ++ riter) {
 	const prob_type lower = unigram[riter->first.rhs_].second;

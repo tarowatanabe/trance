@@ -1512,9 +1512,9 @@ namespace rnnp
 	    Wsh.block(0, offset1, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
 	    Wsh.block(0, offset2, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.buffer_.col(state.derivation().next() + 1).transpose();
+	      += backward.delta_ * candidates.buffer_.col(state.span().first_ + 1).transpose();
 	    Wsh.block(0, offset3, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bsh += backward.delta_;
 	      
 	    // propagate to ancedent
@@ -1523,13 +1523,13 @@ namespace rnnp
 		  * (theta.Wsh_.block(offset_category, offset1, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    buffer_.col(state.derivation().next() + 1).array()
-	      += (candidates.buffer_.col(state.derivation().next() + 1).array().unaryExpr(model_type::dactivation())
+	    buffer_.col(state.span().first_ + 1).array()
+	      += (candidates.buffer_.col(state.span().first_ + 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wsh_.block(offset_category, offset2, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
@@ -1555,9 +1555,9 @@ namespace rnnp
 	    Wre.block(0, offset3, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.stack().layer(theta.hidden_).transpose();	    
 	    Wre.block(0, offset4, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.buffer_.col(state.span().first_).transpose();
+	      += backward.delta_ * candidates.buffer_.col(state.span().first_ + 1).transpose();
 	    Wre.block(0, offset5, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bre += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -1576,13 +1576,13 @@ namespace rnnp
 		  * (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    buffer_.col(state.span().first_).array()
-	      += (candidates.buffer_.col(state.span().first_).array().unaryExpr(model_type::dactivation())
+	    buffer_.col(state.span().first_ + 1).array()
+	      += (candidates.buffer_.col(state.span().first_ + 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wre_.block(offset_category, offset5, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
@@ -1605,9 +1605,9 @@ namespace rnnp
 	    Wu.block(0, offset2, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.stack().layer(theta.hidden_).transpose();
 	    Wu.block(0, offset3, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.buffer_.col(state.span().first_).transpose();
+	      += backward.delta_ * candidates.buffer_.col(state.span().first_ + 1).transpose();
 	    Wu.block(0, offset4, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bu += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -1621,13 +1621,13 @@ namespace rnnp
 		  * (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    buffer_.col(state.span().first_).array()
-	      += (candidates.buffer_.col(state.span().first_).array().unaryExpr(model_type::dactivation())
+	    buffer_.col(state.span().first_ + 1).array()
+	      += (candidates.buffer_.col(state.span().first_ + 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wu_.block(offset_category, offset4, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
