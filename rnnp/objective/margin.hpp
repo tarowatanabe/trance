@@ -431,7 +431,7 @@ namespace rnnp
 	    Wsh.block(0, offset2, theta.hidden_, theta.embedding_)
 	      += backward.delta_ * theta.terminal_.col(head_id).transpose();
 	    Wsh.block(0, offset3, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bsh += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -444,8 +444,8 @@ namespace rnnp
 	      += (theta.Wsh_.block(offset_category, offset2, theta.hidden_, theta.embedding_).transpose()
 		  * backward.delta_);
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
@@ -467,7 +467,7 @@ namespace rnnp
 	    Wre.block(0, offset2, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.reduced().layer(theta.hidden_).transpose();
 	    Wre.block(0, offset3, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bre += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -481,8 +481,8 @@ namespace rnnp
 		  * (theta.Wre_.block(offset_category, offset2, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
@@ -501,7 +501,7 @@ namespace rnnp
 	    Wu.block(0, offset1, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.derivation().layer(theta.hidden_).transpose();
 	    Wu.block(0, offset2, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bu += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -510,8 +510,8 @@ namespace rnnp
 		  * (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
@@ -826,7 +826,7 @@ namespace rnnp
 	    Wsh.block(0, offset2, theta.hidden_, theta.embedding_)
 	      += backward.delta_ * theta.terminal_.col(head_id).transpose();
 	    Wsh.block(0, offset3, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bsh += backward.delta_;
 	      
 	    // propagate to ancedent
@@ -839,8 +839,8 @@ namespace rnnp
 	      += (theta.Wsh_.block(offset_category, offset2, theta.hidden_, theta.embedding_).transpose()
 		  * backward.delta_);
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
@@ -865,7 +865,7 @@ namespace rnnp
 	    Wre.block(0, offset3, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.stack().layer(theta.hidden_).transpose();	    
 	    Wre.block(0, offset4, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bre += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -884,8 +884,8 @@ namespace rnnp
 		  * (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
@@ -907,7 +907,7 @@ namespace rnnp
 	    Wu.block(0, offset2, theta.hidden_, theta.hidden_)
 	      += backward.delta_ * state.stack().layer(theta.hidden_).transpose();
 	    Wu.block(0, offset3, theta.hidden_, theta.hidden_)
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bu += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -921,8 +921,8 @@ namespace rnnp
 		  * (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
@@ -1065,7 +1065,7 @@ namespace rnnp
 					      * theta.Psh_.block(full * row + offset1, 0, theta.hidden_, reduced))
 					     + (theta.terminal_.col(head_id).transpose()
 						* theta.Psh_.block(full * row + offset2, 0, theta.embedding_, reduced))
-					     + (candidates.queue_.col(state.next()).transpose()
+					     + (candidates.queue_.col(state.span().last_ - 1).transpose()
 						* theta.Psh_.block(full * row + offset3, 0, theta.hidden_, reduced)));
 	      
 	      R.block(row, 0, 1, reduced) = ((theta.Qsh_.block(reduced * row, offset1, reduced, theta.hidden_)
@@ -1073,14 +1073,14 @@ namespace rnnp
 					     + (theta.Qsh_.block(reduced * row, offset2, reduced, theta.embedding_)
 						* theta.terminal_.col(head_id))
 					     + (theta.Qsh_.block(reduced * row, offset3, reduced, theta.hidden_)
-						* candidates.queue_.col(state.next()))).transpose();
+						* candidates.queue_.col(state.span().last_ - 1))).transpose();
 	      
 	      g.Psh_.block(full * row + offset1, 0, theta.hidden_, reduced).noalias()
 		+= state.derivation().layer(theta.hidden_) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
 	      g.Psh_.block(full * row + offset2, 0, theta.embedding_, reduced).noalias()
 		+= theta.terminal_.block(0, head_id, theta.embedding_, 1) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
 	      g.Psh_.block(full * row + offset3, 0, theta.hidden_, reduced).noalias()
-		+= candidates.queue_.block(0, state.derivation().next(), theta.hidden_, 1) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
+		+= candidates.queue_.block(0, state.span().last_ - 1, theta.hidden_, 1) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
 	      
 	      g.Qsh_.block(reduced * row, offset1, reduced, theta.hidden_).noalias()
 		+= (L.block(row, 0, 1, reduced).transpose()
@@ -1092,7 +1092,7 @@ namespace rnnp
 		    * backward.delta_.row(row)(0,0));
 	      g.Qsh_.block(reduced * row, offset3, reduced, theta.hidden_).noalias()
 		+= (L.block(row, 0, 1, reduced).transpose()
-		    * candidates.queue_.col(state.derivation().next()).transpose()
+		    * candidates.queue_.col(state.span().last_ - 1).transpose()
 		    * backward.delta_.row(row)(0,0));
 	    }
 
@@ -1101,7 +1101,7 @@ namespace rnnp
 	    Wsh.block(0, offset2, theta.hidden_, theta.embedding_).noalias()
 	      += backward.delta_ * theta.terminal_.col(head_id).transpose();
 	    Wsh.block(0, offset3, theta.hidden_, theta.hidden_).noalias()
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bsh += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -1125,8 +1125,8 @@ namespace rnnp
 			* R.block(row, 0, 1, reduced).transpose()))
 		    * backward.delta_.row(row)(0, 0));
 	    
-	      queue_.col(state.derivation().next()).array()
-		+= (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	      queue_.col(state.span().last_ - 1).array()
+		+= (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		    * (((L.block(row, 0, 1, reduced)
 			 * theta.Qsh_.block(reduced * row, offset3, reduced, theta.hidden_)).transpose()
 			+ (theta.Psh_.block(full * row + offset3, 0, theta.hidden_, reduced)
@@ -1143,8 +1143,8 @@ namespace rnnp
 	      += (theta.Wsh_.block(offset_category, offset2, theta.hidden_, theta.embedding_).transpose()
 		  * backward.delta_);
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
@@ -1169,7 +1169,7 @@ namespace rnnp
 						* theta.Pre_.block(theta.hidden_ * 4 * row + offset2, 0, theta.hidden_, reduced))
 					     + (state.stack().layer(theta.hidden_).transpose()
 						* theta.Pre_.block(theta.hidden_ * 4 * row + offset3, 0, theta.hidden_, reduced))
-					     + (candidates.queue_.col(state.derivation().next()).transpose()
+					     + (candidates.queue_.col(state.span().last_ - 1).transpose()
 						* theta.Pre_.block(theta.hidden_ * 4 * row + offset4, 0, theta.hidden_, reduced)));
 	      
 	      R.block(row, 0, 1, reduced) = ((theta.Qre_.block(reduced * row, offset1, reduced, theta.hidden_)
@@ -1179,7 +1179,7 @@ namespace rnnp
 					     + (theta.Qre_.block(reduced * row, offset3, reduced, theta.hidden_)
 						* state.stack().layer(theta.hidden_))
 					     + (theta.Qre_.block(reduced * row, offset4, reduced, theta.hidden_)
-						* candidates.queue_.col(state.derivation().next()))).transpose();
+						* candidates.queue_.col(state.span().last_ - 1))).transpose();
 	      
 	      g.Pre_.block(theta.hidden_ * 4 * row + offset1, 0, theta.hidden_, reduced).noalias()
 		+= state.derivation().layer(theta.hidden_) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
@@ -1188,7 +1188,7 @@ namespace rnnp
 	      g.Pre_.block(theta.hidden_ * 4 * row + offset3, 0, theta.hidden_, reduced).noalias()
 		+= state.stack().layer(theta.hidden_) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
 	      g.Pre_.block(theta.hidden_ * 4 * row + offset4, 0, theta.hidden_, reduced).noalias()
-		+= candidates.queue_.block(0, state.derivation().next(), theta.hidden_, 1) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
+		+= candidates.queue_.block(0, state.span().last_ - 1, theta.hidden_, 1) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
 	      
 	      g.Qre_.block(reduced * row, offset1, reduced, theta.hidden_).noalias()
 		+= (L.block(row, 0, 1, reduced).transpose()
@@ -1204,7 +1204,7 @@ namespace rnnp
 		    * backward.delta_.row(row)(0,0));
 	      g.Qre_.block(reduced * row, offset4, reduced, theta.hidden_).noalias()
 		+= (L.block(row, 0, 1, reduced).transpose()
-		    * candidates.queue_.col(state.derivation().next()).transpose()
+		    * candidates.queue_.col(state.span().last_ - 1).transpose()
 		    * backward.delta_.row(row)(0,0));
 	    }
 	    
@@ -1215,7 +1215,7 @@ namespace rnnp
 	    Wre.block(0, offset3, theta.hidden_, theta.hidden_).noalias()
 	      += backward.delta_ * state.stack().layer(theta.hidden_).transpose();
 	    Wre.block(0, offset4, theta.hidden_, theta.hidden_).noalias()
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bre += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -1248,8 +1248,8 @@ namespace rnnp
 			   * R.block(row, 0, 1, reduced).transpose()))
 		       * backward.delta_.row(row)(0, 0)).array());
 	      
-	      queue_.col(state.derivation().next()).array()
-		+= (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	      queue_.col(state.span().last_ - 1).array()
+		+= (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		    * (((L.block(row, 0, 1, reduced)
 			 * theta.Qre_.block(reduced * row, offset4, reduced, theta.hidden_)).transpose()
 			+ (theta.Pre_.block(theta.hidden_ * 4 * row + offset4, 0, theta.hidden_, reduced)
@@ -1272,8 +1272,8 @@ namespace rnnp
 		  * (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
@@ -1295,7 +1295,7 @@ namespace rnnp
 					      * theta.Pu_.block(theta.hidden_ * 3 * row + offset1, 0, theta.hidden_, reduced))
 					     + (state.stack().layer(theta.hidden_).transpose()
 						* theta.Pu_.block(theta.hidden_ * 3 * row + offset2, 0, theta.hidden_, reduced))
-					     + (candidates.queue_.col(state.derivation().next()).transpose()
+					     + (candidates.queue_.col(state.span().last_ - 1).transpose()
 						* theta.Pu_.block(theta.hidden_ * 3 * row + offset3, 0, theta.hidden_, reduced)));
 	      
 	      R.block(row, 0, 1, reduced) = ((theta.Qu_.block(reduced * row, offset1, reduced, theta.hidden_)
@@ -1303,14 +1303,14 @@ namespace rnnp
 					     + (theta.Qu_.block(reduced * row, offset2, reduced, theta.hidden_)
 						* state.stack().layer(theta.hidden_))
 					     + (theta.Qu_.block(reduced * row, offset3, reduced, theta.hidden_)
-						* candidates.queue_.col(state.derivation().next()))).transpose();
+						* candidates.queue_.col(state.span().last_ - 1))).transpose();
 	      
 	      g.Pu_.block(theta.hidden_ * 3 * row + offset1, 0, theta.hidden_, reduced).noalias()
 		+= state.derivation().layer(theta.hidden_) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
 	      g.Pu_.block(theta.hidden_ * 3 * row + offset2, 0, theta.hidden_, reduced).noalias()
 		+= state.stack().layer(theta.hidden_) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
 	      g.Pu_.block(theta.hidden_ * 3 * row + offset3, 0, theta.hidden_, reduced).noalias()
-		+= candidates.queue_.block(0, state.derivation().next(), theta.hidden_, 1) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
+		+= candidates.queue_.block(0, state.span().last_ - 1, theta.hidden_, 1) * R.block(row, 0, 1, reduced) * backward.delta_.row(row)(0,0);
 	      
 	      g.Qu_.block(reduced * row, offset1, reduced, theta.hidden_).noalias()
 		+= (L.block(row, 0, 1, reduced).transpose()
@@ -1322,7 +1322,7 @@ namespace rnnp
 		    * backward.delta_.row(row)(0,0));
 	      g.Qu_.block(reduced * row, offset3, reduced, theta.hidden_).noalias()
 		+= (L.block(row, 0, 1, reduced).transpose()
-		    * candidates.queue_.col(state.derivation().next()).transpose()
+		    * candidates.queue_.col(state.span().last_ - 1).transpose()
 		    * backward.delta_.row(row)(0,0));
 	    }
 	    
@@ -1331,7 +1331,7 @@ namespace rnnp
 	    Wu.block(0, offset2, theta.hidden_, theta.hidden_).noalias()
 	      += backward.delta_ * state.stack().layer(theta.hidden_).transpose();
 	    Wu.block(0, offset3, theta.hidden_, theta.hidden_).noalias()
-	      += backward.delta_ * candidates.queue_.col(state.derivation().next()).transpose();
+	      += backward.delta_ * candidates.queue_.col(state.span().last_ - 1).transpose();
 	    Bu += backward.delta_;
 	    
 	    // propagate to ancedent
@@ -1355,8 +1355,8 @@ namespace rnnp
 			   * R.block(row, 0, 1, reduced).transpose()))
 		       * backward.delta_.row(row)(0, 0)).array());
 	      
-	      queue_.col(state.derivation().next()).array()
-		+= (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	      queue_.col(state.span().last_ - 1).array()
+		+= (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		    * (((L.block(row, 0, 1, reduced)
 			 * theta.Qu_.block(reduced * row, offset3, reduced, theta.hidden_)).transpose()
 			+ (theta.Pu_.block(theta.hidden_ * 3 * row + offset3, 0, theta.hidden_, reduced)
@@ -1374,8 +1374,8 @@ namespace rnnp
 		  * (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
-	    queue_.col(state.derivation().next()).array()
-	      += (candidates.queue_.col(state.derivation().next()).array().unaryExpr(model_type::dactivation())
+	    queue_.col(state.span().last_ - 1).array()
+	      += (candidates.queue_.col(state.span().last_ - 1).array().unaryExpr(model_type::dactivation())
 		  * (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
 		     * backward.delta_).array());
 	    
