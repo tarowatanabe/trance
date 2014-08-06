@@ -227,24 +227,33 @@ struct MapReduce
   typedef uint64_t    id_type;
   typedef std::string buffer_type;
   
+  typedef utils::resource resource_type;
+  
   struct id_buffer_type
   {
-    id_type id_;
-    buffer_type buffer_;
+    id_type       id_;
+    buffer_type   buffer_;
+    resource_type resource_;
     
-    id_buffer_type() : id_(id_type(-1)), buffer_() {}
-    id_buffer_type(const id_type& id, const buffer_type& buffer) : id_(id), buffer_(buffer) {}
+    id_buffer_type()
+      : id_(id_type(-1)), buffer_(), resource_() {}
+    id_buffer_type(const id_type& id, const buffer_type& buffer)
+      : id_(id), buffer_(buffer), resource_() {}
+    id_buffer_type(const id_type& id, const buffer_type& buffer, const resource_type& resource)
+      : id_(id), buffer_(buffer), resource_(resource) {}
 
     void clear()
     {
       id_ = id_type(-1);
       buffer_.clear();
+      resource_.clear();
     }
     
     void swap(id_buffer_type& x)
     {
       std::swap(id_, x.id_);
       buffer_.swap(x.buffer_);
+      std::swap(resource_, x.resource_);
     }
   };
   
@@ -303,10 +312,6 @@ struct Mapper : public MapReduce
     derivation_set_type derivations;
     buf_type buf;
     
-    parsed_  = 0;
-    skipped_ = 0;
-    resource_.clear();
-
     signature_type::signature_ptr_type signature(signature_.clone());
     feature_set_type feats(feats_.clone());
     
@@ -317,18 +322,15 @@ struct Mapper : public MapReduce
       
       input.assign(mapped.buffer_);
       
-      utils::resource start;
+      resource_type start;
       
       parser(input, grammar_, *signature, feats, theta_, kbest_size, derivations);
       
-      utils::resource end;
-      
-      parsed_  += 1;
-      skipped_ += derivations.empty();
-      resource_ += end - start;
+      resource_type end;
       
       // output kbest derivations
-      reduced.id_ = mapped.id_;
+      reduced.id_       = mapped.id_;
+      reduced.resource_ = end - start;
       reduced.buffer_.clear();
       
       buf.clear();
@@ -384,11 +386,7 @@ struct Mapper : public MapReduce
   const Theta&            theta_;
   
   queue_type& mapper_;
-  queue_type& reducer_;
-  
-  size_type       parsed_;
-  size_type       skipped_;
-  utils::resource resource_;
+  queue_type& reducer_;  
 };
 
 struct Reducer : public MapReduce
@@ -412,11 +410,16 @@ struct Reducer : public MapReduce
     buffer_map_type maps;
     id_type id = 0;
     id_buffer_type  reduced;
+
+    resource_type resource;
+    resource.clear();
     
     for (;;) {
       reducer_.pop_swap(reduced);
       
       if (reduced.id_ == id_type(-1) && reduced.buffer_.empty()) break;
+      
+      resource += reduced.resource_;
       
       bool dump = false;
       
@@ -462,6 +465,12 @@ struct Reducer : public MapReduce
       throw std::runtime_error("id mismatch! expecting: " + utils::lexical_cast<std::string>(id)
 			       + " next: " + utils::lexical_cast<std::string>(maps.begin()->first)
 			       + " renamining: " + utils::lexical_cast<std::string>(maps.size()));
+    
+    if (debug)
+      std::cerr << "# of sentences: " << id
+		<< " user time: " << resource.user_time()
+		<< " thread time: " << resource.thread_time()
+		<< std::endl;
   }
   
   const path_type path_;
@@ -511,12 +520,9 @@ void parse(const grammar_type& grammar,
   boost::thread_group reducers;
   reducers.add_thread(new boost::thread(reducer_type(output_path, queue_reducer)));
   
-  std::vector<mapper_type, std::allocator<mapper_type> > workers(threads,
-								 mapper_type(grammar, signature, feats, theta, queue_mapper, queue_reducer));
-  
   boost::thread_group mappers;
   for (int i = 0; i != threads; ++ i)
-    mappers.add_thread(new boost::thread(boost::ref(workers[i])));
+    mappers.add_thread(new boost::thread(mapper_type(grammar, signature, feats, theta, queue_mapper, queue_reducer)));
   
   map_reduce_type::id_buffer_type id_buffer;
   map_reduce_type::id_type id = 0;
@@ -538,19 +544,6 @@ void parse(const grammar_type& grammar,
     queue_mapper.push_swap(id_buffer);
   }
   mappers.join_all();
-  
-  for (int i = 1; i != threads; ++ i) {
-    workers.front().parsed_   += workers[i].parsed_;
-    workers.front().skipped_  += workers[i].skipped_;
-    workers.front().resource_ += workers[i].resource_;
-  }
-  
-  if (debug)
-    std::cerr << "parsed: " << workers.front().parsed_ << std::endl
-	      << "skipped: " << workers.front().skipped_ << std::endl
-	      << "cpu time:    " << workers.front().resource_.cpu_time() << std::endl
-	      << "user time:   " << workers.front().resource_.user_time() << std::endl
-	      << "thread time: " << workers.front().resource_.thread_time() << std::endl;
   
   // terminate reducers
   id_buffer.clear();

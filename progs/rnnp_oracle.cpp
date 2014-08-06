@@ -32,6 +32,7 @@
 #include "utils/lexical_cast.hpp"
 #include "utils/getline.hpp"
 #include "utils/random_seed.hpp"
+#include "utils/resource.hpp"
 
 #include <boost/random.hpp>
 #include <boost/thread.hpp>
@@ -231,24 +232,33 @@ struct MapReduce
   typedef uint64_t    id_type;
   typedef std::string buffer_type;
   
+  typedef utils::resource resource_type;
+  
   struct id_buffer_type
   {
-    id_type id_;
-    buffer_type buffer_;
+    id_type       id_;
+    buffer_type   buffer_;
+    resource_type resource_;
     
-    id_buffer_type() : id_(id_type(-1)), buffer_() {}
-    id_buffer_type(const id_type& id, const buffer_type& buffer) : id_(id), buffer_(buffer) {}
+    id_buffer_type()
+      : id_(id_type(-1)), buffer_(), resource_() {}
+    id_buffer_type(const id_type& id, const buffer_type& buffer)
+      : id_(id), buffer_(buffer), resource_() {}
+    id_buffer_type(const id_type& id, const buffer_type& buffer, const resource_type& resource)
+      : id_(id), buffer_(buffer), resource_(resource) {}
 
     void clear()
     {
       id_ = id_type(-1);
       buffer_.clear();
+      resource_.clear();
     }
     
     void swap(id_buffer_type& x)
     {
       std::swap(id_, x.id_);
       buffer_.swap(x.buffer_);
+      std::swap(resource_, x.resource_);
     }
   };
   
@@ -315,11 +325,16 @@ struct Mapper : public MapReduce
       if (mapped.id_ == id_type(-1)) break;
       
       input.assign(mapped.buffer_);
+
+      resource_type start;
       
       parser(input, grammar_, *signature, feats, theta_, kbest_size, derivations);
       
+      resource_type end;
+      
       // output kbest derivations
-      reduced.id_ = mapped.id_;
+      reduced.id_       = mapped.id_;
+      reduced.resource_ = end - start;
       reduced.buffer_.clear();
       
       buf.clear();
@@ -396,10 +411,15 @@ struct Reducer : public MapReduce
     id_type id = 0;
     id_buffer_type  reduced;
     
+    resource_type resource;
+    resource.clear();
+
     for (;;) {
       reducer_.pop_swap(reduced);
       
       if (reduced.id_ == id_type(-1) && reduced.buffer_.empty()) break;
+      
+      resource += reduced.resource_;
       
       bool dump = false;
       
@@ -445,6 +465,12 @@ struct Reducer : public MapReduce
       throw std::runtime_error("id mismatch! expecting: " + utils::lexical_cast<std::string>(id)
 			       + " next: " + utils::lexical_cast<std::string>(maps.begin()->first)
 			       + " renamining: " + utils::lexical_cast<std::string>(maps.size()));
+
+    if (debug)
+      std::cerr << "# of sentences: " << id
+		<< " user time: " << resource.user_time()
+		<< " thread time: " << resource.thread_time()
+		<< std::endl;
   }
   
   const path_type path_;
