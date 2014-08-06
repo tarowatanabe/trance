@@ -150,7 +150,7 @@ namespace rnnp
 		   * theta.Pre_.block(theta.hidden_ * 4 * row + offset2, 0, theta.hidden_, reduced))
 		+ (state_stack.layer(theta.hidden_).transpose()
 		   * theta.Pre_.block(theta.hidden_ * 4 * row + offset3, 0, theta.hidden_, reduced))
-		+ (parser.queue_.col(state_new.span().last_ - 1).transpose()
+		+ (parser.queue_.col(state_new.span().last_).transpose()
 		   * theta.Pre_.block(theta.hidden_ * 4 * row + offset4, 0, theta.hidden_, reduced)));
 	  R_ = ((theta.Qre_.block(reduced * row, offset1, reduced, theta.hidden_)
 		 * state.layer(theta.hidden_))
@@ -159,7 +159,7 @@ namespace rnnp
 		+ (theta.Qre_.block(reduced * row, offset3, reduced, theta.hidden_)
 		   * state_stack.layer(theta.hidden_))
 		+ (theta.Qre_.block(reduced * row, offset4, reduced, theta.hidden_)
-		   * parser.queue_.col(state_new.span().last_ - 1)));
+		   * parser.queue_.col(state_new.span().last_)));
 	  
 	  temp_.row(row) = L_ * R_;
 	}
@@ -173,7 +173,7 @@ namespace rnnp
 					  + (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
 					     * state_stack.layer(theta.hidden_))
 					  + (theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_)
-					     * parser.queue_.col(state_new.span().last_ - 1))
+					     * parser.queue_.col(state_new.span().last_))
 					  ).array().unaryExpr(model_type::activation());
 	  
 	const double score = (theta.Wc_.block(offset_classification, offset_operation, 1, theta.hidden_) * state_new.layer(theta.hidden_)
@@ -229,7 +229,7 @@ namespace rnnp
 		 * theta.Pu_.block(theta.hidden_ * 3 * row + offset1, 0, theta.hidden_, reduced))
 		+ (state.stack().layer(theta.hidden_).transpose()
 		   * theta.Pu_.block(theta.hidden_ * 3 * row + offset2, 0, theta.hidden_, reduced))
-		+ (parser.queue_.col(state_new.span().last_ - 1).transpose()
+		+ (parser.queue_.col(state_new.span().last_).transpose()
 		   * theta.Pu_.block(theta.hidden_ * 3 * row + offset3, 0, theta.hidden_, reduced)));
 	  
 	  R_ = ((theta.Qu_.block(reduced * row, offset1, reduced, theta.hidden_)
@@ -237,7 +237,7 @@ namespace rnnp
 		+ (theta.Qu_.block(reduced * row, offset2, reduced, theta.hidden_)
 		   * state.stack().layer(theta.hidden_))
 		+ (theta.Qu_.block(reduced * row, offset3, reduced, theta.hidden_)
-		   * parser.queue_.col(state_new.span().last_ - 1)));
+		   * parser.queue_.col(state_new.span().last_)));
 	  
 	  temp_.row(row) = L_ * R_;
 	}
@@ -249,7 +249,7 @@ namespace rnnp
 					  + (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
 					     * state.stack().layer(theta.hidden_))
 					  + (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
-					     * parser.queue_.col(state_new.span().last_ - 1))
+					     * parser.queue_.col(state_new.span().last_))
 					  ).array().unaryExpr(model_type::activation());
 	
 	const double score = (theta.Wc_.block(offset_classification, offset_operation, 1, theta.hidden_) * state_new.layer(theta.hidden_)
