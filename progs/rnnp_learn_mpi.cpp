@@ -629,8 +629,8 @@ void select_model(Theta& theta)
   
   bcast_model(rank_min, theta);
   
-  if (debug)
-    std::cerr << "mix select: " << rank_min << " L1: "<< buffer_recv[rank_min] << std::endl;
+  if (mpi_rank == 0 && debug)
+    std::cerr << "mix select: " << rank_min << " L1: " << buffer_recv[rank_min] << std::endl;
 }
 
 template <typename Theta>

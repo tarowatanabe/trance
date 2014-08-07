@@ -50,7 +50,7 @@ namespace rnnp
       static inline
       double learning_rate(const double& eta0, const double& epsilon, const double& g)
       {
-	return std::min(1.0, eta0 / std::sqrt(epsilon + g));
+	return eta0 / std::sqrt(epsilon + g);
       }
       
       struct update_visitor_regularize

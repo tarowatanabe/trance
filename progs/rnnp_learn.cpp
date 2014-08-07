@@ -889,7 +889,7 @@ void learn(const Optimizer& optimizer,
       }
       
       if (debug)
-	std::cerr << "mix select: " << shard_min << " L1: "<< l1_min << std::endl;
+	std::cerr << "mix select: " << shard_min << " L1: " << l1_min << std::endl;
       
       for (size_type i = 0; i < tasks.size(); ++ i)
 	if (i != shard_min)
