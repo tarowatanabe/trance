@@ -628,6 +628,9 @@ void select_model(Theta& theta)
   MPI::COMM_WORLD.Bcast(&rank_min, 1, utils::mpi_traits<int>::data_type(), 0);
   
   bcast_model(rank_min, theta);
+  
+  if (debug)
+    std::cerr << "mix select: " << rank_min << " L1: "<< buffer_recv[rank_min] << std::endl;
 }
 
 template <typename Theta>
