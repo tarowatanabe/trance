@@ -419,6 +419,24 @@ void estimate(const grammar_count_type& counts,
       
       for (int k = 1; k != 4; ++ k)
 	d2[k] = double(k) - double((k + 1) * t2[1] * t2[k+1]) / double((t2[1] + 2 * t2[2]) * t2[k]);
+
+      if (debug) {
+	std::cerr << "grammar" << std::endl;
+	
+	for (int k = 1; k != 4; ++ k) {
+	  if (k > 1)
+	    std::cerr << ' ';
+	  std::cerr << "D1[" << k << "] = " << d1[k];
+	}
+	std::cerr << std::endl;
+	
+	for (int k = 1; k != 4; ++ k) {
+	  if (k > 1)
+	    std::cerr << ' ';
+	  std::cerr << "D2[" << k << "] = " << d2[k];
+	}
+	std::cerr << std::endl;
+      }
       
       // estimate unigram probability...
       {
@@ -542,6 +560,24 @@ void estimate(const grammar_count_type& counts,
       for (int k = 1; k != 4; ++ k)
 	d2[k] = double(k) - double((k + 1) * t2[1] * t2[k+1]) / double((t2[1] + 2 * t2[2]) * t2[k]);
       
+      if (debug) {
+	std::cerr << "pre-terminal" << std::endl;
+	
+	for (int k = 1; k != 4; ++ k) {
+	  if (k > 1)
+	    std::cerr << ' ';
+	  std::cerr << "D1[" << k << "] = " << d1[k];
+	}
+	std::cerr << std::endl;
+	
+	for (int k = 1; k != 4; ++ k) {
+	  if (k > 1)
+	    std::cerr << ' ';
+	  std::cerr << "D2[" << k << "] = " << d2[k];
+	}
+	std::cerr << std::endl;
+      }
+      
       // estimate unigram probability...
       const double factor = 1.0 / total;
       const double uniform = 1.0 / unigram.size();
@@ -657,7 +693,23 @@ void estimate(const grammar_count_type& counts,
       
     for (int k = 1; k != 4; ++ k)
       d2[k] = double(k) - double((k + 1) * t2[1] * t2[k+1]) / double((t2[1] + 2 * t2[2]) * t2[k]);
+
+    if (debug) {
+      for (int k = 1; k != 4; ++ k) {
+	if (k > 1)
+	  std::cerr << ' ';
+	std::cerr << "D1[" << k << "] = " << d1[k];
+      }
+      std::cerr << std::endl;
       
+      for (int k = 1; k != 4; ++ k) {
+	if (k > 1)
+	  std::cerr << ' ';
+	std::cerr << "D2[" << k << "] = " << d2[k];
+      }
+      std::cerr << std::endl;
+    }
+    
     // estimate unigram probability...
     {
       const double factor = 1.0 / total;
