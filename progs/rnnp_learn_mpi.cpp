@@ -238,7 +238,7 @@ int main(int argc, char** argv)
 
     feature_set_type feats(feature_functions.begin(), feature_functions.end());
     
-    if (debug)
+    if (mpi_rank == 0 && debug)
       std::cerr << "# of features: " << feats.size() << std::endl;
     
     if (model_model1) {
