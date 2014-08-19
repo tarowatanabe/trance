@@ -114,6 +114,8 @@ bool mix_none_mode = false;
 bool mix_average_mode = false;
 bool mix_select_mode = false;
 
+bool averaging = false;
+
 path_type output_prefix;
 int dump = 0;
 
@@ -363,6 +365,9 @@ struct Task
       signature_(signature),
       feats_(feats),
       theta_(theta),
+      theta_averaged_(theta),
+      theta_sum_(theta),
+      theta_norm_(1),
       tree_mapper_(tree_mapper),
       gradient_mapper_(gradient_mapper),
       gradient_reducer_(gradient_reducer),
@@ -380,6 +385,9 @@ struct Task
   const signature_type&   signature_;
   const feature_set_type& feats_;
   model_type& theta_;
+  model_type theta_averaged_;
+  model_type theta_sum_;
+  size_type  theta_norm_;
   
   queue_tree_type&     tree_mapper_;
   queue_gradient_type& gradient_mapper_;
@@ -442,6 +450,11 @@ struct Task
 	    encoded.clear();
 	    
 	    optimizer_(theta_, gradient_, option_);
+
+	    if (averaging) {
+	      theta_sum_  += theta_;
+	      ++ theta_norm_;
+	    }
 	  }
 
 	  found = true;
@@ -475,6 +488,11 @@ struct Task
 	  updated_ += gradient_batch_.count_;
 
 	  optimizer_(theta_, gradient_batch_, option_);
+	  
+	  if (averaging) {
+	    theta_sum_  += theta_;
+	    ++ theta_norm_;
+	  }
 	  
 	  // encoding..
 	  buffer_.clear();
@@ -606,6 +624,25 @@ void average_model(Theta& theta)
 }
 
 template <typename Theta>
+void average_model(const Theta& theta, size_t norm, Theta& averaged)
+{
+  const int mpi_rank = MPI::COMM_WORLD.Get_rank();
+  const int mpi_size = MPI::COMM_WORLD.Get_size();
+  
+  averaged = theta;
+  
+  merge_model(averaged);
+
+  size_t norm_total = 0;
+  MPI::COMM_WORLD.Reduce(&norm, &norm_total, 1, utils::mpi_traits<size_t>::data_type(), MPI::SUM, 0);
+
+  if (mpi_rank == 0)
+    averaged *= 1.0 / norm_total;
+  
+  bcast_model(averaged);
+}
+
+template <typename Theta>
 void select_model(Theta& theta)
 {
   typedef std::vector<double, std::allocator<double> > buffer_type;  
@@ -699,7 +736,10 @@ struct Test
       
       if (tree.empty()) break;
       
-      task_.parser_(tree.leaf(), task_.grammar_, *signature, feats, task_.theta_, kbest_size, candidates);
+      if (averaging)
+	task_.parser_(tree.leaf(), task_.grammar_, *signature, feats, task_.theta_averaged_, kbest_size, candidates);
+      else
+	task_.parser_(tree.leaf(), task_.grammar_, *signature, feats, task_.theta_, kbest_size, candidates);
 
       if (candidates.empty()) continue;
       
@@ -1010,10 +1050,18 @@ void learn_root(const Optimizer& optimizer,
       select_model(theta);
     else
       bcast_model(theta);
+
+    if (averaging)
+      average_model(task.theta_sum_, task.theta_norm_, task.theta_averaged_);
     
-    if (dump > 0 && !((t + 1) % dump))
-      queue_dumper.push(std::make_pair(theta,
-				       output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
+    if (dump > 0 && !((t + 1) % dump)) {
+      if (averaging)
+	queue_dumper.push(std::make_pair(theta,
+					 output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
+      else
+	queue_dumper.push(std::make_pair(task.theta_averaged_,
+					 output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
+    }
 
     if (perform_testing) {
       typedef Test<Theta, task_type> test_type;
@@ -1128,7 +1176,11 @@ void learn_root(const Optimizer& optimizer,
       
       if (evalb_curr > evalb_max) {
 	evalb_max = evalb_curr;
-	theta_ret = theta;
+
+	if (averaging)
+	  theta_ret = task.theta_averaged_;
+	else
+	  theta_ret = theta;
       } else
 	decay = t && evalb_curr < evalb_max && option.decay_;
       
@@ -1150,9 +1202,12 @@ void learn_root(const Optimizer& optimizer,
   queue_dumper.push(typename output_model_type::model_path_type());
   dumper->join();
   
-  if (! perform_testing)
-    theta_ret = theta;
-  else
+  if (! perform_testing) {
+    if (averaging)
+      theta_ret = task.theta_averaged_;
+    else
+      theta_ret = theta;
+  } else
     bcast_model(theta_ret);
 }
 
@@ -1354,6 +1409,9 @@ void learn_others(const Optimizer& optimizer,
     else
       bcast_model(theta);
 
+    if (averaging)
+      average_model(task.theta_sum_, task.theta_norm_, task.theta_averaged_);
+    
     if (perform_testing) {
       typedef Test<Theta, task_type> test_type;  
       
@@ -1416,10 +1474,13 @@ void learn_others(const Optimizer& optimizer,
     
     if (zero_iter >= 2) break;
   }
-
-  if (! perform_testing)
-    theta_ret = theta;
-  else
+  
+  if (! perform_testing) {
+    if (averaging)
+      theta_ret = task.theta_averaged_;
+    else
+      theta_ret = theta;
+  } else
     bcast_model(theta_ret);
 }
 
@@ -1614,6 +1675,8 @@ void options(int argc, char** argv)
     ("mix-none",    po::bool_switch(&mix_none_mode),    "no mixing")
     ("mix-average", po::bool_switch(&mix_average_mode), "mixing weights by averaging")
     ("mix-select",  po::bool_switch(&mix_select_mode),  "select weights by L1")
+
+    ("averaging", po::bool_switch(&averaging), "perform averaging")
 
     ("dump", po::value<int>(&dump)->default_value(dump), "output model file during training");
   
