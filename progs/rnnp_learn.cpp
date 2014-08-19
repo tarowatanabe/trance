@@ -106,6 +106,8 @@ bool mix_none_mode = false;
 bool mix_average_mode = false;
 bool mix_select_mode = false;
 
+bool averaging = false;
+
 path_type output_prefix;
 int dump = 0;
 
@@ -327,6 +329,9 @@ struct Task
       signature_(signature),
       feats_(feats),
       theta_(theta),
+      theta_averaged_(theta),
+      theta_sum_(theta),
+      theta_norm_(1),
       mapper_(mapper),
       mergers_(mergers),
       parser_(beam_size, unary_size),
@@ -346,6 +351,9 @@ struct Task
   const signature_type&   signature_;
   const feature_set_type& feats_;
   model_type theta_;
+  model_type theta_averaged_;
+  model_type theta_sum_;
+  size_type  theta_norm_;
   
   queue_mapper_type&     mapper_;
   queue_merger_set_type& mergers_;
@@ -400,6 +408,11 @@ struct Task
 	  else {
 	    optimizer_(theta_, *grad, option_);
 	    grad->increment();
+	    
+	    if (averaging) {
+	      theta_sum_  += theta_;
+	      ++ theta_norm_;
+	    }
 	  }
 	}
       
@@ -459,6 +472,11 @@ struct Task
 
 	  optimizer_(theta_, *grad, option_);
 	  grad->increment();
+
+	  if (averaging) {
+	    theta_sum_  += theta_;
+	    ++ theta_norm_;
+	  }
 	  
 	  for (size_type i = 0; i != shard_size; ++ i)
 	    if (i != shard_)
@@ -589,7 +607,10 @@ struct Test
       
       if (id == size_type(-1)) break;
       
-      task_.parser_(trees_[id].leaf(), task_.grammar_, *signature, feats, task_.theta_, kbest_size, candidates);
+      if (averaging)
+	task_.parser_(trees_[id].leaf(), task_.grammar_, *signature, feats, task_.theta_averaged_, kbest_size, candidates);
+      else
+	task_.parser_(trees_[id].leaf(), task_.grammar_, *signature, feats, task_.theta_, kbest_size, candidates);
 
       if (candidates.empty()) continue;
       
@@ -899,9 +920,30 @@ void learn(const Optimizer& optimizer,
 	tasks[i].theta_ = tasks.front().theta_;
     }
     
-    if (dump > 0 && !((t + 1) % dump))
-      queue_dumper.push(std::make_pair(tasks.front().theta_,
-				       output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
+    if (averaging) {
+      tasks.front().theta_averaged_ = tasks.front().theta_sum_;
+      size_type norm = tasks.front().theta_norm_;
+      
+      for (size_type i = 1; i < tasks.size(); ++ i) {
+	tasks.front().theta_averaged_ += tasks[i].theta_sum_;
+	norm += tasks[i].theta_norm_;
+      }
+      
+      tasks.front().theta_averaged_ *= 1.0 / double(norm);
+
+      for (size_type i = 1; i < tasks.size(); ++ i)
+	tasks[i].theta_averaged_ = tasks.front().theta_averaged_;
+    }
+
+    
+    if (dump > 0 && !((t + 1) % dump)) {
+      if (averaging)
+	queue_dumper.push(std::make_pair(tasks.front().theta_,
+					 output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
+      else
+	queue_dumper.push(std::make_pair(tasks.front().theta_averaged_,
+					 output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
+    }
 
     if (perform_testing) {
       typedef Test<Theta, task_type> test_type;
@@ -954,7 +996,11 @@ void learn(const Optimizer& optimizer,
       
       if (evalb_curr > evalb_max) {
 	evalb_max = evalb_curr;
-	theta = tasks.front().theta_;
+
+	if (averaging)
+	  theta = tasks.front().theta_averaged_;
+	else
+	  theta = tasks.front().theta_;
       } else if (t && evalb_curr < evalb_max && option.decay_) {
 	for (size_type i = 0; i != tasks.size(); ++ i)
 	  tasks[i].optimizer_.decay();
@@ -973,8 +1019,12 @@ void learn(const Optimizer& optimizer,
   dumper->join();
   
   // copy the model!
-  if (! perform_testing)
-    theta = tasks.front().theta_;
+  if (! perform_testing) {
+    if (averaging)
+      theta = tasks.front().theta_averaged_;
+    else
+      theta = tasks.front().theta_;
+  }
 }
 
 void read_data(const path_type& path,
@@ -1029,6 +1079,8 @@ void options(int argc, char** argv)
     ("mix-none",    po::bool_switch(&mix_none_mode),    "no mixing")
     ("mix-average", po::bool_switch(&mix_average_mode), "mixing weights by averaging")
     ("mix-select",  po::bool_switch(&mix_select_mode),  "select weights by L1")
+
+    ("averaging", po::bool_switch(&averaging), "perform averaging")
 
     ("dump", po::value<int>(&dump)->default_value(dump), "output model file during training");
   
