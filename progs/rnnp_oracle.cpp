@@ -99,6 +99,11 @@ int main(int argc, char** argv)
 {
   try {
     options(argc, argv);
+
+    if (feature_function_list) {
+      std::cout << feature_set_type::usage();
+      return 0;
+    }
     
     threads = utils::bithack::max(1, threads);
   
