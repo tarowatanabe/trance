@@ -1056,10 +1056,10 @@ void learn_root(const Optimizer& optimizer,
     
     if (dump > 0 && !((t + 1) % dump)) {
       if (averaging)
-	queue_dumper.push(std::make_pair(theta,
+	queue_dumper.push(std::make_pair(task.theta_averaged_,
 					 output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
       else
-	queue_dumper.push(std::make_pair(task.theta_averaged_,
+	queue_dumper.push(std::make_pair(theta,
 					 output_prefix.string() + "." + utils::lexical_cast<std::string>(t + 1)));
     }
 
