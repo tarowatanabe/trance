@@ -290,9 +290,10 @@ struct Mapper : public MapReduce
       mapper_(mapper),
       reducer_(reducer) {}
   
-  struct real_precision : boost::spirit::karma::real_policies<double>
+  template <typename Tp>
+  struct real_precision : boost::spirit::karma::real_policies<Tp>
   {
-    static unsigned int precision(double) 
+    static unsigned int precision(Tp) 
     { 
       return 10;
     }
@@ -353,7 +354,10 @@ struct Mapper : public MapReduce
 	  namespace karma = boost::spirit::karma;
 	  namespace standard = boost::spirit::standard;
 	  
-	  karma::real_generator<double, real_precision> double10;
+	  typedef derivation_type::feature_vector_type feature_vector_type;
+	  typedef feature_vector_type::mapped_type parameter_type;
+	  
+	  karma::real_generator<parameter_type, real_precision<parameter_type> > double10;
 	  
 	  derivation_set_type::const_iterator diter_end = derivations.end();
 	  for (derivation_set_type::const_iterator diter = derivations.begin(); diter != diter_end; ++ diter) {
@@ -361,11 +365,16 @@ struct Mapper : public MapReduce
 	    
 	    os << reduced.id_ << " ||| " << derivation.tree_;
 	    
+	    os << " |||";
+	    feature_vector_type::const_iterator fiter_end = derivation.features_.end();
+	    for (feature_vector_type::const_iterator fiter = derivation.features_.begin(); fiter != fiter_end; ++ fiter)
+	      karma::generate(std::ostream_iterator<char>(os),
+			      ' ' << standard::string << '=' << double10,
+			      fiter->first,
+			      fiter->second);
+	    
 	    karma::generate(std::ostream_iterator<char>(os),
-			    " ||| " << -((standard::string << '=' << double10) % ' ')
-			    << " ||| " << double10
-			    << '\n',
-			    derivation.features_,
+			    karma::lit(" ||| ") << double10 << karma::lit('\n'),
 			    diter->score());
 	  }
 	} else
