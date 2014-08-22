@@ -47,13 +47,31 @@ namespace rnnp
       
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
-      
+
+	Wshr_.swap(x.Wshr_);
+	Bshr_.swap(x.Bshr_);
+	
+	Wshz_.swap(x.Wshz_);
+	Bshz_.swap(x.Bshz_);
+
 	Wre_.swap(x.Wre_);
 	Bre_.swap(x.Bre_);
+
+	Wrer_.swap(x.Wrer_);
+	Brer_.swap(x.Brer_);
+
+	Wrez_.swap(x.Wrez_);
+	Brez_.swap(x.Brez_);
 
 	Wu_.swap(x.Wu_);
 	Bu_.swap(x.Bu_);
 
+	Wur_.swap(x.Wur_);
+	Bur_.swap(x.Bur_);
+
+	Wuz_.swap(x.Wuz_);
+	Buz_.swap(x.Buz_);
+	
 	Wf_.swap(x.Wf_);
 	Bf_.swap(x.Bf_);
 
@@ -80,12 +98,30 @@ namespace rnnp
 	Wsh_.clear();
 	Bsh_.clear();
 
+	Wshr_.clear();
+	Bshr_.clear();
+
+	Wshz_.clear();
+	Bshz_.clear();
+	
 	Wre_.clear();
 	Bre_.clear();
 
+	Wrer_.clear();
+	Brer_.clear();
+
+	Wrez_.clear();
+	Brez_.clear();
+	
 	Wu_.clear();
 	Bu_.clear();
 
+	Wur_.clear();
+	Bur_.clear();
+
+	Wuz_.clear();
+	Buz_.clear();
+	
 	Wf_.setZero();
 	Bf_.setZero();
 
@@ -138,7 +174,39 @@ namespace rnnp
 	  tensor = tensor_type::Zero(hidden_, 1);
 	return tensor;
       }
+
+      tensor_type& Wshr(const word_type& label)
+      {
+	tensor_type& tensor = Wshr_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_ + embedding_ + hidden_);
+	return tensor;
+      }
     
+      tensor_type& Bshr(const word_type& label)
+      {
+	tensor_type& tensor = Bshr_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
+	return tensor;
+      }
+    
+      tensor_type& Wshz(const word_type& label)
+      {
+	tensor_type& tensor = Wshz_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_ + embedding_ + hidden_);
+	return tensor;
+      }
+    
+      tensor_type& Bshz(const word_type& label)
+      {
+	tensor_type& tensor = Bshz_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
+	return tensor;
+      }
+
       tensor_type& Wre(const word_type& label)
       {
 	tensor_type& tensor = Wre_[label];
@@ -150,6 +218,38 @@ namespace rnnp
       tensor_type& Bre(const word_type& label)
       {
 	tensor_type& tensor = Bre_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
+	return tensor;
+      }
+
+      tensor_type& Wrer(const word_type& label)
+      {
+	tensor_type& tensor = Wrer_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_);
+	return tensor;
+      }
+    
+      tensor_type& Brer(const word_type& label)
+      {
+	tensor_type& tensor = Brer_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
+	return tensor;
+      }
+
+      tensor_type& Wrez(const word_type& label)
+      {
+	tensor_type& tensor = Wrez_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_);
+	return tensor;
+      }
+    
+      tensor_type& Brez(const word_type& label)
+      {
+	tensor_type& tensor = Brez_[label];
 	if (! tensor.rows())
 	  tensor = tensor_type::Zero(hidden_, 1);
 	return tensor;
@@ -170,6 +270,38 @@ namespace rnnp
 	  tensor = tensor_type::Zero(hidden_, 1);
 	return tensor;
       }
+
+      tensor_type& Wur(const word_type& label)
+      {
+	tensor_type& tensor = Wur_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_);
+	return tensor;
+      }
+
+      tensor_type& Bur(const word_type& label)
+      {
+	tensor_type& tensor = Bur_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
+	return tensor;
+      }
+
+      tensor_type& Wuz(const word_type& label)
+      {
+	tensor_type& tensor = Wuz_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_);
+	return tensor;
+      }
+
+      tensor_type& Buz(const word_type& label)
+      {
+	tensor_type& tensor = Buz_[label];
+	if (! tensor.rows())
+	  tensor = tensor_type::Zero(hidden_, 1);
+	return tensor;
+      }
     
     public:
       // embedding
@@ -185,15 +317,39 @@ namespace rnnp
       // shift
       matrix_category_type Wsh_;
       matrix_category_type Bsh_;
+
+      // shift reset
+      matrix_category_type Wshr_;
+      matrix_category_type Bshr_;
+
+      // shift update
+      matrix_category_type Wshz_;
+      matrix_category_type Bshz_;
     
       // reduce
       matrix_category_type Wre_;
       matrix_category_type Bre_;
+
+      // reduce reset
+      matrix_category_type Wrer_;
+      matrix_category_type Brer_;
+
+      // reduce update
+      matrix_category_type Wrez_;
+      matrix_category_type Brez_;
       
-      // category
+      // unary
       matrix_category_type Wu_;
       matrix_category_type Bu_;
-    
+
+      // unary reset
+      matrix_category_type Wur_;
+      matrix_category_type Bur_;
+
+      // unary update
+      matrix_category_type Wuz_;
+      matrix_category_type Buz_;
+      
       // final
       tensor_type Wf_;
       tensor_type Bf_;

@@ -14,6 +14,10 @@ namespace rnnp
   {
     struct Model7 : public rnnp::parser::Parser
     {
+      tensor_type reset_;
+      tensor_type update_;
+      tensor_type hidden_;
+      
       template <typename Parser, typename Theta>
       void operation_shift(Parser& parser,
 			   const feature_set_type& feats,
@@ -51,15 +55,38 @@ namespace rnnp
 	const size_type offset_operation      = index_operation * theta.hidden_;
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
+	
+	update_ = (theta.Bshz_.block(offset_category, 0, theta.hidden_, 1)
+		   + (theta.Wshz_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+		      * state.layer(theta.hidden_))
+		   + (theta.Wshz_.block(offset_category, offset2, theta.hidden_, theta.embedding_)
+		      * theta.terminal_.col(theta.terminal(head)))
+		   + (theta.Wshz_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+		      * parser.queue_.col(state_new.span().last_ - 1))
+		   ).array().unaryExpr(model_type::sigmoid());
 
-	state_new.layer(theta.hidden_) = (theta.Bsh_.block(offset_category, 0, theta.hidden_, 1)
-					  + (theta.Wsh_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
-					     * state.layer(theta.hidden_))
-					  + (theta.Wsh_.block(offset_category, offset2, theta.hidden_, theta.embedding_)
-					     * theta.terminal_.col(theta.terminal(head)))
-					  + (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
-					     * parser.queue_.col(state_new.span().last_ - 1))
-					  ).array().unaryExpr(model_type::activation());
+	reset_ = (theta.Bshr_.block(offset_category, 0, theta.hidden_, 1)
+		  + (theta.Wshr_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+		     * state.layer(theta.hidden_))
+		  + (theta.Wshr_.block(offset_category, offset2, theta.hidden_, theta.embedding_)
+		     * theta.terminal_.col(theta.terminal(head)))
+		  + (theta.Wshr_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+		     * parser.queue_.col(state_new.span().last_ - 1))
+		  ).array().unaryExpr(model_type::sigmoid());
+
+	hidden_ = (theta.Bsh_.block(offset_category, 0, theta.hidden_, 1)
+		   + (reset_.array() * (theta.Wsh_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+					* state.layer(theta.hidden_)).array()).matrix()
+		   + (theta.Wsh_.block(offset_category, offset2, theta.hidden_, theta.embedding_)
+		      * theta.terminal_.col(theta.terminal(head)))
+		   + (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+		      * parser.queue_.col(state_new.span().last_ - 1))
+		   ).array().unaryExpr(model_type::activation());
+	
+	state_new.layer(theta.hidden_) = 
+	  update_.array() * state.layer(theta.hidden_).array()
+	  + 
+	  (1.0 - update_.array()) * hidden_.array();
 	
 	const double score = (theta.Wc_.block(offset_classification, offset_operation, 1, theta.hidden_) * state_new.layer(theta.hidden_)
 			      + theta.Bc_.block(offset_classification, index_operation, 1, 1))(0, 0);
@@ -110,18 +137,45 @@ namespace rnnp
 	const size_type offset_operation      = index_operation * theta.hidden_;
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
+	
+	update_ = (theta.Brez_.block(offset_category, 0, theta.hidden_, 1)
+		   + (theta.Wrez_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+		      * state.layer(theta.hidden_))
+		   + (theta.Wrez_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
+		      * state_reduced.layer(theta.hidden_))
+		   + (theta.Wrez_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+		      * state_stack.layer(theta.hidden_))
+		   + (theta.Wrez_.block(offset_category, offset4, theta.hidden_, theta.hidden_)
+		      * parser.queue_.col(state_new.span().last_))
+		   ).array().unaryExpr(model_type::sigmoid());
+	
+	reset_ = (theta.Brer_.block(offset_category, 0, theta.hidden_, 1)
+		  + (theta.Wrer_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+		     * state.layer(theta.hidden_))
+		  + (theta.Wrer_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
+		     * state_reduced.layer(theta.hidden_))
+		  + (theta.Wrer_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+		     * state_stack.layer(theta.hidden_))
+		  + (theta.Wrer_.block(offset_category, offset4, theta.hidden_, theta.hidden_)
+		     * parser.queue_.col(state_new.span().last_))
+		  ).array().unaryExpr(model_type::sigmoid());
+	
+	hidden_ = (theta.Bre_.block(offset_category, 0, theta.hidden_, 1)
+		   + (reset_.array() * (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+					* state.layer(theta.hidden_)).array()).matrix()
+		   + (theta.Wre_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
+		      * state_reduced.layer(theta.hidden_))
+		   + (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+		      * state_stack.layer(theta.hidden_))
+		   + (theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_)
+		      * parser.queue_.col(state_new.span().last_))
+		   ).array().unaryExpr(model_type::activation());
 	  
-	state_new.layer(theta.hidden_) = (theta.Bre_.block(offset_category, 0, theta.hidden_, 1)
-					  + (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
-					     * state.layer(theta.hidden_))
-					  + (theta.Wre_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
-					     * state_reduced.layer(theta.hidden_))
-					  + (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
-					     * state_stack.layer(theta.hidden_))
-					  + (theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_)
-					     * parser.queue_.col(state_new.span().last_))
-					  ).array().unaryExpr(model_type::activation());
-	  
+	state_new.layer(theta.hidden_) = 
+	  update_.array() * state.layer(theta.hidden_).array()
+	  + 
+	  (1.0 - update_.array()) * hidden_.array();
+	
 	const double score = (theta.Wc_.block(offset_classification, offset_operation, 1, theta.hidden_) * state_new.layer(theta.hidden_)
 			      + theta.Bc_.block(offset_classification, index_operation, 1, 1))(0, 0);
 	  
@@ -166,15 +220,38 @@ namespace rnnp
 	const size_type offset_operation      = index_operation * theta.hidden_;
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
-      
-	state_new.layer(theta.hidden_) = (theta.Bu_.block(offset_category, 0, theta.hidden_, 1)
-					  + (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
-					     * state.layer(theta.hidden_))
-					  + (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
-					     * state.stack().layer(theta.hidden_))
-					  + (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
-					     * parser.queue_.col(state_new.span().last_))
-					  ).array().unaryExpr(model_type::activation());
+
+	update_ = (theta.Buz_.block(offset_category, 0, theta.hidden_, 1)
+		   + (theta.Wuz_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+		      * state.layer(theta.hidden_))
+		   + (theta.Wuz_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
+		      * state.stack().layer(theta.hidden_))
+		   + (theta.Wuz_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+		      * parser.queue_.col(state_new.span().last_))
+		   ).array().unaryExpr(model_type::sigmoid());
+	
+	reset_ = (theta.Bur_.block(offset_category, 0, theta.hidden_, 1)
+		  + (theta.Wur_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+		     * state.layer(theta.hidden_))
+		  + (theta.Wur_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
+		     * state.stack().layer(theta.hidden_))
+		  + (theta.Wur_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+		     * parser.queue_.col(state_new.span().last_))
+		  ).array().unaryExpr(model_type::sigmoid());
+
+	hidden_ = (theta.Bu_.block(offset_category, 0, theta.hidden_, 1)
+		   + (reset_.array() * (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+					* state.layer(theta.hidden_)).array()).matrix()
+		   + (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
+		      * state.stack().layer(theta.hidden_))
+		   + (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+		      * parser.queue_.col(state_new.span().last_))
+		   ).array().unaryExpr(model_type::activation());
+	
+	state_new.layer(theta.hidden_) = 
+	  update_.array() * state.layer(theta.hidden_).array()
+	  + 
+	  (1.0 - update_.array()) * hidden_.array();
 	
 	const double score = (theta.Wc_.block(offset_classification, offset_operation, 1, theta.hidden_) * state_new.layer(theta.hidden_)
 			      + theta.Bc_.block(offset_classification, index_operation, 1, 1))(0, 0);

@@ -78,10 +78,20 @@ namespace rnnp
 	
 	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
 	
-	Wsh_ = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
+	Wsh_  = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
+	
+	Wshr_ = Wshr_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
+	Wshz_ = Wshz_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
+	
 	Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
+
+	Wrer_ = Wrer_.array().unaryExpr(__randomize<Gen>(gen, range_re));
+	Wrez_ = Wrez_.array().unaryExpr(__randomize<Gen>(gen, range_re));
 	
 	Wu_  = Wu_.array().unaryExpr(__randomize<Gen>(gen, range_u));
+
+	Wur_  = Wur_.array().unaryExpr(__randomize<Gen>(gen, range_u));
+	Wuz_  = Wuz_.array().unaryExpr(__randomize<Gen>(gen, range_u));
 	
 	Wqu_ = Wqu_.array().unaryExpr(__randomize<Gen>(gen, range_qu));
 	
@@ -101,13 +111,31 @@ namespace rnnp
       
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
-      
+
+	Wshr_.swap(x.Wshr_);
+	Bshr_.swap(x.Bshr_);
+
+	Wshz_.swap(x.Wshz_);
+	Bshz_.swap(x.Bshz_);
+	
 	Wre_.swap(x.Wre_);
 	Bre_.swap(x.Bre_);
 
+	Wrer_.swap(x.Wrer_);
+	Brer_.swap(x.Brer_);
+
+	Wrez_.swap(x.Wrez_);
+	Brez_.swap(x.Brez_);
+	
 	Wu_.swap(x.Wu_);
 	Bu_.swap(x.Bu_);
 
+	Wur_.swap(x.Wur_);
+	Bur_.swap(x.Bur_);
+
+	Wuz_.swap(x.Wuz_);
+	Buz_.swap(x.Buz_);
+	
 	Wqu_.swap(x.Wqu_);
 	Bqu_.swap(x.Bqu_);
 	Bqe_.swap(x.Bqe_);
@@ -134,12 +162,30 @@ namespace rnnp
 	Wsh_.setZero();
 	Bsh_.setZero();
 
+	Wshr_.setZero();
+	Bshr_.setZero();
+
+	Wshz_.setZero();
+	Bshz_.setZero();
+
 	Wre_.setZero();
 	Bre_.setZero();
 
+	Wrer_.setZero();
+	Brer_.setZero();
+
+	Wrez_.setZero();
+	Brez_.setZero();
+
 	Wu_.setZero();
 	Bu_.setZero();
-      
+
+	Wur_.setZero();
+	Bur_.setZero();
+
+	Wuz_.setZero();
+	Buz_.setZero();
+	
 	Wf_.setZero();
 	Bf_.setZero();
       
@@ -161,9 +207,17 @@ namespace rnnp
 	norm += Wc_.lpNorm<1>();
 	
 	norm += Wsh_.lpNorm<1>();
+	norm += Wshr_.lpNorm<1>();
+	norm += Wshz_.lpNorm<1>();
+	
 	norm += Wre_.lpNorm<1>();
+	norm += Wrer_.lpNorm<1>();
+	norm += Wrez_.lpNorm<1>();
       
 	norm += Wu_.lpNorm<1>();
+	norm += Wur_.lpNorm<1>();
+	norm += Wuz_.lpNorm<1>();
+
 	norm += Wf_.lpNorm<1>();
 	norm += Wi_.lpNorm<1>();
 	
@@ -179,9 +233,17 @@ namespace rnnp
 	norm += Wc_.squaredNorm();
       
 	norm += Wsh_.squaredNorm();
+	norm += Wshr_.squaredNorm();
+	norm += Wshz_.squaredNorm();
+	
 	norm += Wre_.squaredNorm();
+	norm += Wrer_.squaredNorm();
+	norm += Wrez_.squaredNorm();
       
 	norm += Wu_.squaredNorm();
+	norm += Wur_.squaredNorm();
+	norm += Wuz_.squaredNorm();
+	
 	norm += Wf_.squaredNorm();
 	norm += Wi_.squaredNorm();
 	
@@ -204,14 +266,38 @@ namespace rnnp
       // shift
       tensor_type Wsh_;
       tensor_type Bsh_;
+
+      // shift reset
+      tensor_type Wshr_;
+      tensor_type Bshr_;
+
+      // shift update
+      tensor_type Wshz_;
+      tensor_type Bshz_;
     
       // reduce
       tensor_type Wre_;
       tensor_type Bre_;
+
+      // reduce reset
+      tensor_type Wrer_;
+      tensor_type Brer_;
+
+      // reduce update
+      tensor_type Wrez_;
+      tensor_type Brez_;
       
       // unary
       tensor_type Wu_;
       tensor_type Bu_;
+
+      // unary reset
+      tensor_type Wur_;
+      tensor_type Bur_;
+
+      // unary update
+      tensor_type Wuz_;
+      tensor_type Buz_;
 
       // final
       tensor_type Wf_;

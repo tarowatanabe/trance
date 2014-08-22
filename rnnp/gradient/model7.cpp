@@ -24,12 +24,30 @@ namespace rnnp
     
       Wsh_.clear();
       Bsh_.clear();
-    
+
+      Wshr_.clear();
+      Bshr_.clear();
+
+      Wshz_.clear();
+      Bshz_.clear();
+      
       Wre_.clear();
       Bre_.clear();
 
+      Wrer_.clear();
+      Brer_.clear();
+
+      Wrez_.clear();
+      Brez_.clear();
+
       Wu_.clear();
       Bu_.clear();
+
+      Wur_.clear();
+      Bur_.clear();
+
+      Wuz_.clear();
+      Buz_.clear();
       
       Wf_ = tensor_type::Zero(hidden_, hidden_);
       Bf_ = tensor_type::Zero(hidden_, 1);
@@ -54,11 +72,29 @@ namespace rnnp
     Theta.Op(Stream, Theta.Wsh_);			\
     Theta.Op(Stream, Theta.Bsh_);			\
 							\
+    Theta.Op(Stream, Theta.Wshr_);			\
+    Theta.Op(Stream, Theta.Bshr_);			\
+							\
+    Theta.Op(Stream, Theta.Wshz_);			\
+    Theta.Op(Stream, Theta.Bshz_);			\
+							\
     Theta.Op(Stream, Theta.Wre_);			\
     Theta.Op(Stream, Theta.Bre_);			\
 							\
+    Theta.Op(Stream, Theta.Wrer_);			\
+    Theta.Op(Stream, Theta.Brer_);			\
+    							\
+    Theta.Op(Stream, Theta.Wrez_);			\
+    Theta.Op(Stream, Theta.Brez_);			\
+							\
     Theta.Op(Stream, Theta.Wu_);			\
     Theta.Op(Stream, Theta.Bu_);			\
+							\
+    Theta.Op(Stream, Theta.Wur_);			\
+    Theta.Op(Stream, Theta.Bur_);			\
+							\
+    Theta.Op(Stream, Theta.Wuz_);			\
+    Theta.Op(Stream, Theta.Buz_);			\
 							\
     Theta.Op(Stream, Theta.Wf_);			\
     Theta.Op(Stream, Theta.Bf_);			\
@@ -106,11 +142,29 @@ namespace rnnp
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\
 						\
+    Op(Wshr_, x.Wshr_);				\
+    Op(Bshr_, x.Bshr_);				\
+						\
+    Op(Wshz_, x.Wshz_);				\
+    Op(Bshz_, x.Bshz_);				\
+						\
     Op(Wre_, x.Wre_);				\
     Op(Bre_, x.Bre_);				\
 						\
+    Op(Wrer_, x.Wrer_);				\
+    Op(Brer_, x.Brer_);				\
+						\
+    Op(Wrez_, x.Wrez_);				\
+    Op(Brez_, x.Brez_);				\
+						\
     Op(Wu_, x.Wu_);				\
     Op(Bu_, x.Bu_);				\
+						\
+    Op(Wur_, x.Wur_);				\
+    Op(Bur_, x.Bur_);				\
+						\
+    Op(Wuz_, x.Wuz_);				\
+    Op(Buz_, x.Buz_);				\
 						\
     Op(Wf_, x.Wf_);				\
     Op(Bf_, x.Bf_);				\

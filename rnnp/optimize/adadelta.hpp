@@ -614,13 +614,31 @@ namespace rnnp
       if (option.learn_hidden()) {
 	update(theta.Wsh_, G.Wsh_, X.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, G.Bsh_, X.Bsh_, gradient.Bsh_, scale, false);
+
+	update(theta.Wshr_, G.Wshr_, X.Wshr_, gradient.Wshr_, scale, true);
+	update(theta.Bshr_, G.Bshr_, X.Bshr_, gradient.Bshr_, scale, false);
+
+	update(theta.Wshz_, G.Wshz_, X.Wshz_, gradient.Wshz_, scale, true);
+	update(theta.Bshz_, G.Bshz_, X.Bshz_, gradient.Bshz_, scale, false);
 	
 	update(theta.Wre_, G.Wre_, X.Wre_, gradient.Wre_, scale, true);
 	update(theta.Bre_, G.Bre_, X.Bre_, gradient.Bre_, scale, false);
+
+	update(theta.Wrer_, G.Wrer_, X.Wrer_, gradient.Wrer_, scale, true);
+	update(theta.Brer_, G.Brer_, X.Brer_, gradient.Brer_, scale, false);
+
+	update(theta.Wrez_, G.Wrez_, X.Wrez_, gradient.Wrez_, scale, true);
+	update(theta.Brez_, G.Brez_, X.Brez_, gradient.Brez_, scale, false);
 	
 	update(theta.Wu_, G.Wu_, X.Wu_, gradient.Wu_, scale, true);
 	update(theta.Bu_, G.Bu_, X.Bu_, gradient.Bu_, scale, false);
 
+	update(theta.Wur_, G.Wur_, X.Wur_, gradient.Wur_, scale, true);
+	update(theta.Bur_, G.Bur_, X.Bur_, gradient.Bur_, scale, false);
+
+	update(theta.Wuz_, G.Wuz_, X.Wuz_, gradient.Wuz_, scale, true);
+	update(theta.Buz_, G.Buz_, X.Buz_, gradient.Buz_, scale, false);
+	
 	update(theta.Wf_, G.Wf_, X.Wf_, gradient.Wf_, scale, true);
 	update(theta.Bf_, G.Bf_, X.Bf_, gradient.Bf_, scale, false);
 	  

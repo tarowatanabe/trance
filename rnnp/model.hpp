@@ -82,6 +82,28 @@ namespace rnnp
       }
     };
 
+    struct sigmoid
+    {
+      template <typename Tp>
+      Tp operator()(const Tp& x) const
+      {
+	// We use a hard version
+	return std::min(std::max(x, Tp(0)), Tp(1));
+	//return Tp(1) / (Tp(1) + std::exp(-x));
+      }
+    };
+    
+    struct dsigmoid
+    {
+      template <typename Tp>
+      Tp operator()(const Tp& x) const
+      {
+	// We use a hard version
+	return Tp(0) < x && x < Tp(1);
+	//return x * (Tp(1) - x);
+      }
+    };
+
   public:
     static model_type model(const path_type& path);
 
