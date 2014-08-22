@@ -12,9 +12,8 @@ namespace rnnp
     void Model6::initialize(const size_type& hidden,
 			    const size_type& embedding)
     {
-      Gradient::initialize(hidden, embedding);
 
-      const size_type reduced = utils::bithack::max(hidden_ >> 3, size_type(8));
+      Gradient::initialize(hidden, embedding);
     
       terminal_.clear();
     
@@ -22,19 +21,13 @@ namespace rnnp
       Wc_.clear();
       Bc_.clear();
       Wfe_.clear();
-    
-      Psh_ = tensor_type::Zero(hidden_ * (hidden_ + embedding_ + hidden_), reduced);
-      Qsh_ = tensor_type::Zero(hidden_ * reduced,                          hidden_ + embedding_ + hidden_);
+      
       Wsh_.clear();
       Bsh_.clear();
     
-      Pre_ = tensor_type::Zero(hidden_ * hidden_ * 4, reduced);
-      Qre_ = tensor_type::Zero(hidden_ * reduced,     hidden_ * 4);
       Wre_.clear();
       Bre_.clear();
 
-      Pu_  = tensor_type::Zero(hidden_ * hidden_ * 3, reduced);
-      Qu_  = tensor_type::Zero(hidden_ * reduced,     hidden_ * 3);
       Wu_.clear();
       Bu_.clear();
       
@@ -43,11 +36,7 @@ namespace rnnp
     
       Wi_ = tensor_type::Zero(hidden_, hidden_);
       Bi_ = tensor_type::Zero(hidden_, 1);
-
-      Wqu_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
-      Bqu_ = tensor_type::Zero(hidden_, 1);
-      Bqe_ = tensor_type::Zero(hidden_, 1);
-      
+    
       Ba_ = tensor_type::Zero(hidden_, 1);
     }
 
@@ -58,18 +47,12 @@ namespace rnnp
     Theta.Op(Stream, Theta.Bc_);			\
     Theta.Op(Stream, Theta.Wfe_);			\
 							\
-    Theta.Op(Stream, Theta.Psh_);			\
-    Theta.Op(Stream, Theta.Qsh_);			\
     Theta.Op(Stream, Theta.Wsh_);			\
     Theta.Op(Stream, Theta.Bsh_);			\
 							\
-    Theta.Op(Stream, Theta.Pre_);			\
-    Theta.Op(Stream, Theta.Qre_);			\
     Theta.Op(Stream, Theta.Wre_);			\
     Theta.Op(Stream, Theta.Bre_);			\
 							\
-    Theta.Op(Stream, Theta.Pu_);			\
-    Theta.Op(Stream, Theta.Qu_);			\
     Theta.Op(Stream, Theta.Wu_);			\
     Theta.Op(Stream, Theta.Bu_);			\
 							\
@@ -78,10 +61,6 @@ namespace rnnp
 							\
     Theta.Op(Stream, Theta.Wi_);			\
     Theta.Op(Stream, Theta.Bi_);			\
-							\
-    Theta.Op(Stream, Theta.Wqu_);			\
-    Theta.Op(Stream, Theta.Bqu_);			\
-    Theta.Op(Stream, Theta.Bqe_);			\
 							\
     Theta.Op(Stream, Theta.Bi_);
 
@@ -116,18 +95,12 @@ namespace rnnp
     Op(Bc_,  x.Bc_);				\
     Op(Wfe_, x.Wfe_);				\
 						\
-    Op(Psh_, x.Psh_);				\
-    Op(Qsh_, x.Qsh_);				\
     Op(Wsh_, x.Wsh_);				\
     Op(Bsh_, x.Bsh_);				\
 						\
-    Op(Pre_, x.Pre_);				\
-    Op(Qre_, x.Qre_);				\
     Op(Wre_, x.Wre_);				\
     Op(Bre_, x.Bre_);				\
 						\
-    Op(Pu_, x.Pu_);				\
-    Op(Qu_, x.Qu_);				\
     Op(Wu_, x.Wu_);				\
     Op(Bu_, x.Bu_);				\
 						\
@@ -136,10 +109,6 @@ namespace rnnp
 						\
     Op(Wi_, x.Wi_);				\
     Op(Bi_, x.Bi_);				\
-						\
-    Op(Wqu_, x.Wqu_);				\
-    Op(Bqu_, x.Bqu_);				\
-    Op(Bqe_, x.Bqe_);				\
 						\
     Op(Ba_, x.Ba_);
 

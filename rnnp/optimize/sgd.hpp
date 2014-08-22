@@ -310,31 +310,21 @@ namespace rnnp
       }
 	
       if (option.learn_hidden()) {
-	update(theta.Psh_, gradient.Psh_, scale, true);
-	update(theta.Qsh_, gradient.Qsh_, scale, true);
 	update(theta.Wsh_, gradient.Wsh_, scale, true);
 	update(theta.Bsh_, gradient.Bsh_, scale, false);
 	  
-	update(theta.Pre_, gradient.Pre_, scale, true);
-	update(theta.Qre_, gradient.Qre_, scale, true);
 	update(theta.Wre_, gradient.Wre_, scale, true);
 	update(theta.Bre_, gradient.Bre_, scale, false);
 	
-	update(theta.Pu_, gradient.Pu_, scale, true);
-	update(theta.Qu_, gradient.Qu_, scale, true);
 	update(theta.Wu_, gradient.Wu_, scale, true);
 	update(theta.Bu_, gradient.Bu_, scale, false);
 	  
 	update(theta.Wf_, gradient.Wf_, scale, true);
 	update(theta.Bf_, gradient.Bf_, scale, false);
-	
+	  
 	update(theta.Wi_, gradient.Wi_, scale, true);
 	update(theta.Bi_, gradient.Bi_, scale, false);
-	
-	update(theta.Wqu_, gradient.Wqu_, scale, true);
-	update(theta.Bqu_, gradient.Bqu_, scale, false);
-	update(theta.Bqe_, gradient.Bqe_, scale, false);
-	
+	  
 	update(theta.Ba_, gradient.Ba_, scale, false);
       }
     }
@@ -373,18 +363,64 @@ namespace rnnp
 	
 	update(theta.Wi_, gradient.Wi_, scale, true);
 	update(theta.Bi_, gradient.Bi_, scale, false);
-
-	update(theta.Wbu_, gradient.Wbu_, scale, true);
-	update(theta.Bbu_, gradient.Bbu_, scale, false);
-	update(theta.Bbs_, gradient.Bbs_, scale, false);
 	
 	update(theta.Wqu_, gradient.Wqu_, scale, true);
 	update(theta.Bqu_, gradient.Bqu_, scale, false);
 	update(theta.Bqe_, gradient.Bqe_, scale, false);
-
+	
+	update(theta.Ba_, gradient.Ba_, scale, false);
+      }
+    }    
+    
+    template <>
+    inline
+    void SGD<model::Model8>::operator()(model::Model8& theta,
+					const gradient::Model8& gradient,
+					const option_type& option) const
+    {
+      if (! gradient.count_) return;
+	
+      const double scale = 1.0 / gradient.count_;
+	
+      if (option.learn_embedding())
+	update(theta.terminal_, gradient.terminal_, scale, false);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  gradient.Wc_,  scale, true);
+	update(theta.Bc_,  gradient.Bc_,  scale, false);
+	update(theta.Wfe_, gradient.Wfe_, scale, true);
+      }
+	
+      if (option.learn_hidden()) {
+	update(theta.Psh_, gradient.Psh_, scale, true);
+	update(theta.Qsh_, gradient.Qsh_, scale, true);
+	update(theta.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, gradient.Bsh_, scale, false);
+	  
+	update(theta.Pre_, gradient.Pre_, scale, true);
+	update(theta.Qre_, gradient.Qre_, scale, true);
+	update(theta.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, gradient.Bre_, scale, false);
+	
+	update(theta.Pu_, gradient.Pu_, scale, true);
+	update(theta.Qu_, gradient.Qu_, scale, true);
+	update(theta.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, gradient.Bu_, scale, false);
+	  
+	update(theta.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, gradient.Bf_, scale, false);
+	
+	update(theta.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, gradient.Bi_, scale, false);
+	
+	update(theta.Wqu_, gradient.Wqu_, scale, true);
+	update(theta.Bqu_, gradient.Bqu_, scale, false);
+	update(theta.Bqe_, gradient.Bqe_, scale, false);
+	
 	update(theta.Ba_, gradient.Ba_, scale, false);
       }
     }
+
   };
 };
 

@@ -3,8 +3,8 @@
 //  Copyright(C) 2014 Taro Watanabe <taro.watanabe@nict.go.jp>
 //
 
-#ifndef __RNNP__MODEL__MODEL7__HPP__
-#define __RNNP__MODEL__MODEL7__HPP__ 1
+#ifndef __RNNP__MODEL__MODEL8__HPP__
+#define __RNNP__MODEL__MODEL8__HPP__ 1
 
 #include <rnnp/model.hpp>
 
@@ -14,14 +14,14 @@ namespace rnnp
 {
   namespace model
   {
-    class Model7 : public Model
+    class Model8 : public Model
     {
     public:
       
     public:
-      Model7() : Model() {}
-      Model7(const path_type& path) { read(path); }
-      Model7(const size_type& hidden,
+      Model8() : Model() {}
+      Model8(const path_type& path) { read(path); }
+      Model8(const size_type& hidden,
 	     const size_type& embedding,
 	     const grammar_type& grammar)
       { initialize(hidden, embedding, grammar); }
@@ -36,14 +36,14 @@ namespace rnnp
       void embedding(const path_type& path);
     
       friend
-      std::ostream& operator<<(std::ostream& os, const Model7& x);
+      std::ostream& operator<<(std::ostream& os, const Model8& x);
       friend
-      std::istream& operator>>(std::istream& is, Model7& x);
+      std::istream& operator>>(std::istream& is, Model8& x);
     
-      Model7& operator+=(const Model7& x);
-      Model7& operator-=(const Model7& x);
-      Model7& operator*=(const double& x);
-      Model7& operator/=(const double& x);
+      Model8& operator+=(const Model8& x);
+      Model8& operator-=(const Model8& x);
+      Model8& operator*=(const double& x);
+      Model8& operator/=(const double& x);
     
     private:
       template <typename Gen>
@@ -66,21 +66,29 @@ namespace rnnp
       void random(Gen& gen)
       {
 	const double range_embed = std::sqrt(6.0 / (embedding_ + 1));
-	const double range_c  = std::sqrt(6.0 / (hidden_ + 1));
-	const double range_sh = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_ + hidden_));
-	const double range_re = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_));
-	const double range_u  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_));
-	const double range_qu = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
-	const double range_f  = std::sqrt(6.0 / (hidden_ + hidden_));
-	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
+	const double range_c   = std::sqrt(6.0 / (hidden_ + 1));
+	
+	const double range_sh  = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_ + hidden_));
+	const double range_re  = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_ + hidden_));
+	const double range_u   = std::sqrt(6.0 / (hidden_ + hidden_ + hidden_ + hidden_));
+	const double range_qu  = std::sqrt(6.0 / (hidden_ + hidden_ + embedding_));
+	const double range_f   = std::sqrt(6.0 / (hidden_ + hidden_));
+	const double range_i   = std::sqrt(6.0 / (hidden_ + hidden_));
 	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
 	
 	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
 	
+	Psh_ = Psh_.array().unaryExpr(__randomize<Gen>(gen, 0.001));
+	Qsh_ = Qsh_.array().unaryExpr(__randomize<Gen>(gen, 0.001));
 	Wsh_ = Wsh_.array().unaryExpr(__randomize<Gen>(gen, range_sh));
+	
+	Pre_ = Pre_.array().unaryExpr(__randomize<Gen>(gen, 0.001));
+	Qre_ = Qre_.array().unaryExpr(__randomize<Gen>(gen, 0.001));
 	Wre_ = Wre_.array().unaryExpr(__randomize<Gen>(gen, range_re));
 	
+	Pu_  = Pu_.array().unaryExpr(__randomize<Gen>(gen, 0.001));
+	Qu_  = Qu_.array().unaryExpr(__randomize<Gen>(gen, 0.001));
 	Wu_  = Wu_.array().unaryExpr(__randomize<Gen>(gen, range_u));
 	
 	Wqu_ = Wqu_.array().unaryExpr(__randomize<Gen>(gen, range_qu));
@@ -89,7 +97,8 @@ namespace rnnp
 	Wi_ = Wi_.array().unaryExpr(__randomize<Gen>(gen, range_i));
       }
       
-      void swap(Model7& x)
+    
+      void swap(Model8& x)
       {
 	Model::swap(static_cast<Model&>(x));
 	
@@ -99,15 +108,21 @@ namespace rnnp
 	Bc_.swap(x.Bc_);
 	Wfe_.swap(x.Wfe_);
       
+	Psh_.swap(x.Psh_);
+	Qsh_.swap(x.Qsh_);
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
       
+	Pre_.swap(x.Pre_);
+	Qre_.swap(x.Qre_);
 	Wre_.swap(x.Wre_);
 	Bre_.swap(x.Bre_);
 
+	Pu_.swap(x.Pu_);
+	Qu_.swap(x.Qu_);
 	Wu_.swap(x.Wu_);
 	Bu_.swap(x.Bu_);
-
+	
 	Wqu_.swap(x.Wqu_);
 	Bqu_.swap(x.Bqu_);
 	Bqe_.swap(x.Bqe_);
@@ -130,13 +145,19 @@ namespace rnnp
 	Wc_.setZero();
 	Bc_.setZero();
 	Wfe_.clear();
-      
+	
+	Psh_.setZero();
+	Qsh_.setZero();
 	Wsh_.setZero();
 	Bsh_.setZero();
 
+	Pre_.setZero();
+	Qre_.setZero();
 	Wre_.setZero();
 	Bre_.setZero();
 
+	Pu_.setZero();
+	Qu_.setZero();
 	Wu_.setZero();
 	Bu_.setZero();
       
@@ -160,10 +181,18 @@ namespace rnnp
       
 	norm += Wc_.lpNorm<1>();
 	
+	norm += Psh_.lpNorm<1>();
+	norm += Qsh_.lpNorm<1>();
 	norm += Wsh_.lpNorm<1>();
+	
+	norm += Pre_.lpNorm<1>();
+	norm += Qre_.lpNorm<1>();
 	norm += Wre_.lpNorm<1>();
       
+	norm += Pu_.lpNorm<1>();
+	norm += Qu_.lpNorm<1>();
 	norm += Wu_.lpNorm<1>();
+	
 	norm += Wf_.lpNorm<1>();
 	norm += Wi_.lpNorm<1>();
 	
@@ -178,10 +207,18 @@ namespace rnnp
       
 	norm += Wc_.squaredNorm();
       
+	norm += Psh_.squaredNorm();
+	norm += Qsh_.squaredNorm();
 	norm += Wsh_.squaredNorm();
+	
+	norm += Pre_.squaredNorm();	
+	norm += Qre_.squaredNorm();	
 	norm += Wre_.squaredNorm();
       
+	norm += Pu_.squaredNorm();
+	norm += Qu_.squaredNorm();
 	norm += Wu_.squaredNorm();
+	
 	norm += Wf_.squaredNorm();
 	norm += Wi_.squaredNorm();
 	
@@ -202,14 +239,20 @@ namespace rnnp
       weights_type Wfe_;
     
       // shift
+      tensor_type Psh_;
+      tensor_type Qsh_;
       tensor_type Wsh_;
       tensor_type Bsh_;
     
       // reduce
+      tensor_type Pre_;
+      tensor_type Qre_;
       tensor_type Wre_;
       tensor_type Bre_;
       
       // unary
+      tensor_type Pu_;
+      tensor_type Qu_;
       tensor_type Wu_;
       tensor_type Bu_;
 
@@ -235,7 +278,7 @@ namespace rnnp
 namespace std
 {
   inline
-  void swap(rnnp::model::Model7& x, rnnp::model::Model7& y)
+  void swap(rnnp::model::Model8& x, rnnp::model::Model8& y)
   {
     x.swap(y);
   }

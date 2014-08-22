@@ -59,11 +59,7 @@ namespace rnnp
 
 	Wi_.swap(x.Wi_);
 	Bi_.swap(x.Bi_);
-
-	Wbu_.swap(x.Wbu_);
-	Bbu_.swap(x.Bbu_);
-	Bbs_.swap(x.Bbs_);
-	
+      
 	Wqu_.swap(x.Wqu_);
 	Bqu_.swap(x.Bqu_);
 	Bqe_.swap(x.Bqe_);
@@ -96,10 +92,6 @@ namespace rnnp
 	Wi_.setZero();
 	Bi_.setZero();
 
-	Wbu_.setZero();
-	Bbu_.setZero();
-	Bbs_.setZero();
-	
 	Wqu_.setZero();
 	Bqu_.setZero();
 	Bqe_.setZero();
@@ -135,7 +127,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wsh_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + embedding_ + hidden_);
 	return tensor;
       }
     
@@ -151,7 +143,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wre_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_);
 	return tensor;
       }
     
@@ -167,7 +159,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wu_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_);
 	return tensor;
       }
 
@@ -209,11 +201,6 @@ namespace rnnp
       // idle
       tensor_type Wi_;
       tensor_type Bi_;
-
-      // buffer
-      tensor_type Wbu_;
-      tensor_type Bbu_;
-      tensor_type Bbs_;
 
       // queue
       tensor_type Wqu_;

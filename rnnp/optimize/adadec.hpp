@@ -515,6 +515,92 @@ namespace rnnp
       }
 	
       if (option.learn_hidden()) {
+	update(theta.Wsh_, G.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, G.Bsh_, gradient.Bsh_, scale, false);
+	
+	update(theta.Wre_, G.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, G.Bre_, gradient.Bre_, scale, false);
+	
+	update(theta.Wu_, G.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, G.Bu_, gradient.Bu_, scale, false);
+
+	update(theta.Wf_, G.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, G.Bf_, gradient.Bf_, scale, false);
+
+	update(theta.Wi_, G.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, G.Bi_, gradient.Bi_, scale, false);
+	
+	update(theta.Ba_, G.Ba_, gradient.Ba_, scale, false);
+      }
+    }
+
+    template <>
+    inline
+    void AdaDec<model::Model7>::operator()(model::Model7& theta,
+					   const gradient::Model7& gradient,
+					   const option_type& option) const
+    {
+      if (! gradient.count_) return;
+
+      const double scale = 1.0 / gradient.count_;
+      
+      model_impl_type& G = const_cast<model_impl_type&>(G_);
+      
+      if (option.learn_embedding())
+	update(theta.terminal_, G.terminal_, gradient.terminal_, scale, false);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  G.Wc_,  gradient.Wc_, scale, true);
+	update(theta.Bc_,  G.Bc_,  gradient.Bc_, scale, false);
+	update(theta.Wfe_, G.Wfe_, gradient.Wfe_, scale, true);
+      }
+	
+      if (option.learn_hidden()) {
+	update(theta.Wsh_, G.Wsh_, gradient.Wsh_, scale, true);
+	update(theta.Bsh_, G.Bsh_, gradient.Bsh_, scale, false);
+	
+	update(theta.Wre_, G.Wre_, gradient.Wre_, scale, true);
+	update(theta.Bre_, G.Bre_, gradient.Bre_, scale, false);
+	
+	update(theta.Wu_, G.Wu_, gradient.Wu_, scale, true);
+	update(theta.Bu_, G.Bu_, gradient.Bu_, scale, false);
+
+	update(theta.Wf_, G.Wf_, gradient.Wf_, scale, true);
+	update(theta.Bf_, G.Bf_, gradient.Bf_, scale, false);
+
+	update(theta.Wi_, G.Wi_, gradient.Wi_, scale, true);
+	update(theta.Bi_, G.Bi_, gradient.Bi_, scale, false);
+
+	update(theta.Wqu_, G.Wqu_, gradient.Wqu_, scale, true);
+	update(theta.Bqu_, G.Bqu_, gradient.Bqu_, scale, false);
+	update(theta.Bqe_, G.Bqe_, gradient.Bqe_, scale, false);
+	
+	update(theta.Ba_, G.Ba_, gradient.Ba_, scale, false);
+      }
+    }
+    
+    template <>
+    inline
+    void AdaDec<model::Model8>::operator()(model::Model8& theta,
+					   const gradient::Model8& gradient,
+					   const option_type& option) const
+    {
+      if (! gradient.count_) return;
+
+      const double scale = 1.0 / gradient.count_;
+      
+      model_impl_type& G = const_cast<model_impl_type&>(G_);
+      
+      if (option.learn_embedding())
+	update(theta.terminal_, G.terminal_, gradient.terminal_, scale, false);
+      
+      if (option.learn_classification()) {
+	update(theta.Wc_,  G.Wc_,  gradient.Wc_, scale, true);
+	update(theta.Bc_,  G.Bc_,  gradient.Bc_, scale, false);
+	update(theta.Wfe_, G.Wfe_, gradient.Wfe_, scale, true);
+      }
+	
+      if (option.learn_hidden()) {
 	update(theta.Psh_, G.Psh_, gradient.Psh_, scale, true);
 	update(theta.Qsh_, G.Qsh_, gradient.Qsh_, scale, true);
 	update(theta.Wsh_, G.Wsh_, gradient.Wsh_, scale, true);
@@ -544,54 +630,6 @@ namespace rnnp
       }
     }
 
-    template <>
-    inline
-    void AdaDec<model::Model7>::operator()(model::Model7& theta,
-					   const gradient::Model7& gradient,
-					   const option_type& option) const
-    {
-      if (! gradient.count_) return;
-
-      const double scale = 1.0 / gradient.count_;
-      
-      model_impl_type& G = const_cast<model_impl_type&>(G_);
-      
-      if (option.learn_embedding())
-	update(theta.terminal_, G.terminal_, gradient.terminal_, scale, false);
-      
-      if (option.learn_classification()) {
-	update(theta.Wc_,  G.Wc_,  gradient.Wc_,  scale, true);
-	update(theta.Bc_,  G.Bc_,  gradient.Bc_, scale, false);
-	update(theta.Wfe_, G.Wfe_, gradient.Wfe_, scale, true);
-      }
-	
-      if (option.learn_hidden()) {
-	update(theta.Wsh_, G.Wsh_, gradient.Wsh_, scale, true);
-	update(theta.Bsh_, G.Bsh_, gradient.Bsh_, scale, false);
-	
-	update(theta.Wre_, G.Wre_, gradient.Wre_, scale, true);
-	update(theta.Bre_, G.Bre_, gradient.Bre_, scale, false);
-	
-	update(theta.Wu_, G.Wu_, gradient.Wu_, scale, true);
-	update(theta.Bu_, G.Bu_, gradient.Bu_, scale, false);
-
-	update(theta.Wf_, G.Wf_, gradient.Wf_, scale, true);
-	update(theta.Bf_, G.Bf_, gradient.Bf_, scale, false);
-
-	update(theta.Wi_, G.Wi_, gradient.Wi_, scale, true);
-	update(theta.Bi_, G.Bi_, gradient.Bi_, scale, false);
-
-	update(theta.Wbu_, G.Wbu_, gradient.Wbu_, scale, true);
-	update(theta.Bbu_, G.Bbu_, gradient.Bbu_, scale, false);
-	update(theta.Bbs_, G.Bbs_, gradient.Bbs_, scale, false);
-
-	update(theta.Wqu_, G.Wqu_, gradient.Wqu_, scale, true);
-	update(theta.Bqu_, G.Bqu_, gradient.Bqu_, scale, false);
-	update(theta.Bqe_, G.Bqe_, gradient.Bqe_, scale, false);
-
-	update(theta.Ba_, G.Ba_, gradient.Ba_, scale, false);
-      }
-    }
   };
 };
 

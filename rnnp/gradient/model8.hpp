@@ -3,8 +3,8 @@
 //  Copyright(C) 2014 Taro Watanabe <taro.watanabe@nict.go.jp>
 //
 
-#ifndef __RNNP__GRADIENT__MODEL6__HPP__
-#define __RNNP__GRADIENT__MODEL6__HPP__ 1
+#ifndef __RNNP__GRADIENT__MODEL8__HPP__
+#define __RNNP__GRADIENT__MODEL8__HPP__ 1
 
 #include <rnnp/gradient.hpp>
 
@@ -12,30 +12,30 @@ namespace rnnp
 {
   namespace gradient
   {
-    class Model6 : public Gradient
+    class Model8 : public Gradient
     {
     public:
     
     public:
-      Model6() {}
-      Model6(const model_type& model) { initialize(model.hidden_, model.embedding_); }
-      Model6(const size_type& hidden,
+      Model8() {}
+      Model8(const model_type& model) { initialize(model.hidden_, model.embedding_); }
+      Model8(const size_type& hidden,
 	     const size_type& embedding) { initialize(hidden, embedding); }
     
       void initialize(const size_type& hidden,
 		      const size_type& embedding);
     
       friend
-      std::ostream& operator<<(std::ostream& os, const Model6& x);
+      std::ostream& operator<<(std::ostream& os, const Model8& x);
     
       friend
-      std::istream& operator>>(std::istream& is, Model6& x);
+      std::istream& operator>>(std::istream& is, Model8& x);
     
-      Model6& operator+=(const Model6& x);
-      Model6& operator-=(const Model6& x);
+      Model8& operator+=(const Model8& x);
+      Model8& operator-=(const Model8& x);
 
     public:
-      void swap(Model6& x)
+      void swap(Model8& x)
       {
 	Gradient::swap(static_cast<Gradient&>(x));
 	
@@ -44,13 +44,19 @@ namespace rnnp
 	Wc_.swap(x.Wc_);
 	Bc_.swap(x.Bc_);
 	Wfe_.swap(x.Wfe_);
-      
+
+	Psh_.swap(x.Psh_);
+	Qsh_.swap(x.Qsh_);      
 	Wsh_.swap(x.Wsh_);
 	Bsh_.swap(x.Bsh_);
       
+	Pre_.swap(x.Pre_);
+	Qre_.swap(x.Qre_);
 	Wre_.swap(x.Wre_);
 	Bre_.swap(x.Bre_);
 
+	Pu_.swap(x.Pu_);
+	Qu_.swap(x.Qu_);
 	Wu_.swap(x.Wu_);
 	Bu_.swap(x.Bu_);
 
@@ -60,6 +66,10 @@ namespace rnnp
 	Wi_.swap(x.Wi_);
 	Bi_.swap(x.Bi_);
       
+	Wqu_.swap(x.Wqu_);
+	Bqu_.swap(x.Bqu_);
+	Bqe_.swap(x.Bqe_);
+
 	Ba_.swap(x.Ba_);
       }
 
@@ -72,13 +82,19 @@ namespace rnnp
 	Wc_.clear();
 	Bc_.clear();
 	Wfe_.clear();
-      
+
+	Psh_.setZero();
+	Qsh_.setZero();      
 	Wsh_.clear();
 	Bsh_.clear();
-
+	
+	Pre_.setZero();
+	Qre_.setZero();
 	Wre_.clear();
 	Bre_.clear();
 
+	Pu_.setZero();
+	Qu_.setZero();
 	Wu_.clear();
 	Bu_.clear();
 
@@ -87,6 +103,10 @@ namespace rnnp
 
 	Wi_.setZero();
 	Bi_.setZero();
+
+	Wqu_.setZero();
+	Bqu_.setZero();
+	Bqe_.setZero();
       
 	Ba_.setZero();
       }
@@ -98,7 +118,7 @@ namespace rnnp
 	  tensor = tensor_type::Zero(embedding_, 1);
 	return tensor;
       }
-    
+
       tensor_type& Wc(const word_type& label)
       {
 	tensor_type& tensor = Wc_[label];
@@ -119,7 +139,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wsh_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + embedding_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + embedding_ + hidden_);
 	return tensor;
       }
     
@@ -135,7 +155,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wre_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_ + hidden_);
 	return tensor;
       }
     
@@ -151,7 +171,7 @@ namespace rnnp
       {
 	tensor_type& tensor = Wu_[label];
 	if (! tensor.rows())
-	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_);
+	  tensor = tensor_type::Zero(hidden_, hidden_ + hidden_ + hidden_);
 	return tensor;
       }
 
@@ -164,25 +184,31 @@ namespace rnnp
       }
     
     public:
-      // source/target embedding
+      // embedding
       matrix_embedding_type terminal_;
     
       // classification
       matrix_category_type Wc_;
       matrix_category_type Bc_;
-      
+
       // features
       weights_type Wfe_;
     
       // shift
+      tensor_type Psh_;
+      tensor_type Qsh_;
       matrix_category_type Wsh_;
       matrix_category_type Bsh_;
     
       // reduce
+      tensor_type Pre_;
+      tensor_type Qre_;
       matrix_category_type Wre_;
       matrix_category_type Bre_;
-
-      // category
+      
+      // unary
+      tensor_type Pu_;
+      tensor_type Qu_;
       matrix_category_type Wu_;
       matrix_category_type Bu_;
     
@@ -193,6 +219,11 @@ namespace rnnp
       // idle
       tensor_type Wi_;
       tensor_type Bi_;
+
+      // queue
+      tensor_type Wqu_;
+      tensor_type Bqu_;
+      tensor_type Bqe_;
     
       // axiom
       tensor_type Ba_;
@@ -203,7 +234,7 @@ namespace rnnp
 namespace std
 {
   inline
-  void swap(rnnp::gradient::Model6& x, rnnp::gradient::Model6& y)
+  void swap(rnnp::gradient::Model8& x, rnnp::gradient::Model8& y)
   {
     x.swap(y);
   }

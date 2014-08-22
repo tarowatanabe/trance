@@ -19,6 +19,7 @@ namespace rnnp
       MODEL5 = 5,
       MODEL6 = 6,
       MODEL7 = 7,
+      MODEL8 = 8,
     } ModelType;
   };
 };
