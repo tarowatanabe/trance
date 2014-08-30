@@ -105,11 +105,15 @@ void transform_pos(treebank_type& treebank, Iterator& first, Iterator last)
   if (treebank.antecedents_.empty()) return;
 
   // preterminal!
-  if (treebank.antecedents_.size() == 1
-      && treebank.antecedents_.front().antecedents_.empty()
-      && treebank.antecedents_.front().cat_ != "-NONE-") {
-    treebank.cat_ = *first;
-    ++ first;
+  if (treebank.antecedents_.size() == 1 && treebank.antecedents_.front().antecedents_.empty()) {
+    if (treebank.cat_ != "-NONE-") {
+      
+      if (first == last)
+	throw std::runtime_error("short POS sequence??");
+
+      treebank.cat_ = *first;
+      ++ first;
+    }
   } else
     for (treebank_type::antecedents_type::iterator aiter = treebank.antecedents_.begin(); aiter != treebank.antecedents_.end(); ++ aiter)
       transform_pos(*aiter, first, last);
@@ -377,6 +381,9 @@ int main(int argc, char** argv)
 	pos_set_type::iterator iter = pos.begin();
 	
 	transform_pos(parsed, iter, pos.end());
+
+	if (iter != pos.end())
+	  throw std::runtime_error("too long POS sequence?");
       }
       
       if (remove_none)
