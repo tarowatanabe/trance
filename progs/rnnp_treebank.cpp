@@ -10,6 +10,7 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
+#include <memory>
 
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/karma.hpp>
@@ -41,6 +42,9 @@
 typedef boost::filesystem::path path_type;
 
 // tree-bank parser...
+
+typedef std::vector<std::string, std::allocator<std::string> > pos_set_type;
+typedef std::vector<std::string, std::allocator<std::string> > sentence_type;
 
 struct treebank_type
 {
@@ -95,7 +99,21 @@ struct penntreebank_grammar : boost::spirit::qi::grammar<Iterator, treebank_type
   boost::spirit::qi::rule<Iterator, treebank_type(), boost::spirit::standard::space_type> root;
 };
 
-typedef std::vector<std::string, std::allocator<std::string> > sentence_type;
+template <typename Iterator>
+void transform_pos(treebank_type& treebank, Iterator& first, Iterator last)
+{
+  if (treebank.antecedents_.empty()) return;
+
+  // preterminal!
+  if (treebank.antecedents_.size() == 1
+      && treebank.antecedents_.front().antecedents_.empty()
+      && treebank.antecedents_.front().cat_ != "-NONE-") {
+    treebank.cat_ = *first;
+    ++ first;
+  } else
+    for (treebank_type::antecedents_type::iterator aiter = treebank.antecedents_.begin(); aiter != treebank.antecedents_.end(); ++ aiter)
+      transform_pos(*aiter, first, last);
+}
 
 void transform_leaf(const treebank_type& treebank, sentence_type& sent) 
 {
@@ -148,13 +166,13 @@ struct terminal_parser : boost::spirit::qi::grammar<Iterator, std::string()>
     namespace standard = boost::spirit::standard;
     
     escape_char.add
-      ("-LRB-", '(')
-      ("-RRB-", ')')
-      ("-LSB-", '[')
-      ("-RSB-", ']')
-      ("-LCB-", '{')
-      ("-RCB-", '}')
-      ("-PLUS-", '+') // added for ATB
+      //("-LRB-", '(')
+      //("-RRB-", ')')
+      //("-LSB-", '[')
+      //("-RSB-", ']')
+      //("-LCB-", '{')
+      //("-RCB-", '}')
+      //("-PLUS-", '+') // added for ATB
       ("\\/", '/')
       ("\\*", '*');
     
@@ -268,6 +286,7 @@ std::ostream& treebank_output(const treebank_type& treebank, std::ostream& os)
 
 path_type input_file = "-";
 path_type output_file = "-";
+path_type pos_file;
 
 std::string root_symbol;
 bool normalize = false;
@@ -301,19 +320,28 @@ int main(int argc, char** argv)
 				   && ! boost::filesystem::is_regular_file(output_file)));
     
     penntreebank_grammar<iter_type> grammar;
-
-    treebank_type   parsed;
-    sentence_type   sent;
     
-    std::string line;
+    treebank_type parsed;
+    sentence_type sent;
+    pos_set_type  pos;
+    std::string   line;
     
     utils::compress_istream is(input_file, 1024 * 1024);
     utils::compress_ostream os(output_file, 1024 * 1024);
+
+    std::auto_ptr<utils::compress_istream> ms;
+    
+    if (! pos_file.empty()) {
+      if (! boost::filesystem::exists(pos_file))
+	throw std::runtime_error("no map file: " + pos_file.string());
+      
+      ms.reset(new utils::compress_istream(pos_file, 1024 * 1024));
+    }
     
     is.unsetf(std::ios::skipws);
     iter_type iter(is);
     iter_type iter_end;
-
+        
     while (iter != iter_end) {
       parsed.clear();
       
@@ -333,6 +361,23 @@ int main(int argc, char** argv)
       if (validate)
 	if (! treebank_validate(parsed))
 	  throw std::runtime_error("invalid tree");
+
+      if (ms.get()) {
+	typedef boost::tokenizer<utils::space_separator, utils::piece::const_iterator, utils::piece> tokenizer_type;
+
+	if (! utils::getline(*ms, line))
+	  throw std::runtime_error("# of lines do not match with POS");
+	
+	utils::piece line_piece(line);
+	tokenizer_type tokenizer(line_piece);
+	
+	pos.clear();
+	pos.insert(pos.end(), tokenizer.begin(), tokenizer.end());
+
+	pos_set_type::iterator iter = pos.begin();
+	
+	transform_pos(parsed, iter, pos.end());
+      }
       
       if (remove_none)
 	transform_remove_none(parsed);
@@ -383,6 +428,8 @@ void options(int argc, char** argv)
   desc.add_options()
     ("input",     po::value<path_type>(&input_file)->default_value(input_file),   "input file")
     ("output",    po::value<path_type>(&output_file)->default_value(output_file), "output")
+    
+    ("pos", po::value<path_type>(&pos_file), "file for replacing POS")
 
     ("replace-root",   po::value<std::string>(&root_symbol), "replace root symbol")
     ("unescape",       po::bool_switch(&unescape_terminal),  "unescape terminal symbols, such as -LRB-, \\* etc.")
