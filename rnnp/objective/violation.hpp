@@ -45,40 +45,47 @@ namespace rnnp
 	  weight_type Z_candidate;
 	  weight_type Z_oracle;
 	  
-	  for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	    Z_candidate += rnnp::semiring::traits<weight_type>::exp(candidates.agenda_[step][c].score());
+	  double score_min = std::numeric_limits<double>::infinity();
 	  
-	  for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o)
+	  for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o) {
+	    score_min = std::min(score_min, oracles.agenda_[step][o].score());
 	    Z_oracle += rnnp::semiring::traits<weight_type>::exp(oracles.agenda_[step][o].score());
+	  }
+	  
+	  for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
+	    if (candidates.agenda_[step][c].score() > score_min)
+	      Z_candidate += rnnp::semiring::traits<weight_type>::exp(candidates.agenda_[step][c].score());
 	  
 	  double loss = 0;
 	  
 	  for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	    for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o) {
-	      const state_type& state_candidate = candidates.agenda_[step][c];
-	      const state_type& state_oracle    = oracles.agenda_[step][o];
-	      
-	      const double& score_candidate = state_candidate.score();
-	      const double& score_oracle    = state_oracle.score();
-	      
-	      const bool suffered = score_candidate > score_oracle;
-	      const double error = std::max(1.0 - (score_oracle - score_candidate), 0.0);
-	      
-	      if (! suffered || error <= 0.0) continue;
-	      
-	      const weight_type prob_candidate = semiring::traits<weight_type>::exp(score_candidate) / Z_candidate;
-	      const weight_type prob_oracle    = semiring::traits<weight_type>::exp(score_oracle)    / Z_oracle;
-	      
-	      const double loss_factor = prob_candidate * prob_oracle;
-	      
-	      backward_[state_candidate].loss_ += loss_factor;
-	      backward_[state_oracle].loss_    -= loss_factor;
-	      
-	      loss += error * loss_factor;
-	    }
-	
+	    if (candidates.agenda_[step][c].score() > score_min)
+	      for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o) {
+		const state_type& state_candidate = candidates.agenda_[step][c];
+		const state_type& state_oracle    = oracles.agenda_[step][o];
+		
+		const double& score_candidate = state_candidate.score();
+		const double& score_oracle    = state_oracle.score();
+		
+		const bool suffered = score_candidate > score_oracle;
+		const double error = std::max(1.0 - (score_oracle - score_candidate), 0.0);
+		
+		if (! suffered || error <= 0.0) continue;
+		
+		const weight_type prob_candidate = semiring::traits<weight_type>::exp(score_candidate) / Z_candidate;
+		const weight_type prob_oracle    = semiring::traits<weight_type>::exp(score_oracle)    / Z_oracle;
+		
+		const double loss_factor = prob_candidate * prob_oracle;
+		
+		backward_[state_candidate].loss_ += loss_factor;
+		backward_[state_oracle].loss_    -= loss_factor;
+		
+		loss += error * loss_factor;
+	      }
+	  
 	  for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	    states_[candidates.agenda_[step][c].step()].insert(candidates.agenda_[step][c]);
+	    if (candidates.agenda_[step][c].score() > score_min)
+	      states_[candidates.agenda_[step][c].step()].insert(candidates.agenda_[step][c]);
 	  
 	  for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o)
 	    states_[oracles.agenda_[step][o].step()].insert(oracles.agenda_[step][o]);
