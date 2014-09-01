@@ -1382,19 +1382,19 @@ namespace rnnp
 			   ).array().unaryExpr(model_type::sigmoid());
 	    
 	    layer_hidden = (theta.Bre_.block(offset_category, 0, theta.hidden_, 1)
-			    + (layer_reset.array() * (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
-						      * state.derivation().layer(theta.hidden_)).array()).matrix()
+			    + (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+			       * state.derivation().layer(theta.hidden_))
 			    + (theta.Wre_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
 			       * state.reduced().layer(theta.hidden_))
-			    + (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
-			       * state.stack().layer(theta.hidden_))
+			    + (layer_reset.array() * (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+						      * state.stack().layer(theta.hidden_)).array()).matrix()
 			    + (theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_)
 			       * candidates.queue_.col(state.span().last_))
 			    ).array().unaryExpr(model_type::sigmoid());
 	    
 	    delta_update
 	      = (layer_update.array().unaryExpr(model_type::dsigmoid())
-		 * (state.derivation().layer(theta.hidden_) - layer_hidden).array()
+		 * (state.stack().layer(theta.hidden_) - layer_hidden).array()
 		 * backward.delta_.array());
 	    
 	    delta_hidden
@@ -1412,11 +1412,11 @@ namespace rnnp
 	    tensor_type& Bre = g.Bre(state.label());
 	    
 	    Wre.block(0, offset1, theta.hidden_, theta.hidden_)
-	      += (delta_hidden.array() * layer_reset.array()).matrix() * state.derivation().layer(theta.hidden_).transpose();
+	      += delta_hidden * state.derivation().layer(theta.hidden_).transpose();
 	    Wre.block(0, offset2, theta.hidden_, theta.hidden_)
 	      += delta_hidden * state.reduced().layer(theta.hidden_).transpose();
 	    Wre.block(0, offset3, theta.hidden_, theta.hidden_)
-	      += delta_hidden * state.stack().layer(theta.hidden_).transpose();	    
+	      += (delta_hidden.array() * layer_reset.array()).matrix() * state.stack().layer(theta.hidden_).transpose();
 	    Wre.block(0, offset4, theta.hidden_, theta.hidden_)
 	      += delta_hidden * candidates.queue_.col(state.span().last_).transpose();
 	    Bre += delta_hidden;
@@ -1424,20 +1424,20 @@ namespace rnnp
 	    // propagate to reset...
 	    delta_reset
 	      = (layer_reset.array().unaryExpr(model_type::dsigmoid())
-		 * (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
-		    * state.derivation().layer(theta.hidden_)).array()
+		 * (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+		    * state.stack().layer(theta.hidden_)).array()
 		 * delta_hidden.array());
 	    
 	    // propagate to antecedent
 	    delta_derivation.noalias()
-	      += (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_).transpose()
-		  * (delta_hidden.array() * layer_reset.array()).matrix());
+	      += theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_).transpose() *delta_hidden;
 	    
 	    delta_reduced.noalias()
 	      += theta.Wre_.block(offset_category, offset2, theta.hidden_, theta.hidden_).transpose() * delta_hidden;
 	    
 	    delta_stack.noalias()
-	      += theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose() * delta_hidden;
+	      += (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose()
+		  * (delta_hidden.array() * layer_reset.array()).matrix());
 	    
 	    queue_.col(state.span().last_).noalias()
 	      += theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_).transpose() * delta_hidden;
@@ -1525,17 +1525,17 @@ namespace rnnp
 			   ).array().unaryExpr(model_type::sigmoid());
 
 	    layer_hidden = (theta.Bu_.block(offset_category, 0, theta.hidden_, 1)
-			    + (layer_reset.array() * (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
-						      * state.derivation().layer(theta.hidden_)).array()).matrix()
-			    + (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
-			       * state.stack().layer(theta.hidden_))
+			    + (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+			       * state.derivation().layer(theta.hidden_))
+			    + (layer_reset.array() * (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
+						      * state.stack().layer(theta.hidden_)).array()).matrix()
 			    + (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
 			       * candidates.queue_.col(state.span().last_))
 			    ).array().unaryExpr(model_type::sigmoid());
 	    
 	    delta_update
 	      = (layer_update.array().unaryExpr(model_type::dsigmoid())
-		 * (state.derivation().layer(theta.hidden_) - layer_hidden).array()
+		 * (state.stack().layer(theta.hidden_) - layer_hidden).array()
 		 * backward.delta_.array());
 	    
 	    delta_hidden
@@ -1552,9 +1552,9 @@ namespace rnnp
 	    tensor_type& Bu = g.Bu(state.label());
 	    
 	    Wu.block(0, offset1, theta.hidden_, theta.hidden_)
-	      += (delta_hidden.array() * layer_reset.array()).matrix() * state.derivation().layer(theta.hidden_).transpose();
+	      += delta_hidden * state.derivation().layer(theta.hidden_).transpose();
 	    Wu.block(0, offset2, theta.hidden_, theta.hidden_)
-	      += delta_hidden * state.stack().layer(theta.hidden_).transpose();
+	      += (delta_hidden.array() * layer_reset.array()).matrix() * state.stack().layer(theta.hidden_).transpose();
 	    Wu.block(0, offset3, theta.hidden_, theta.hidden_)
 	      += delta_hidden * candidates.queue_.col(state.span().last_).transpose();
 	    Bu += delta_hidden;
@@ -1562,17 +1562,17 @@ namespace rnnp
 	    // propagate to reset...
 	    delta_reset
 	      = (layer_reset.array().unaryExpr(model_type::dsigmoid())
-		 * (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
-		    * state.derivation().layer(theta.hidden_)).array()
+		 * (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
+		    * state.stack().layer(theta.hidden_)).array()
 		 * delta_hidden.array());
 	    
 	    // propagate to ancedent
 	    delta_derivation.noalias()
-	      += (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_).transpose()
-		  * (delta_hidden.array() * layer_reset.array()).matrix());
+	      += theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_).transpose() * delta_hidden;
 	    
 	    delta_stack.noalias()
-	      += theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_).transpose() * delta_hidden;
+	      += (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_).transpose()
+		  * (delta_hidden.array() * layer_reset.array()).matrix());
 	    
 	    queue_.col(state.span().last_).noalias()
 	      += theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_).transpose() * delta_hidden;

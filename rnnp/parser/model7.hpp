@@ -161,18 +161,18 @@ namespace rnnp
 		  ).array().unaryExpr(model_type::sigmoid());
 	
 	hidden_ = (theta.Bre_.block(offset_category, 0, theta.hidden_, 1)
-		   + (reset_.array() * (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
-					* state.layer(theta.hidden_)).array()).matrix()
+		   + (theta.Wre_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+		      * state.layer(theta.hidden_))
 		   + (theta.Wre_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
 		      * state_reduced.layer(theta.hidden_))
-		   + (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
-		      * state_stack.layer(theta.hidden_))
+		   + (reset_.array() * (theta.Wre_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+					* state_stack.layer(theta.hidden_)).array()).matrix()
 		   + (theta.Wre_.block(offset_category, offset4, theta.hidden_, theta.hidden_)
 		      * parser.queue_.col(state_new.span().last_))
 		   ).array().unaryExpr(model_type::activation());
-	  
+	
 	state_new.layer(theta.hidden_) = 
-	  update_.array() * state.layer(theta.hidden_).array()
+	  update_.array() * state_stack.layer(theta.hidden_).array()
 	  + 
 	  (1.0 - update_.array()) * hidden_.array();
 	
@@ -240,16 +240,16 @@ namespace rnnp
 		  ).array().unaryExpr(model_type::sigmoid());
 
 	hidden_ = (theta.Bu_.block(offset_category, 0, theta.hidden_, 1)
-		   + (reset_.array() * (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
-					* state.layer(theta.hidden_)).array()).matrix()
-		   + (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
-		      * state.stack().layer(theta.hidden_))
+		   + (theta.Wu_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+		      * state.layer(theta.hidden_))
+		   + (reset_.array() * (theta.Wu_.block(offset_category, offset2, theta.hidden_, theta.hidden_)
+					* state.stack().layer(theta.hidden_)).array()).matrix()
 		   + (theta.Wu_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
 		      * parser.queue_.col(state_new.span().last_))
 		   ).array().unaryExpr(model_type::activation());
 	
 	state_new.layer(theta.hidden_) = 
-	  update_.array() * state.layer(theta.hidden_).array()
+	  update_.array() * state.stack().layer(theta.hidden_).array()
 	  + 
 	  (1.0 - update_.array()) * hidden_.array();
 	
