@@ -1406,7 +1406,7 @@ namespace rnnp
 	    tensor_type& delta_reduced    = backward_state(theta, state.reduced()).delta_;
 	    tensor_type& delta_stack      = backward_state(theta, state.stack()).delta_;
 	    
-	    delta_derivation.array() += layer_update.array() * backward.delta_.array();
+	    delta_stack.array() += layer_update.array() * backward.delta_.array();
 	    
 	    tensor_type& Wre = g.Wre(state.label());
 	    tensor_type& Bre = g.Bre(state.label());
@@ -1546,7 +1546,7 @@ namespace rnnp
 	    tensor_type& delta_derivation = backward_state(theta, state.derivation(), backward.loss_).delta_;
 	    tensor_type& delta_stack      = backward_state(theta, state.stack()).delta_;
 	    
-	    delta_derivation.array() += layer_update.array() * backward.delta_.array();
+	    delta_stack.array() += layer_update.array() * backward.delta_.array();
 	    
 	    tensor_type& Wu = g.Wu(state.label());
 	    tensor_type& Bu = g.Bu(state.label());
