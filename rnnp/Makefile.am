@@ -188,6 +188,7 @@ librnnp_la_LIBADD = \
 	$(ICU_LDFLAGS)
 
 noinst_PROGRAMS = \
+binarize_main \
 evalb_main \
 forest_main \
 grammar_main \
@@ -195,6 +196,9 @@ oracle_main \
 rule_main \
 signature_main \
 tree_main
+
+binarize_main_SOURCES  = binarize_main.cpp 
+binarize_main_LDADD    = librnnp.la $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 evalb_main_SOURCES  = evalb_main.cpp 
 evalb_main_LDADD    = librnnp.la

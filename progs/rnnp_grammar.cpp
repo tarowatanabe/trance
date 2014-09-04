@@ -168,7 +168,7 @@ struct CollectRules
     default: 
       throw std::runtime_error("invalid binary tree");
     }
-    
+
     int unary = 0;
     extract(binarized_, unary);
   }
@@ -181,12 +181,13 @@ struct CollectRules
       rule.rhs_.front() = tree.antecedent_.front().label_;
       
       if (rule.unary()) {
+	if (rule.lhs_ == rule.rhs_.front())
 	++ unary;
 	++ grammar_.unary_[rule];
 	
 	extract(tree.antecedent_.front(), unary);
       } else if (rule.preterminal()) {
-	  ++ grammar_.preterminal_[rule];
+	++ grammar_.preterminal_[rule];
 	
 	++ unigram_[rule.rhs_.front()];
       } else

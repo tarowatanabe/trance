@@ -242,9 +242,8 @@ void transform_cycle(treebank_type& treebank)
     transform_cycle(*aiter);
 
   // unary rule + the same category...
-  // TODO: buggy.. why?
   if (treebank.antecedents_.size() == 1
-      && treebank.antecedents_.front().antecedents_.size() == 1
+      && ! treebank.antecedents_.front().antecedents_.empty()
       && treebank.cat_ == treebank.antecedents_.front().cat_) {
     treebank_type::antecedents_type antecedents;
     
@@ -254,6 +253,20 @@ void transform_cycle(treebank_type& treebank)
   }
 }
 
+bool treebank_detect_cycle(const treebank_type& treebank)
+{
+  if (treebank.antecedents_.size() == 1
+      && treebank.cat_ == treebank.antecedents_.front().cat_)
+    return true;
+
+  
+  for (treebank_type::antecedents_type::const_iterator aiter = treebank.antecedents_.begin(); aiter != treebank.antecedents_.end(); ++ aiter)
+    if (treebank_detect_cycle(*aiter))
+      return true;
+  
+  return false;
+}
+
 bool treebank_validate(const treebank_type& treebank)
 {
   if (treebank.cat_.empty() && treebank.antecedents_.empty())
@@ -261,11 +274,6 @@ bool treebank_validate(const treebank_type& treebank)
   
   if (treebank.antecedents_.empty())
     return false;
-
-  if (treebank.antecedents_.size() == 1
-      && treebank.antecedents_.front().antecedents_.size() == 1
-      && treebank.cat_ == treebank.antecedents_.front().cat_)
-    std::cerr << "detected cycle" << std::endl;
     
   treebank_type::antecedents_type::const_iterator aiter_end = treebank.antecedents_.end();
   for (treebank_type::antecedents_type::const_iterator aiter = treebank.antecedents_.begin(); aiter != aiter_end; ++ aiter)
@@ -291,7 +299,6 @@ std::ostream& treebank_output(const treebank_type& treebank, std::ostream& os)
   
   return os;
 }
-
 
 path_type input_file = "-";
 path_type output_file = "-";
