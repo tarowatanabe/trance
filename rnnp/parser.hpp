@@ -135,8 +135,6 @@ namespace rnnp
       
       const size_type unary_max = input.size() * unary_size_;
       const size_type step_last = input.size() * 2 + unary_max;
-
-      size_type step_finished = step_last;
       
       // search
       for (size_type step = 0; step != step_last; ++ step) {
@@ -149,8 +147,6 @@ namespace rnnp
 	// best_action
 	best_action(step, heap.back());
 
-	bool non_finished = false;
-	
 	heap_type::const_iterator hiter_end = heap.end();
 	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
 	  const state_type& state = *hiter;
@@ -158,8 +154,6 @@ namespace rnnp
 	  if (state.operation().finished())
 	    impl.operation_idle(*this, feats, theta, state);
 	  else {
-	    non_finished = true;
-	    
 	    // we perform shift..
 	    if (state.next() < input.size()) {
 	      const grammar_type::rule_set_type& rules = grammar.preterminal(signature, input[state.next()]);
@@ -195,14 +189,9 @@ namespace rnnp
 	    }
 	  }
 	}
-	
-	if (terminate_early_ && ! non_finished) {
-	  step_finished = step;
-	  break;
-	}
       }
       
-      if (step_finished == step_last && agenda_[step_last].empty()) {
+      if (agenda_[step_last].empty()) {
 	difference_type step_drop = step_last - 1;
 	for (/**/; step_drop >= 0; -- step_drop)
 	  if (! agenda_[step_drop].empty()) break;
@@ -219,8 +208,6 @@ namespace rnnp
 	    best_action(step, heap.back());
 	  }
 	  
-	  bool non_finished = false;
-	  
 	  heap_type::const_iterator hiter_end = heap.end();
 	  for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
 	    const state_type& state = *hiter;
@@ -228,8 +215,6 @@ namespace rnnp
 	    if (state.operation().finished())
 	      impl.operation_idle(*this, feats, theta, state);
 	    else {
-	      non_finished = true;
-	      
 	      // we perform shift.... this should not happen, though..
 	      if (state.next() < input.size()) {
 		const grammar_type::rule_set_type& rules = grammar.preterminal(signature, input[state.next()]);
@@ -262,30 +247,18 @@ namespace rnnp
 	      }
 	    }
 	  }
-	  
-	  if (terminate_early_ && ! non_finished) {
-	    step_finished = step;
-	    break;
-	  }
 	}
       }
       
       // compute the final kbest derivations
-      if (step_finished != step_last) {
-	const heap_type& heap = agenda_[step_finished];
+      heap_type& heap = agenda_[step_last];
+      
+      if (! heap.empty()) {
+	prune(heap, feats, kbest);
 	
-	if (! heap.empty())
-	  derivations.insert(derivations.end(), heap.rend() - utils::bithack::min(kbest, heap.size()), heap.rend());
-      } else {
-	heap_type& heap = agenda_[step_last];
+	best_action(step_last, heap.back());
 	
-	if (! heap.empty()) {
-	  prune(heap, feats, kbest);
-	  
-	  best_action(step_last, heap.back());
-	  
-	  derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
-	}
+	derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
       }
     }
     

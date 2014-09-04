@@ -22,26 +22,9 @@ namespace rnnp
       {
 	double error_early = 0.0;
 	size_type step_early = size_type(-1);
-	size_type step_finished = oracles.agenda_.size() - 1;
-	
-	for (size_type step = 0; step != oracles.agenda_.size(); ++ step)
-	  if (! candidates.agenda_[step].empty() && ! oracles.agenda_[step].empty()) {
-	    bool non_finished = false;
-	    
-	    for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o)
-	      non_finished |= ! oracles.agenda_[step][o].operation().finished();
-	    
-	    for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	      non_finished |= ! candidates.agenda_[step][c].operation().finished();
-	    
-	    if (! non_finished) {
-	      step_finished = step;
-	      break;
-	    }
-	  }
 	
 	// check the state with early-violation
-	for (size_type step = 0; step != step_finished + 1; ++ step) 
+	for (size_type step = 0; step != oracles.agenda_.size(); ++ step) 
 	  if (! candidates.agenda_[step].empty() && ! oracles.agenda_[step].empty()) {
 	    
 	    const double beam_candidate = candidates.agenda_[step].front().score();

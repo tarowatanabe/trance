@@ -314,7 +314,7 @@ struct Mapper : public MapReduce
     typedef parser_type::derivation_set_type derivation_set_type;
     typedef std::vector<char, std::allocator<char> > buf_type;
     
-    parser_type parser(beam_size, unary_size, binarize_left, true);
+    parser_type parser(beam_size, unary_size, binarize_left);
     
     id_buffer_type mapped;
     id_buffer_type reduced;
