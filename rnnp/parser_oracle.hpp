@@ -149,14 +149,8 @@ namespace rnnp
       if (step_finished != step_last) {
 	const heap_type& heap = agenda_[step_finished];
 	
-	if (! heap.empty()) {
-	  best_action(step_last, heap.back());
-	  
-	  derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
-
-	  if (derivations.size() > kbest)
-	    derivations.erase(derivations.begin() + kbest, derivations.end());
-	}
+	if (! heap.empty())
+	  derivations.insert(derivations.end(), heap.rend() - utils::bithack::min(kbest, heap.size()), heap.rend());
       } else {
 	heap_type& heap = agenda_[step_last];
 	

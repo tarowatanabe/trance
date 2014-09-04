@@ -159,7 +159,7 @@ namespace rnnp
 	    impl.operation_idle(*this, feats, theta, state);
 	  else {
 	    non_finished = true;
-
+	    
 	    // we perform shift..
 	    if (state.next() < input.size()) {
 	      const grammar_type::rule_set_type& rules = grammar.preterminal(signature, input[state.next()]);
@@ -202,12 +202,12 @@ namespace rnnp
 	}
       }
       
-      if (agenda_[step_finished].empty()) {
-	difference_type step_drop = step_finished - 1;
+      if (step_finished == step_last && agenda_[step_last].empty()) {
+	difference_type step_drop = step_last - 1;
 	for (/**/; step_drop >= 0; -- step_drop)
 	  if (! agenda_[step_drop].empty()) break;
-
-	for (size_type step = step_drop; step != step_finished; ++ step) {
+	
+	for (size_type step = step_drop; step != step_last; ++ step) {
 	  heap_type& heap = agenda_[step];
 	  
 	  if (heap.empty()) break;
@@ -219,6 +219,8 @@ namespace rnnp
 	    best_action(step, heap.back());
 	  }
 	  
+	  bool non_finished = false;
+	  
 	  heap_type::const_iterator hiter_end = heap.end();
 	  for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
 	    const state_type& state = *hiter;
@@ -226,6 +228,8 @@ namespace rnnp
 	    if (state.operation().finished())
 	      impl.operation_idle(*this, feats, theta, state);
 	    else {
+	      non_finished = true;
+	      
 	      // we perform shift.... this should not happen, though..
 	      if (state.next() < input.size()) {
 		const grammar_type::rule_set_type& rules = grammar.preterminal(signature, input[state.next()]);
@@ -258,6 +262,11 @@ namespace rnnp
 	      }
 	    }
 	  }
+	  
+	  if (terminate_early_ && ! non_finished) {
+	    step_finished = step;
+	    break;
+	  }
 	}
       }
       
@@ -265,14 +274,8 @@ namespace rnnp
       if (step_finished != step_last) {
 	const heap_type& heap = agenda_[step_finished];
 	
-	if (! heap.empty()) {
-	  best_action(step_last, heap.back());
-	  
-	  derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
-
-	  if (derivations.size() > kbest)
-	    derivations.erase(derivations.begin() + kbest, derivations.end());
-	}
+	if (! heap.empty())
+	  derivations.insert(derivations.end(), heap.rend() - utils::bithack::min(kbest, heap.size()), heap.rend());
       } else {
 	heap_type& heap = agenda_[step_last];
 	
