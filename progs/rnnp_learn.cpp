@@ -589,7 +589,8 @@ struct Test
     : trees_(trees),
       task_(task),
       evalb_(evalb),
-      queue_(queue) {}
+      queue_(queue),
+      parser_(beam_size, unary_size, true) {}
   
   void operator()()
   {
@@ -608,9 +609,9 @@ struct Test
       if (id == size_type(-1)) break;
       
       if (averaging)
-	task_.parser_(trees_[id].leaf(), task_.grammar_, *signature, feats, task_.theta_averaged_, kbest_size, candidates);
+	parser_(trees_[id].leaf(), task_.grammar_, *signature, feats, task_.theta_averaged_, kbest_size, candidates);
       else
-	task_.parser_(trees_[id].leaf(), task_.grammar_, *signature, feats, task_.theta_, kbest_size, candidates);
+	parser_(trees_[id].leaf(), task_.grammar_, *signature, feats, task_.theta_, kbest_size, candidates);
 
       if (candidates.empty()) continue;
       
@@ -623,6 +624,8 @@ struct Test
   Task& task_;
   evalb_type& evalb_;
   queue_type& queue_;
+
+  rnnp::Parser parser_;
   
   scorer_type scorer_;
 };

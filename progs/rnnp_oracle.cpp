@@ -77,7 +77,6 @@ bool binarize_left = false;
 bool binarize_right = false;
 
 bool precompute = false;
-bool terminate = false;
 
 // this is for debugging purpose...
 bool randomize = false;
@@ -315,7 +314,7 @@ struct Mapper : public MapReduce
     typedef parser_type::derivation_set_type derivation_set_type;
     typedef std::vector<char, std::allocator<char> > buf_type;
     
-    parser_type parser(beam_size, unary_size, binarize_left, terminate);
+    parser_type parser(beam_size, unary_size, binarize_left, true);
     
     id_buffer_type mapped;
     id_buffer_type reduced;
@@ -606,7 +605,6 @@ void options(int argc, char** argv)
     ("binarize-right", po::bool_switch(&binarize_right), "right recursive (or right heavy) binarization")
     
     ("precompute",     po::bool_switch(&precompute),          "precompute word embedding")
-    ("terminate",      po::bool_switch(&terminate),           "early termination")
     ("randomize",      po::bool_switch(&randomize),           "randomize model parameters")
     ("word-embedding", po::value<path_type>(&embedding_file), "word embedding file");
     
