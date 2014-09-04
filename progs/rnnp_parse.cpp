@@ -74,6 +74,8 @@ int beam_size = 50;
 int kbest_size = 1;
 int unary_size = 3;
 
+bool precompute = false;
+
 // this is for debugging purpose...
 bool randomize = false;
 path_type embedding_file;
@@ -517,6 +519,9 @@ void parse(const grammar_type& grammar,
       theta.embedding(embedding_file);
   }
   
+  if (precompute)
+    theta.precompute();
+  
   if (debug) {
     const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
     const size_t non_terminals = (theta.vocab_category_.size()
@@ -596,7 +601,8 @@ void options(int argc, char** argv)
     ("beam",  po::value<int>(&beam_size)->default_value(beam_size),   "beam size")
     ("kbest", po::value<int>(&kbest_size)->default_value(kbest_size), "kbest size")
     ("unary", po::value<int>(&unary_size)->default_value(unary_size), "unary size")
-    
+
+    ("precompute",     po::bool_switch(&precompute),          "precompute word embedding")
     ("randomize",      po::bool_switch(&randomize),           "randomize model parameters")
     ("word-embedding", po::value<path_type>(&embedding_file), "word embedding file");
     

@@ -21,6 +21,11 @@ namespace rnnp
 {
   namespace model
   {
+    void Model7::precompute()
+    {
+
+    }
+    
     void Model7::initialize(const size_type& hidden,
 			    const size_type& embedding,
 			    const grammar_type& grammar)
@@ -28,6 +33,8 @@ namespace rnnp
       Model::initialize(hidden, embedding, grammar);
     
       // initialize matrix
+      cache_.resize(0, 0);
+      
       terminal_ = tensor_type::Zero(embedding_, vocab_terminal_.size());
     
       Wc_  = tensor_type::Zero(1 * vocab_category_.size(), hidden_ * 3);
@@ -165,6 +172,8 @@ namespace rnnp
       vocab_category_.clear();
       
       // first, resize
+      cache_.resize(0, 0);
+      
       terminal_ = tensor_type::Zero(embedding_, terminal_.cols());
 
       Wc_  = tensor_type::Zero(Wc_.rows(), hidden_ * 3);

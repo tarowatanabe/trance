@@ -76,6 +76,8 @@ int unary_size = 3;
 bool binarize_left = false;
 bool binarize_right = false;
 
+bool precompute = false;
+
 // this is for debugging purpose...
 bool randomize = false;
 path_type embedding_file;
@@ -516,6 +518,9 @@ void parse(const grammar_type& grammar,
     if (! embedding_file.empty())
       theta.embedding(embedding_file);
   }
+
+  if (precompute)
+    theta.precompute();
   
   if (debug) {
     const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
@@ -599,6 +604,7 @@ void options(int argc, char** argv)
     ("binarize-left",  po::bool_switch(&binarize_left),  "left recursive (or left heavy) binarization (default)")
     ("binarize-right", po::bool_switch(&binarize_right), "right recursive (or right heavy) binarization")
     
+    ("precompute",     po::bool_switch(&precompute),          "precompute word embedding")
     ("randomize",      po::bool_switch(&randomize),           "randomize model parameters")
     ("word-embedding", po::value<path_type>(&embedding_file), "word embedding file");
     

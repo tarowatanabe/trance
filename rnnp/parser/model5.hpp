@@ -52,14 +52,23 @@ namespace rnnp
 	const size_type offset_classification = theta.offset_classification(label);
 	const size_type offset_category       = theta.offset_category(label);
 
-	state_new.layer(theta.hidden_) = (theta.Bsh_.block(offset_category, 0, theta.hidden_, 1)
-					  + (theta.Wsh_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
-					     * state.layer(theta.hidden_))
-					  + (theta.Wsh_.block(offset_category, offset2, theta.hidden_, theta.embedding_)
-					     * theta.terminal_.col(theta.terminal(head)))
-					  + (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
-					     * parser.queue_.col(state_new.span().last_ - 1))
-					  ).array().unaryExpr(model_type::activation());
+	if (theta.cache_.rows() && theta.cache_.cols())
+	  state_new.layer(theta.hidden_) = (theta.Bsh_.block(offset_category, 0, theta.hidden_, 1)
+					    + (theta.Wsh_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+					       * state.layer(theta.hidden_))
+					    + theta.cache_.block(theta.hidden_ + offset_category, theta.terminal(head), theta.hidden_, 1)
+					    + (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+					       * parser.queue_.col(state_new.span().last_ - 1))
+					    ).array().unaryExpr(model_type::activation());
+	else
+	  state_new.layer(theta.hidden_) = (theta.Bsh_.block(offset_category, 0, theta.hidden_, 1)
+					    + (theta.Wsh_.block(offset_category, offset1, theta.hidden_, theta.hidden_)
+					       * state.layer(theta.hidden_))
+					    + (theta.Wsh_.block(offset_category, offset2, theta.hidden_, theta.embedding_)
+					       * theta.terminal_.col(theta.terminal(head)))
+					    + (theta.Wsh_.block(offset_category, offset3, theta.hidden_, theta.hidden_)
+					       * parser.queue_.col(state_new.span().last_ - 1))
+					    ).array().unaryExpr(model_type::activation());
 	
 	const double score = (theta.Wc_.block(offset_classification, offset_operation, 1, theta.hidden_) * state_new.layer(theta.hidden_)
 			      + theta.Bc_.block(offset_classification, index_operation, 1, 1))(0, 0);
@@ -282,13 +291,23 @@ namespace rnnp
 	parser.queue_.resize(theta.hidden_, input_size + 1);
 	
 	parser.queue_.col(input_size) = theta.Bqe_.array().unaryExpr(model_type::activation());
-	for (size_type i = input_size; i; -- i)
-	  parser.queue_.col(i - 1) = (theta.Bqu_
-				      + (theta.Wqu_.block(0, offset1, theta.hidden_, theta.hidden_)
-					 * parser.queue_.col(i))
-				      + (theta.Wqu_.block(0, offset2, theta.hidden_, theta.embedding_)
-					 * theta.terminal_.col(theta.terminal(input[i - 1])))
-				      ).array().unaryExpr(model_type::activation());
+
+	if (theta.cache_.rows() && theta.cache_.cols()) {
+	  for (size_type i = input_size; i; -- i)
+	    parser.queue_.col(i - 1) = (theta.Bqu_
+					+ (theta.Wqu_.block(0, offset1, theta.hidden_, theta.hidden_)
+					   * parser.queue_.col(i))
+					+ theta.cache_.block(0, theta.terminal(input[i - 1]), theta.hidden_, 1)
+					).array().unaryExpr(model_type::activation());
+	} else {
+	  for (size_type i = input_size; i; -- i)
+	    parser.queue_.col(i - 1) = (theta.Bqu_
+					+ (theta.Wqu_.block(0, offset1, theta.hidden_, theta.hidden_)
+					   * parser.queue_.col(i))
+					+ (theta.Wqu_.block(0, offset2, theta.hidden_, theta.embedding_)
+					   * theta.terminal_.col(theta.terminal(input[i - 1])))
+					).array().unaryExpr(model_type::activation());
+	}
 	
 	state_type state_new = parser.state_allocator_.allocate();
 

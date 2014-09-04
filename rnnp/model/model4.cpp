@@ -21,13 +21,26 @@ namespace rnnp
 {
   namespace model
   {
+    void Model4::precompute()
+    {
+      cache_ = tensor_type::Zero(hidden_ * vocab_category_.size(), terminal_.cols());
+      
+      const size_type id_max = terminal_.cols();
+      
+      for (size_type id = 0; id != id_max; ++ id)
+	for (size_type c = 0; c != vocab_category_.size(); ++ c)
+	  cache_.block(c * hidden_, id, hidden_, 1) = Wsh_.block(c * hidden_, hidden_, hidden_, embedding_) * terminal_.col(id);
+    }
+    
     void Model4::initialize(const size_type& hidden,
 			    const size_type& embedding,
 			    const grammar_type& grammar)
     {
       Model::initialize(hidden, embedding, grammar);
     
-      // initialize matrixx
+      // initialize matrix
+      cache_.resize(0, 0);
+      
       terminal_ = tensor_type::Zero(embedding_, vocab_terminal_.size());
     
       Wc_  = tensor_type::Zero(1 * vocab_category_.size(), hidden_ * 3);
@@ -121,6 +134,8 @@ namespace rnnp
       vocab_category_.clear();
       
       // first, resize
+      cache_.resize(0, 0);
+      
       terminal_ = tensor_type::Zero(embedding_, terminal_.cols());
 
       Wc_  = tensor_type::Zero(Wc_.rows(), hidden_ * 3);

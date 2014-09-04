@@ -190,8 +190,13 @@ namespace rnnp
 	
 	return std::sqrt(norm);
       }
+
+      void precompute();
       
     public:
+      // cache
+      tensor_type cache_;
+      
       // terminal embedding
       tensor_type terminal_;
     
