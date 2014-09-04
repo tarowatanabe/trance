@@ -261,7 +261,12 @@ bool treebank_validate(const treebank_type& treebank)
   
   if (treebank.antecedents_.empty())
     return false;
-  
+
+  if (treebank.antecedents_.size() == 1
+      && treebank.antecedents_.front().antecedents_.size() == 1
+      && treebank.cat_ == treebank.antecedents_.front().cat_)
+    std::cerr << "detected cycle" << std::endl;
+    
   treebank_type::antecedents_type::const_iterator aiter_end = treebank.antecedents_.end();
   for (treebank_type::antecedents_type::const_iterator aiter = treebank.antecedents_.begin(); aiter != aiter_end; ++ aiter)
     if (aiter->antecedents_.empty())
