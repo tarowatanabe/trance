@@ -75,6 +75,7 @@ int kbest_size = 1;
 int unary_size = 3;
 
 bool precompute = false;
+bool terminate = false;
 
 // this is for debugging purpose...
 bool randomize = false;
@@ -310,7 +311,7 @@ struct Mapper : public MapReduce
     typedef parser_type::derivation_set_type derivation_set_type;
     typedef std::vector<char, std::allocator<char> > buf_type;
     
-    parser_type parser(beam_size, unary_size);
+    parser_type parser(beam_size, unary_size, terminate);
     
     id_buffer_type mapped;
     id_buffer_type reduced;
@@ -603,6 +604,7 @@ void options(int argc, char** argv)
     ("unary", po::value<int>(&unary_size)->default_value(unary_size), "unary size")
 
     ("precompute",     po::bool_switch(&precompute),          "precompute word embedding")
+    ("terminate",      po::bool_switch(&terminate),           "early termination")
     ("randomize",      po::bool_switch(&randomize),           "randomize model parameters")
     ("word-embedding", po::value<path_type>(&embedding_file), "word embedding file");
     

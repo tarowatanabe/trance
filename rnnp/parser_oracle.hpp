@@ -19,8 +19,8 @@ namespace rnnp
     typedef Oracle oracle_type;
 
   public:
-    ParserOracle(size_type beam_size, size_type unary_size, bool left)
-      : Parser(beam_size, unary_size), left_(left) {}
+    ParserOracle(size_type beam_size, size_type unary_size, bool left, bool terminate_early=false)
+      : Parser(beam_size, unary_size, terminate_early), left_(left) {}
     
   public:
     template <typename Theta>
@@ -75,6 +75,8 @@ namespace rnnp
       
       const size_type unary_max = oracle_.sentence_.size() * unary_size_;
       const size_type step_last = oracle_.sentence_.size() * 2 + unary_max;
+
+      size_type step_finished = step_last;
       
       for (size_type step = 0; step != step_last; ++ step) {
 	heap_type& heap = agenda_[step];
@@ -85,7 +87,9 @@ namespace rnnp
 	
 	// best_action
 	best_action(step, heap.back());
-		
+	
+	bool non_finished = false;
+	
 	heap_type::const_iterator hiter_end = heap.end();
 	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
 	  const state_type& state = *hiter;
@@ -93,6 +97,8 @@ namespace rnnp
 	  if (state.operation().finished())
 	    impl.operation_idle(*this, feats, theta, state);
 	  else {
+	    non_finished = true;
+	    
 	    if (step + 1 < oracle_.actions_.size()) {
 	      const oracle_type::action_type& action = oracle_.actions_[step + 1];
 	      
@@ -132,17 +138,35 @@ namespace rnnp
 	    }
 	  }
 	}
+	
+	if (terminate_early_ && ! non_finished) {
+	  step_finished = step;
+	  break;
+	}
       }
       
       // compute the final kbest derivations
-      heap_type& heap = agenda_[step_last];
-      
-      if (! heap.empty()) {
-	prune(heap, feats, kbest);
+      if (step_finished != step_last) {
+	const heap_type& heap = agenda_[step_finished];
 	
-	best_action(step_last, heap.back());
+	if (! heap.empty()) {
+	  best_action(step_last, heap.back());
+	  
+	  derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
+
+	  if (derivations.size() > kbest)
+	    derivations.erase(derivations.begin() + kbest, derivations.end());
+	}
+      } else {
+	heap_type& heap = agenda_[step_last];
 	
-	derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
+	if (! heap.empty()) {
+	  prune(heap, feats, kbest);
+	  
+	  best_action(step_last, heap.back());
+	  
+	  derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
+	}
       }
     }
     

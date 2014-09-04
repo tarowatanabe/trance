@@ -75,8 +75,8 @@ namespace rnnp
     typedef std::vector<state_type, std::allocator<state_type> > derivation_set_type;
     
   public:
-    Parser(size_type beam_size, size_type unary_size)
-      : beam_size_(beam_size), unary_size_(unary_size) {}
+    Parser(size_type beam_size, size_type unary_size, bool terminate_early=false)
+      : beam_size_(beam_size), unary_size_(unary_size), terminate_early_(terminate_early) {}
     
   public:
     
@@ -135,6 +135,8 @@ namespace rnnp
       
       const size_type unary_max = input.size() * unary_size_;
       const size_type step_last = input.size() * 2 + unary_max;
+
+      size_type step_finished = step_last;
       
       // search
       for (size_type step = 0; step != step_last; ++ step) {
@@ -146,6 +148,8 @@ namespace rnnp
 	
 	// best_action
 	best_action(step, heap.back());
+
+	bool non_finished = false;
 	
 	heap_type::const_iterator hiter_end = heap.end();
 	for (heap_type::const_iterator hiter = heap.begin(); hiter != hiter_end; ++ hiter) {
@@ -154,6 +158,8 @@ namespace rnnp
 	  if (state.operation().finished())
 	    impl.operation_idle(*this, feats, theta, state);
 	  else {
+	    non_finished = true;
+
 	    // we perform shift..
 	    if (state.next() < input.size()) {
 	      const grammar_type::rule_set_type& rules = grammar.preterminal(signature, input[state.next()]);
@@ -189,14 +195,19 @@ namespace rnnp
 	    }
 	  }
 	}
+	
+	if (terminate_early_ && ! non_finished) {
+	  step_finished = step;
+	  break;
+	}
       }
       
-      if (agenda_[step_last].empty()) {
-	difference_type step_drop = step_last - 1;
+      if (agenda_[step_finished].empty()) {
+	difference_type step_drop = step_finished - 1;
 	for (/**/; step_drop >= 0; -- step_drop)
 	  if (! agenda_[step_drop].empty()) break;
 
-	for (size_type step = step_drop; step != step_last; ++ step) {
+	for (size_type step = step_drop; step != step_finished; ++ step) {
 	  heap_type& heap = agenda_[step];
 	  
 	  if (heap.empty()) break;
@@ -251,14 +262,27 @@ namespace rnnp
       }
       
       // compute the final kbest derivations
-      heap_type& heap = agenda_[step_last];
-      
-      if (! heap.empty()) {
-	prune(heap, feats, kbest);
+      if (step_finished != step_last) {
+	const heap_type& heap = agenda_[step_finished];
 	
-	best_action(step_last, heap.back());
+	if (! heap.empty()) {
+	  best_action(step_last, heap.back());
+	  
+	  derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
+
+	  if (derivations.size() > kbest)
+	    derivations.erase(derivations.begin() + kbest, derivations.end());
+	}
+      } else {
+	heap_type& heap = agenda_[step_last];
 	
-	derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
+	if (! heap.empty()) {
+	  prune(heap, feats, kbest);
+	  
+	  best_action(step_last, heap.back());
+	  
+	  derivations.insert(derivations.end(), heap.rbegin(), heap.rend());
+	}
       }
     }
     
@@ -304,6 +328,7 @@ namespace rnnp
   public:
     size_type beam_size_;
     size_type unary_size_;
+    bool terminate_early_;
     
     agenda_type agenda_;
     
