@@ -45,42 +45,22 @@ namespace rnnp
 	if (candidates.agenda_.size() != oracles.agenda_.size())
 	  throw std::runtime_error("invalid candidate and oracle pair");
 	
-	size_type step_finished = candidates.agenda_.size() - 1;
-	for (size_type step = 0; step != oracles.agenda_.size(); ++ step)
-	  if (! candidates.agenda_[step].empty() && ! oracles.agenda_[step].empty()) {
-	    bool non_finished = false;
-	    
-	    for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o)
-	      non_finished |= ! oracles.agenda_[step][o].operation().finished();
-	    
-	    for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	      non_finished |= ! candidates.agenda_[step][c].operation().finished();
-	    
-	    if (! non_finished) {
-	      step_finished = step;
-	      break;
-	    }
-	  }
-	
-	// this should not happen...
-	if (step_finished == 0) return 0.0;
-	
-	const size_type kbest_candidate_size = candidates.agenda_[step_finished].size();
-	const size_type kbest_oracle_size    = oracles.agenda_[step_finished].size();
+	const size_type kbest_candidate_size = candidates.agenda_.back().size();
+	const size_type kbest_oracle_size    = oracles.agenda_.back().size();
 	
 	// first, collect oracle evalb stats...
 	evalb_.clear();
 	evalb_.resize(kbest_oracle_size);
 	
 	for (size_type o = 0; o != kbest_oracle_size; ++ o)
-	  evalb_[o].assign(oracles.agenda_[step_finished][o]);
+	  evalb_[o].assign(oracles.agenda_.back()[o]);
 	
 	score_.clear();
 	score_.resize(kbest_candidate_size, 0);
 	
 	for (size_type c = 0; c != kbest_candidate_size; ++ c)
 	  for (size_type o = 0; o != kbest_oracle_size; ++ o) 
-	    score_[c] = std::max(score_[c], evalb_[o](candidates.agenda_[step_finished][c])());
+	    score_[c] = std::max(score_[c], evalb_[o](candidates.agenda_.back()[c])());
 	
 	weight_type Z;
 	
@@ -88,7 +68,7 @@ namespace rnnp
 	margin_.resize(kbest_candidate_size);
 	
 	for (size_type c = 0; c != kbest_candidate_size; ++ c) {
-	  const double margin = candidates.agenda_[step_finished][c].score() * option.scale_;
+	  const double margin = candidates.agenda_.back()[c].score() * option.scale_;
 	  
 	  margin_[c] = margin;
 	  Z += semiring::traits<weight_type>::exp(margin);
@@ -113,8 +93,8 @@ namespace rnnp
 	  
 	  if (loss == weight_type()) continue;
 	  
-	  backward_[candidates.agenda_[step_finished][c]].loss_ += loss;
-	  states_[candidates.agenda_[step_finished][c].step()].insert(candidates.agenda_[step_finished][c]);
+	  backward_[candidates.agenda_.back()[c]].loss_ += loss;
+	  states_[candidates.agenda_.back()[c].step()].insert(candidates.agenda_.back()[c]);
 	}
 	
 	return objective;
