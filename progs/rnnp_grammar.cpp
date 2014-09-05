@@ -181,7 +181,6 @@ struct CollectRules
       rule.rhs_.front() = tree.antecedent_.front().label_;
       
       if (rule.unary()) {
-	if (rule.lhs_ == rule.rhs_.front())
 	++ unary;
 	++ grammar_.unary_[rule];
 	
