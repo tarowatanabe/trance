@@ -240,7 +240,11 @@ void collect_rules(const path_type& path,
       collect(tree);
 
   if (debug)
-    std::cerr << "maximum unary size: " << collect.unary_max_ << std::endl;
+    std::cerr << "goal: " << grammar.goal_ << std::endl
+	      << "binary: " << grammar.binary_.size() << std::endl
+	      << "unary: " << grammar.unary_.size() << std::endl
+	      << "pre-terminal: " << grammar.preterminal_.size() << std::endl
+	      << "maximum unary size: " << collect.unary_max_ << std::endl;
 }
 
 void cutoff_terminal(const signature_type& signature,
@@ -284,6 +288,9 @@ void cutoff_terminal(const signature_type& signature,
     preterminal.insert(preterminal_oov.begin(), preterminal_oov.end());
   
   grammar.preterminal_.swap(preterminal);
+
+  if (debug)
+    std::cerr << "cutoff: " << grammar.preterminal_.size() << std::endl;
 }
 
 struct Estimate
