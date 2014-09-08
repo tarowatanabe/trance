@@ -20,9 +20,8 @@ namespace rnnp
       typedef typename model_traits<Theta>::gradient_type gradient_impl_type;
       
       SGD(const Theta& theta,
-	  const double& lambda,
-	  const double& eta0)
-	: lambda_(lambda), eta0_(eta0) { }
+	  const option_type& option)
+	: lambda_(option.lambda_), eta0_(option.eta0_) { }
 
       double decay()
       {

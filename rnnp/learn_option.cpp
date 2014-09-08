@@ -86,8 +86,6 @@ namespace rnnp
 	  optimize_ = OPTIMIZE_SGD;
 	else if (utils::ipiece(oiter->second) == "adagrad")
 	  optimize_ = OPTIMIZE_ADAGRAD;
-	else if (utils::ipiece(oiter->second) == "adagrad-rda" || utils::ipiece(oiter->second) == "adagradrda")
-	  optimize_ = OPTIMIZE_ADAGRADRDA;
 	else if (utils::ipiece(oiter->second) == "adadec")
 	  optimize_ = OPTIMIZE_ADADEC;
 	else if (utils::ipiece(oiter->second) == "adadelta")
@@ -205,8 +203,6 @@ namespace rnnp
       opt.push_back(std::make_pair("optimize", "sgd"));
     else if (option.optimize_adagrad())
       opt.push_back(std::make_pair("optimize", "adagrad"));
-    else if (option.optimize_adagradrda())
-      opt.push_back(std::make_pair("optimize", "adagradrda"));
     else if (option.optimize_adadec())
       opt.push_back(std::make_pair("optimize", "adadec"));
     else if (option.optimize_adadelta())

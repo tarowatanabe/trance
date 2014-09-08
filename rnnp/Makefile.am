@@ -40,7 +40,6 @@ dist_optimize_HEADERS = \
 optimize/adadec.hpp \
 optimize/adadelta.hpp \
 optimize/adagrad.hpp \
-optimize/adagradrda.hpp \
 optimize/sgd.hpp
 
 dist_gradient_HEADERS = \

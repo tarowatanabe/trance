@@ -28,7 +28,6 @@
 #include <rnnp/objective/violation_max.hpp>
 
 #include <rnnp/optimize/adagrad.hpp>
-#include <rnnp/optimize/adagradrda.hpp>
 #include <rnnp/optimize/adadec.hpp>
 #include <rnnp/optimize/adadelta.hpp>
 #include <rnnp/optimize/sgd.hpp>
@@ -685,15 +684,13 @@ void learn(const option_type& option,
     std::cerr << "learning: " << option << std::endl;
 
   if (option.optimize_adagrad())
-    learn(rnnp::optimize::AdaGrad<Theta>(theta, option.lambda_, option.eta0_, option.epsilon_), option, trees, tests, grammar, signature, feats, theta, gen);
-  else if (option.optimize_adagradrda())
-    learn(rnnp::optimize::AdaGradRDA<Theta>(theta, option.lambda_, option.eta0_, option.epsilon_), option, trees, tests, grammar, signature, feats, theta, gen);
+    learn(rnnp::optimize::AdaGrad<Theta>(theta, option), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_adadec())
-    learn(rnnp::optimize::AdaDec<Theta>(theta, option.lambda_, option.eta0_, option.epsilon_, option.gamma_), option, trees, tests, grammar, signature, feats, theta, gen);
+    learn(rnnp::optimize::AdaDec<Theta>(theta, option), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_adadelta())
-    learn(rnnp::optimize::AdaDelta<Theta>(theta, option.lambda_, option.eta0_, option.epsilon_, option.gamma_), option, trees, tests, grammar, signature, feats, theta, gen);
+    learn(rnnp::optimize::AdaDelta<Theta>(theta, option), option, trees, tests, grammar, signature, feats, theta, gen);
   else if (option.optimize_sgd())
-    learn(rnnp::optimize::SGD<Theta>(theta, option.lambda_, option.eta0_), option, trees, tests, grammar, signature, feats, theta, gen);
+    learn(rnnp::optimize::SGD<Theta>(theta, option), option, trees, tests, grammar, signature, feats, theta, gen);
   else
     throw std::runtime_error("unknown optimizer");
 }

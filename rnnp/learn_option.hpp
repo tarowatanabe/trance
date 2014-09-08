@@ -26,7 +26,6 @@ namespace rnnp
     typedef enum {
       OPTIMIZE_SGD,
       OPTIMIZE_ADAGRAD,
-      OPTIMIZE_ADAGRADRDA,
       OPTIMIZE_ADADEC,
       OPTIMIZE_ADADELTA,
     } optimize_type;
@@ -52,8 +51,6 @@ namespace rnnp
 
     bool optimize_sgd()         const { return optimize_ == OPTIMIZE_SGD; }
     bool optimize_adagrad()     const { return optimize_ == OPTIMIZE_ADAGRAD; }
-    bool optimize_adagradrda()  const { return optimize_ == OPTIMIZE_ADAGRADRDA; }
-    bool optimize_adagrad_rda() const { return optimize_ == OPTIMIZE_ADAGRADRDA; }
     bool optimize_adadec()      const { return optimize_ == OPTIMIZE_ADADEC; }
     bool optimize_adadelta()    const { return optimize_ == OPTIMIZE_ADADELTA; }
     

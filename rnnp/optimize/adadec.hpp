@@ -31,11 +31,10 @@ namespace rnnp
       typedef typename model_traits<Theta>::gradient_type gradient_impl_type;
       
       AdaDec(const Theta& theta,
-	     const double& lambda,
-	     const double& eta0,
-	     const double& epsilon,
-	     const double& gamma)
-	: G_(theta), lambda_(lambda), eta0_(eta0), epsilon_(epsilon), gamma_(gamma) { G_.clear(); }
+	     const option_type& option)
+	: G_(theta),
+	  lambda_(option.lambda_), eta0_(option.eta0_), epsilon_(option.epsilon_), gamma_(option.gamma_)
+      { G_.clear(); }
       
       double decay()
       {

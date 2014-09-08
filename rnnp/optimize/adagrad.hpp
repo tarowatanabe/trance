@@ -25,10 +25,10 @@ namespace rnnp
       typedef typename model_traits<Theta>::gradient_type gradient_impl_type;
       
       AdaGrad(const Theta& theta,
-	      const double& lambda,
-	      const double& eta0,
-	      const double& epsilon)
-	: G_(theta), lambda_(lambda), eta0_(eta0), epsilon_(epsilon) { G_.clear(); }
+	      const option_type& option)
+	: G_(theta),
+	  lambda_(option.lambda_), eta0_(option.eta0_), epsilon_(option.epsilon_)
+      { G_.clear(); }
       
       double decay()
       {
