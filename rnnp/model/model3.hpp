@@ -74,6 +74,8 @@ namespace rnnp
 	const double range_f  = std::sqrt(6.0 / (hidden_ + hidden_));
 	const double range_i  = std::sqrt(6.0 / (hidden_ + hidden_));
 	
+	cache_.resize(0, 0);
+	
 	terminal_ = terminal_.array().unaryExpr(__randomize<Gen>(gen, range_embed));
 	
 	Wc_ = Wc_.array().unaryExpr(__randomize<Gen>(gen, range_c));
