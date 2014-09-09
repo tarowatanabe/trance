@@ -90,6 +90,8 @@ namespace rnnp
       void swap(Model2& x)
       {
 	Model::swap(static_cast<Model&>(x));
+
+	cache_.swap(x.cache_);
 	
 	terminal_.swap(x.terminal_);
       
@@ -118,6 +120,8 @@ namespace rnnp
       void clear()
       {
 	Model::clear();
+
+	cache_.resize(0, 0);
 
 	terminal_.setZero();
       
