@@ -273,6 +273,8 @@ namespace rnnp
     {
       is.read((char*) &theta.hidden_,    sizeof(theta.hidden_));
       is.read((char*) &theta.embedding_, sizeof(theta.embedding_));
+
+      theta.cache_.resize(0, 0);
       
       MODEL_STREAM_OPERATOR(theta, read_embedding, read_category, read_weights, read_matrix, is);
       
@@ -309,13 +311,17 @@ namespace rnnp
     {
       MODEL_BINARY_OPERATOR(Model::plus_equal, theta);
       
+      cache_.resize(0, 0);
+      
       return *this;
     }
     
     Model1& Model1::operator-=(const Model1& theta)
     {
       MODEL_BINARY_OPERATOR(Model::minus_equal, theta);
-
+      
+      cache_.resize(0, 0);
+      
       return *this;
     }
 
@@ -349,12 +355,16 @@ namespace rnnp
     {
       MODEL_UNARY_OPERATOR(*=);
 
+      cache_.resize(0, 0);
+
       return *this;
     }
   
     Model1& Model1::operator/=(const double& x)
     {
       MODEL_UNARY_OPERATOR(/=);
+
+      cache_.resize(0, 0);
     
       return *this;
     }
