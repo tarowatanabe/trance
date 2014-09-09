@@ -300,7 +300,7 @@ namespace rnnp
       
       MODEL_STREAM_OPERATOR(theta, read_embedding, read_category, read_weights, read_matrix, is);
 
-      cache_.resize(0, 0);
+      theta.cache_.resize(0, 0);
       
       return is;
     }
