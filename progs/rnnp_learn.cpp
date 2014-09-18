@@ -875,7 +875,8 @@ void learn(const Optimizer& optimizer,
     
     if (debug)
       std::cerr << "cpu time:    " << end.cpu_time() - start.cpu_time() << std::endl
-		<< "user time:   " << end.user_time() - start.user_time() << std::endl;
+		<< "user time:   " << end.user_time() - start.user_time() << std::endl
+		<< "thread time: " << end.thread_time() - start.thread_time() << std::endl;
     
     // shuffle trees!
     {
@@ -989,7 +990,8 @@ void learn(const Optimizer& optimizer,
       if (debug)
 	std::cerr << "EVALB: " << evalb_curr << std::endl
 		  << "test cpu time:    " << end.cpu_time() - start.cpu_time() << std::endl
-		  << "test user time:   " << end.user_time() - start.user_time() << std::endl;
+		  << "test user time:   " << end.user_time() - start.user_time() << std::endl
+		  << "test thread time: " << end.thread_time() - start.thread_time() << std::endl;
       
       if (evalb_curr > evalb_max) {
 	evalb_max = evalb_curr;
