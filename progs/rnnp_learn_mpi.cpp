@@ -870,6 +870,8 @@ void learn_root(const Optimizer& optimizer,
     bool gradient_mapper_finished = false; // for gradients
     bool gradient_reducer_finished = false; // for gradients
     bool tree_finished = false; // for trees
+
+    size_type buffer_size = 0;
     
     size_type id = 0;
     
@@ -898,22 +900,14 @@ void learn_root(const Optimizer& optimizer,
 	  found = true;
 	}
       
-      if (id != working.size() && tree_mapper.empty()) {
-	size_type buffer_size = 0;
-	if (! gradient_mapper_finished)
-	  for (int rank = 0; rank != mpi_size; ++ rank) 
-	    if (rank != mpi_rank)
-	      buffer_size += buffers[rank].size();
+      if (id != working.size() && buffer_size < mpi_size * 128 && tree_mapper.empty()) {
+	tree_mapper.push(trees[working[id]]);
 	
-	if (buffer_size < mpi_size * 128) {
-	  tree_mapper.push(trees[working[id]]);
-	  
-	  if (progress.get())
-	    ++ (*progress);
-	  
-	  ++ id;
-	  found = true;
-	}
+	if (progress.get())
+	  ++ (*progress);
+	
+	++ id;
+	found = true;
       }
       
       if (! tree_finished && id == working.size()) {
@@ -965,8 +959,10 @@ void learn_root(const Optimizer& optimizer,
 	  gradient_mapper_finished = true;
 	
 	for (int rank = 0; rank != mpi_size; ++ rank) 
-	  if (rank != mpi_rank)
+	  if (rank != mpi_rank) {
 	    buffers[rank].push_back(buffer_ptr);
+	    ++ buffer_size;
+	  }
 	
 	found = true;
       }
@@ -981,10 +977,12 @@ void learn_root(const Optimizer& optimizer,
 	    else {
 	      gradient_ostream[rank].reset();
 	      buffers[rank].erase(buffers[rank].begin());
+	      -- buffer_size;
 	    }
 	  } else {
 	    gradient_ostream[rank]->write(*(buffers[rank].front()));
 	    buffers[rank].erase(buffers[rank].begin());
+	    -- buffer_size;
 	  }
 	  
 	  found = true;
@@ -1307,32 +1305,26 @@ void learn_others(const Optimizer& optimizer,
     
     bool gradient_mapper_finished = false; // for gradients
     bool gradient_reducer_finished = false; // for gradients
+
+    size_type buffer_size = 0;
     
     int non_found_iter = 0;
     for (;;) {
       bool found = false;
       
       // read trees mapped from root
-      if (tree_istream && tree_istream->test() && tree_mapper.empty()) {
-	size_type buffer_size = 0;
-	if (! gradient_mapper_finished)
-	  for (int rank = 0; rank != mpi_size; ++ rank) 
-	    if (rank != mpi_rank)
-	      buffer_size += buffers[rank].size();
-	
-	if (buffer_size < mpi_size * 128) {
-	  if (tree_istream->read(line)) {
-	    tree.assign(line);
-	    
-	    tree_mapper.push_swap(tree);
-	  } else {
-	    tree_istream.reset();
-	    
-	    tree_mapper.push(tree_type());
-	  }
+      if (tree_istream && buffer_size < mpi_size * 128 && tree_istream->test() && tree_mapper.empty()) {
+	if (tree_istream->read(line)) {
+	  tree.assign(line);
 	  
-	  found = true;
+	  tree_mapper.push_swap(tree);
+	} else {
+	  tree_istream.reset();
+	  
+	  tree_mapper.push(tree_type());
 	}
+	
+	found = true;
       }
       
       // reduce gradients
@@ -1367,8 +1359,10 @@ void learn_others(const Optimizer& optimizer,
 	  gradient_mapper_finished = true;
 	
 	for (int rank = 0; rank != mpi_size; ++ rank) 
-	  if (rank != mpi_rank)
+	  if (rank != mpi_rank) {
 	    buffers[rank].push_back(buffer_ptr);
+	    ++ buffer_size;
+	  }
 	
 	found = true;
       }
@@ -1383,10 +1377,12 @@ void learn_others(const Optimizer& optimizer,
 	    else {
 	      gradient_ostream[rank].reset();
 	      buffers[rank].erase(buffers[rank].begin());
+	      -- buffer_size;
 	    }
 	  } else {
 	    gradient_ostream[rank]->write(*(buffers[rank].front()));
 	    buffers[rank].erase(buffers[rank].begin());
+	    -- buffer_size;
 	  }
 	  
 	  found = true;
