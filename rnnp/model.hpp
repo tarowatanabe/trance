@@ -239,12 +239,7 @@ namespace rnnp
 
     size_type index_operation(const operation_type& operation) const
     {
-      return index_operation(operation.operation());
-    }
-    
-    size_type index_operation(const operation_type::operation_type& operation) const
-    {
-      switch (operation) {
+      switch (operation.operation()) {
       case operation_type::SHIFT:
 	return 0;
       case operation_type::REDUCE:
