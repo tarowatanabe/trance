@@ -186,6 +186,8 @@ struct CollectRules
 	
 	extract(tree.antecedent_.front(), unary);
       } else if (rule.preterminal()) {
+	unary_max_ = utils::bithack::max(unary_max_, unary);
+	
 	++ grammar_.preterminal_[rule];
 	
 	++ unigram_[rule.rhs_.front()];
