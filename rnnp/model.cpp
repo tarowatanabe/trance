@@ -102,15 +102,6 @@ namespace rnnp
     }
   }
   
-  template <typename Tp, size_t Precision>
-  struct real_policy : boost::spirit::karma::real_policies<Tp>
-  {
-    static unsigned int precision(Tp)
-    {
-      return Precision;
-    }
-  };
-  
   void Model::write_embedding(const path_type& path_txt,
 			      const path_type& path_bin,
 			      const tensor_type& matrix) const
@@ -123,9 +114,8 @@ namespace rnnp
     
     utils::compress_ostream os_txt(path_txt, 1024 * 1024);
     utils::compress_ostream os_bin(path_bin, 1024 * 1024);
-    std::ostream_iterator<char> iter(os_txt);
     
-    karma::real_generator<parameter_type, real_policy<parameter_type, 10> > float10;
+    os_txt.precision(10);
     
     for (word_type::id_type id = 0; id != cols; ++ id)  
       if (vocab_terminal_[id]) {
@@ -133,8 +123,10 @@ namespace rnnp
 
 	const parameter_type* data = matrix.col(id).data();
 	
-	karma::generate(iter, standard::string, word);
-	karma::generate(iter, +(' ' << float10) << '\n', boost::make_iterator_range(data, data + rows));
+	os_txt << word;
+	for (size_type i = 0; i != rows; ++ i)
+	  os_txt << ' ' << *(data + i);
+	os_txt << '\n';
 	
 	os_bin.write((char*) matrix.col(id).data(), sizeof(tensor_type::Scalar) * rows);
       }
@@ -245,23 +237,23 @@ namespace rnnp
     
     utils::compress_ostream os_txt(path_txt, 1024 * 1024);
     utils::compress_ostream os_bin(path_bin, 1024 * 1024);
-    std::ostream_iterator<char> iter(os_txt);
     
-    karma::real_generator<parameter_type, real_policy<parameter_type, 10> > float10;
+    os_txt.precision(10);
     
     for (size_type i = 0; i != num_labels; ++ i)
       if (vocab_category_[i] != category_type()) {
-	karma::generate(iter, standard::string, vocab_category_[i]);
+	os_txt << vocab_category_[i];
 	
 	for (size_type col = 0; col != cols; ++ col) {
 	  const parameter_type* data = matrix.block(rows * i, 0, rows, cols).col(col).data();
 	  
-	  karma::generate(iter, +(' ' << float10), boost::make_iterator_range(data, data + rows));
+	  for (size_type i = 0; i != rows; ++ i)
+	    os_txt << ' ' << *(data + i);
 	  
 	  os_bin.write((char*) data, sizeof(tensor_type::Scalar) * rows);
 	}
 	
-	karma::generate(iter, '\n');
+	os_txt << '\n';
       }
   }
   
