@@ -106,9 +106,6 @@ namespace rnnp
 			      const path_type& path_bin,
 			      const tensor_type& matrix) const
   {
-    namespace karma = boost::spirit::karma;
-    namespace standard = boost::spirit::standard;
-    
     const size_type          rows = matrix.rows();
     const word_type::id_type cols = utils::bithack::min(static_cast<size_t>(matrix.cols()), vocab_terminal_.size());
     
@@ -225,9 +222,6 @@ namespace rnnp
 			     const size_type rows,
 			     const size_type cols) const
   {
-    namespace karma = boost::spirit::karma;
-    namespace standard = boost::spirit::standard;
-
     if (cols != matrix.cols())
       throw std::runtime_error("column does not match");
     if (matrix.rows() % rows != 0)
