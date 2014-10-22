@@ -2,7 +2,7 @@
 RNNP
 ====
 
-Recursive Neural Network Parsing
+Recurrent Neural Network Parsing
 
 Model1: no feedback from stack
 Model2: feedback from stack in the shift
