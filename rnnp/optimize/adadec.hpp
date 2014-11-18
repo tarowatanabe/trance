@@ -49,7 +49,7 @@ namespace rnnp
       static inline
       double learning_rate(const double& eta0, const double& epsilon, const double& g)
       {
-	const double rate eta0 / std::sqrt(epsilon + g);
+	const double rate = eta0 / std::sqrt(epsilon + g);
 
 	return std::isfinite(rate) ? rate : 1e-40;
       }
