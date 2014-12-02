@@ -41,13 +41,17 @@ namespace rnnp
       void operator()(model_impl_type& theta,
 		      const gradient_impl_type& gradient,
 		      const option_type& option) const;
-      
+
+      static inline
+      double clip(const double& x)
+      {
+	return std::max(1e-40, std::min(1e+40, x));
+      }
+
       static inline
       double learning_rate(const double& eta0, const double& epsilon, const double& x, const double& g)
       {
-	const double rate = eta0 * std::sqrt(epsilon + x) / std::sqrt(epsilon + g);
-
-	return std::isfinite(rate) ? rate : 1e-40;
+	return eta0 * std::sqrt(clip(epsilon + x)) / std::sqrt(clip(epsilon + g));
       }
 
       struct update_visitor_regularize
