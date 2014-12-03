@@ -43,15 +43,9 @@ namespace rnnp
 		      const option_type& option) const;
 
       static inline
-      double clip(const double& x)
-      {
-	return std::max(1e-40, std::min(1e+40, x));
-      }
-
-      static inline
       double learning_rate(const double& eta0, const double& epsilon, const double& x, const double& g)
       {
-	return eta0 * std::sqrt(clip(epsilon + x)) / std::sqrt(clip(epsilon + g));
+	return eta0 * std::sqrt(std::max(1e-40, epsilon + x)) / std::sqrt(std::max(1e-40, epsilon + g));
       }
 
       struct update_visitor_regularize
