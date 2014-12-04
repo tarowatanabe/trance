@@ -1,0 +1,3 @@
+embedding = 512
+hidden = 32
+model = model5

@@ -1,0 +1,3 @@
+embedding = 128
+hidden = 64
+model = model5
