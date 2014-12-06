@@ -1,4 +1,6 @@
+=======
 License
+=======
 
 The Trance parser is released under the LGPL.
 
@@ -16,20 +18,16 @@ The Trance parser is released under the LGPL.
   along with the Trance parser.  If not, see <http://www.gnu.org/licenses/>.
 
 Bundled Libraries
+-----------------
 
-The Trance parser comes with other libraries which are licensed under
-different copyrights. For details, see the licenses for the included libraries.
+The Trance parser comes with other libraries which are covered by
+different licences. For details, see the documentation by following
+the links.
 
-boost.m4 <http://github.com/tsuna/boost.m4>
-
-Eigen <http://eigen.tuxfamily.org>
-
-Murmurhash2 <http://code.google.com/p/smhasher/>
-
-Murmurhash3 <http://code.google.com/p/smhasher/>
-
-lz4 <http://code.google.com/p/lz4/>
-
-quicklz <http://www.quicklz.com>
-
-fastlz <http://fastlz.org>
+- boost.m4 <http://github.com/tsuna/boost.m4>
+- Eigen <http://eigen.tuxfamily.org>
+- Murmurhash2 <http://code.google.com/p/smhasher/>
+- Murmurhash3 <http://code.google.com/p/smhasher/>
+- lz4 <http://code.google.com/p/lz4/>
+- quicklz <http://www.quicklz.com>
+- fastlz <http://fastlz.org>

@@ -3,8 +3,8 @@ Trance Parser
 =============
 
 Trance parser is an implementation of transition-based neural
-constituent parsing proposed by ..., a transition-based parser with
-neural networks to score all the derivation histories.
+constituent parsing proposed by Taro Watanabe, a transition-based
+parser with neural networks to score all the derivation histories.
 
 - Model1: no feedback from stack
 - Model2: feedback from stack in the shift
@@ -24,12 +24,11 @@ For details, see `BUILD.rst`.
    make
    make install (optional)
 
-
 Parsing
 -------
 
 
+
 Training
 --------
-
 
