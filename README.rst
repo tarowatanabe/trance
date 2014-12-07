@@ -16,10 +16,13 @@ Currently, we support following neural networks (For details, see the paper):
   (`+stack` model in the paper)
 - Model5: Model4 + queue contexts (`+queue` model in the paper)
 
+  
 Compile
 -------
 
-We can follow a standard practice of configure/make/make install. For
+The latest code is available from `github.com <http://github.com/tarowatanabe/trance>`_.
+
+We follow a standard practice of configure/make/make install. For
 details, see `BUILD.rst`.
 
 .. code:: bash
@@ -42,7 +45,12 @@ models each by varying the hidden dimension size, 32 and 64.
 	  --model models/{WSJ,CTB}-{32,64} \
 	  --unary {3,4} \
 	  --signature {English,Chinese} \
-	  --precompute 
+	  --precompute
+
+where, ``--nary`` specify the number of consequtive unaries,
+``--signature`` is used to represent OOVs based on the word's
+signature and ``--precompute`` performs word representation
+precomputation for faster parsing.
 
 Training
 --------
@@ -79,7 +87,7 @@ Second, learn a model:
 	  --hidden [hidden dimension size] \
 	  --embedding [word embedding dimension size] \
 	  --randomize \
-	  --learn all:opt=adadec,violation=max,margin-all=true,iteration=100,eta=1e-2,gamma=0.9,epsilon=1,lambda=1e-5 \
+	  --learn all:opt=adadec,violation=max,margin-all=true,batch=4,iteration=100,eta=1e-2,gamma=0.9,epsilon=1,lambda=1e-5 \
 	  --mix-select \
 	  --averaging \
 	  --debug
@@ -90,9 +98,9 @@ with the best evalb score under the development data. The parameter
 estimation is performed by AdaDec with max-violation considering
 expected mistakes (margin-all=true) with hyperparameters of eta=1e-2,
 gamma=0.9, epsilon=1, lambda=1e-5. The maximum number of iterations is
-set to 100. In each iteration, we select the best model with respect
-to L1 norm (``--mix-select``) and performs averaging for model output
-(``--averaging``). For details, see ...
+set to 100 with mini-batch size of 4. In each iteration, we select the
+best model with respect to L1 norm (``--mix-select``) and performs
+averaging for model output (``--averaging``). For details, see ...
 
 You can precompute word embedding by word2vec or rnnlm, then use it as
 initial parameters for word representation by ``--word-embedding

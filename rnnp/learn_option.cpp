@@ -15,17 +15,17 @@ namespace rnnp
 {
   LearnOption::LearnOption()
     : learn_(LEARN_ALL),
-      optimize_(OPTIMIZE_SGD),
-      objective_(MARGIN_DERIVATION),
-      iteration_(10),
+      optimize_(OPTIMIZE_ADADEC),
+      objective_(VIOLATION_MAX),
+      iteration_(100),
       batch_(4),
-      lambda_(0),
-      eta0_(0.01),
+      lambda_(1e-5),
+      eta0_(1e-2),
       epsilon_(1),
-      gamma_(0.95),
+      gamma_(0.9),
       shrinking_(false),
       decay_(false),
-      margin_all_(false),
+      margin_all_(true),
       scale_(0)
   {
     
