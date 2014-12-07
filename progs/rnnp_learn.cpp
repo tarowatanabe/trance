@@ -164,7 +164,7 @@ int main(int argc, char** argv)
 	throw std::runtime_error("either one of --model{1,2,3,4,5}");
       
       if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6 + model_model7 == 0)
-	model_model2 = true;
+	model_model5 = true;
     } else {
       if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6 + model_model7)
 	throw std::runtime_error("model file is specified via --model, but with --model{1,2,3,4,5,6, 7}?");
@@ -1050,10 +1050,10 @@ void options(int argc, char** argv)
     ("feature",    po::value<feat_set_type>(&feature_functions)->composing(),              "feature function(s)")
     
     ("model1",    po::bool_switch(&model_model1), "parsing by model1")
-    ("model2",    po::bool_switch(&model_model2), "parsing by model2 (default)")
+    ("model2",    po::bool_switch(&model_model2), "parsing by model2")
     ("model3",    po::bool_switch(&model_model3), "parsing by model3")
     ("model4",    po::bool_switch(&model_model4), "parsing by model4")
-    ("model5",    po::bool_switch(&model_model5), "parsing by model5")
+    ("model5",    po::bool_switch(&model_model5), "parsing by model5 (default)")
     ("model6",    po::bool_switch(&model_model6), "parsing by model6")
     ("model7",    po::bool_switch(&model_model7), "parsing by model7")
 

@@ -6,16 +6,21 @@ Trance parser is an implementation of transition-based neural
 constituent parsing proposed by Taro Watanabe, a transition-based
 parser with neural networks to score all the derivation histories.
 
-- Model1: no feedback from stack
-- Model2: feedback from stack in the shift
-- Model3: Model2 + queue context
-- Model4: Model2 + feed back from stack in the reduce
-- Model5: Model3 + Model4
+Currently, we support following neural networks (For details, see the paper):
+
+- Model1: no feedback from stacks or contexts (`tree` model in the
+  paper)
+- Model2: feedback from stacks for shift actions
+- Model3: Model2 + queue contexts
+- Model4: Model2 + feed back from stack for reduce/unary actions
+  (`+stack` model in the paper)
+- Model5: Model4 + queue contexts (`+queue` model in the paper)
 
 Compile
 -------
 
-For details, see `BUILD.rst`.
+We can follow a standard practice of configure/make/make install. For
+details, see `BUILD.rst`.
 
 .. code:: bash
 
@@ -27,8 +32,75 @@ For details, see `BUILD.rst`.
 Parsing
 -------
 
+We provide 2 languages, English (WSJ) and Chinese (CTB), and two
+models each by varying the hidden dimension size, 32 and 64.
 
+.. code:: bash
+
+   progs/trance_parse \
+	  --grammar models/{WSJ,CTB}-grammar.gz \
+	  --model models/{WSJ,CTB}-{32,64} \
+	  --unary {3,4} \
+	  --signature {English,Chinese} \
+	  --precompute 
 
 Training
 --------
+
+First, we need to compute grammar from a treebank:
+
+.. code:: bash
+
+   progs/trance_grammar \
+	  --input [treebank file] \
+	  --output [grammar file] \
+	  --cutoff 3 \
+	  --debug
+
+By default, we use the cutoff threshold to 3 (``--cutoff 3``)
+indicating that the words which occur twice or less are mapped to
+special token `<unk>`. For English or Chinese, it is better to use
+word signature for better mapping OOVs by adding ``--signature
+{English,Chinese}`` option. The ``--debug`` option is recommended
+since it will output various information, most notable, the maximum
+number of unary size, which is used during learning and testing via
+``--unary [maximum unary size]`` option.
+
+Second, learn a model:
+
+.. code:: bash
+
+   progs/trance_learn \
+	  --input [treebank file] \
+	  --test [treebank development file] \
+	  --output [model file] \
+	  --grammar [grammar file] \
+	  --unary   [maximum unary size] \
+	  --hidden [hidden dimension size] \
+	  --embedding [word embedding dimension size] \
+	  --randomize \
+	  --learn all:opt=adadec,violation=max,margin-all=true,iteration=100,eta=1e-2,gamma=0.9,epsilon=1,lambda=1e-5 \
+	  --mix-select \
+	  --averaging \
+	  --debug
+
+Here, We use ``--input`` option to specify training data and use
+``--test`` for development data. The ``--output`` will output a model
+with the best evalb score under the development data. The parameter
+estimation is performed by AdaDec with max-violation considering
+expected mistakes (margin-all=true) with hyperparameters of eta=1e-2,
+gamma=0.9, epsilon=1, lambda=1e-5. The maximum number of iterations is
+set to 100. In each iteration, we select the best model with respect
+to L1 norm (``--mix-select``) and performs averaging for model output
+(``--averaging``). For details, see ...
+
+You can precompute word embedding by word2vec or rnnlm, then use it as
+initial parameters for word representation by ``--word-embedding
+[embedding file]`` option. The format is as follows:
+::
+   word1 param1 param2 ....
+   word2 param1 param2 ...
+   word3 param1 param2 ...
+
+
 

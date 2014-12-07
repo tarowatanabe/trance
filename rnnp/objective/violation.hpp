@@ -45,21 +45,21 @@ namespace rnnp
 	  weight_type Z_candidate;
 	  weight_type Z_oracle;
 	  
-	  double score_min = std::numeric_limits<double>::infinity();
+	  double score_max = - std::numeric_limits<double>::infinity();
 	  
 	  for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o) {
-	    score_min = std::min(score_min, oracles.agenda_[step][o].score());
+	    score_max = std::max(score_max, oracles.agenda_[step][o].score());
 	    Z_oracle += rnnp::semiring::traits<weight_type>::exp(oracles.agenda_[step][o].score());
 	  }
 	  
 	  for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	    if (candidates.agenda_[step][c].score() > score_min)
+	    if (candidates.agenda_[step][c].score() > score_max)
 	      Z_candidate += rnnp::semiring::traits<weight_type>::exp(candidates.agenda_[step][c].score());
 	  
 	  double loss = 0;
 	  
 	  for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	    if (candidates.agenda_[step][c].score() > score_min)
+	    if (candidates.agenda_[step][c].score() > score_max)
 	      for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o) {
 		const state_type& state_candidate = candidates.agenda_[step][c];
 		const state_type& state_oracle    = oracles.agenda_[step][o];
@@ -84,7 +84,7 @@ namespace rnnp
 	      }
 	  
 	  for (size_type c = 0; c != candidates.agenda_[step].size(); ++ c)
-	    if (candidates.agenda_[step][c].score() > score_min)
+	    if (candidates.agenda_[step][c].score() > score_max)
 	      states_[candidates.agenda_[step][c].step()].insert(candidates.agenda_[step][c]);
 	  
 	  for (size_type o = 0; o != oracles.agenda_[step].size(); ++ o)
