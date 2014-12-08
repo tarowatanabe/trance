@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I config
 
-SUBDIRS = utils codec eigen rnnp progs
+SUBDIRS = utils codec eigen trance progs
 
 AUTOMAKE_OPTIONS = foreign
 

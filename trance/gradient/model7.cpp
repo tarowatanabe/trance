@@ -1,0 +1,199 @@
+//
+//  Copyright(C) 2014 Taro Watanabe <taro.watanabe@nict.go.jp>
+//
+
+#include "gradient/model7.hpp"
+
+namespace trance
+{
+  namespace gradient
+  {
+    
+    void Model7::initialize(const size_type& hidden,
+			    const size_type& embedding)
+    {
+
+      Gradient::initialize(hidden, embedding);
+    
+      terminal_.clear();
+    
+      // initialize matrix    
+      Wc_.clear();
+      Bc_.clear();
+      Wfe_.clear();
+    
+      Wsh_.clear();
+      Bsh_.clear();
+
+      Wshr_.clear();
+      Bshr_.clear();
+
+      Wshz_.clear();
+      Bshz_.clear();
+      
+      Wre_.clear();
+      Bre_.clear();
+
+      Wrer_.clear();
+      Brer_.clear();
+
+      Wrez_.clear();
+      Brez_.clear();
+
+      Wu_.clear();
+      Bu_.clear();
+
+      Wur_.clear();
+      Bur_.clear();
+
+      Wuz_.clear();
+      Buz_.clear();
+      
+      Wf_ = tensor_type::Zero(hidden_, hidden_);
+      Bf_ = tensor_type::Zero(hidden_, 1);
+    
+      Wi_ = tensor_type::Zero(hidden_, hidden_);
+      Bi_ = tensor_type::Zero(hidden_, 1);
+
+      Wqu_ = tensor_type::Zero(hidden_, hidden_ + embedding_);
+      Bqu_ = tensor_type::Zero(hidden_, 1);
+      Bqe_ = tensor_type::Zero(hidden_, 1);
+      
+      Ba_ = tensor_type::Zero(hidden_, 1);
+    }
+
+#define GRADIENT_STREAM_OPERATOR(Theta, Op, Stream)	\
+    Theta.Op(Stream, Theta.terminal_);			\
+							\
+    Theta.Op(Stream, Theta.Wc_);			\
+    Theta.Op(Stream, Theta.Bc_);			\
+    Theta.Op(Stream, Theta.Wfe_);			\
+							\
+    Theta.Op(Stream, Theta.Wsh_);			\
+    Theta.Op(Stream, Theta.Bsh_);			\
+							\
+    Theta.Op(Stream, Theta.Wshr_);			\
+    Theta.Op(Stream, Theta.Bshr_);			\
+							\
+    Theta.Op(Stream, Theta.Wshz_);			\
+    Theta.Op(Stream, Theta.Bshz_);			\
+							\
+    Theta.Op(Stream, Theta.Wre_);			\
+    Theta.Op(Stream, Theta.Bre_);			\
+							\
+    Theta.Op(Stream, Theta.Wrer_);			\
+    Theta.Op(Stream, Theta.Brer_);			\
+    							\
+    Theta.Op(Stream, Theta.Wrez_);			\
+    Theta.Op(Stream, Theta.Brez_);			\
+							\
+    Theta.Op(Stream, Theta.Wu_);			\
+    Theta.Op(Stream, Theta.Bu_);			\
+							\
+    Theta.Op(Stream, Theta.Wur_);			\
+    Theta.Op(Stream, Theta.Bur_);			\
+							\
+    Theta.Op(Stream, Theta.Wuz_);			\
+    Theta.Op(Stream, Theta.Buz_);			\
+							\
+    Theta.Op(Stream, Theta.Wf_);			\
+    Theta.Op(Stream, Theta.Bf_);			\
+							\
+    Theta.Op(Stream, Theta.Wi_);			\
+    Theta.Op(Stream, Theta.Bi_);			\
+							\
+    Theta.Op(Stream, Theta.Wqu_);			\
+    Theta.Op(Stream, Theta.Bqu_);			\
+    Theta.Op(Stream, Theta.Bqe_);			\
+							\
+    Theta.Op(Stream, Theta.Bi_);
+
+    std::ostream& operator<<(std::ostream& os, const Model7& theta)
+    {
+      os.write((char*) &theta.hidden_,    sizeof(theta.hidden_));
+      os.write((char*) &theta.embedding_, sizeof(theta.embedding_));
+      os.write((char*) &theta.count_,     sizeof(theta.count_));
+
+      GRADIENT_STREAM_OPERATOR(theta, write_matrix, os);
+    
+      return os;
+    }
+  
+    std::istream& operator>>(std::istream& is, Model7& theta)
+    {
+      is.read((char*) &theta.hidden_,    sizeof(theta.hidden_));
+      is.read((char*) &theta.embedding_, sizeof(theta.embedding_));
+      is.read((char*) &theta.count_,     sizeof(theta.count_));
+
+      GRADIENT_STREAM_OPERATOR(theta, read_matrix, is);
+    
+      return is;
+    }
+
+#undef GRADIENT_STREAM_OPERATOR
+
+#define GRADIENT_BINARY_OPERATOR(Op)	\
+    Op(terminal_, x.terminal_);			\
+						\
+    Op(Wc_,  x.Wc_);				\
+    Op(Bc_,  x.Bc_);				\
+    Op(Wfe_, x.Wfe_);				\
+						\
+    Op(Wsh_, x.Wsh_);				\
+    Op(Bsh_, x.Bsh_);				\
+						\
+    Op(Wshr_, x.Wshr_);				\
+    Op(Bshr_, x.Bshr_);				\
+						\
+    Op(Wshz_, x.Wshz_);				\
+    Op(Bshz_, x.Bshz_);				\
+						\
+    Op(Wre_, x.Wre_);				\
+    Op(Bre_, x.Bre_);				\
+						\
+    Op(Wrer_, x.Wrer_);				\
+    Op(Brer_, x.Brer_);				\
+						\
+    Op(Wrez_, x.Wrez_);				\
+    Op(Brez_, x.Brez_);				\
+						\
+    Op(Wu_, x.Wu_);				\
+    Op(Bu_, x.Bu_);				\
+						\
+    Op(Wur_, x.Wur_);				\
+    Op(Bur_, x.Bur_);				\
+						\
+    Op(Wuz_, x.Wuz_);				\
+    Op(Buz_, x.Buz_);				\
+						\
+    Op(Wf_, x.Wf_);				\
+    Op(Bf_, x.Bf_);				\
+						\
+    Op(Wi_, x.Wi_);				\
+    Op(Bi_, x.Bi_);				\
+						\
+    Op(Wqu_, x.Wqu_);				\
+    Op(Bqu_, x.Bqu_);				\
+    Op(Bqe_, x.Bqe_);				\
+						\
+    Op(Ba_, x.Ba_);
+
+  
+    Model7& Model7::operator+=(const Model7& x)
+    {
+      GRADIENT_BINARY_OPERATOR(plus_equal);
+
+      return *this;
+    }
+  
+    Model7& Model7::operator-=(const Model7& x)
+    {
+      GRADIENT_BINARY_OPERATOR(minus_equal);
+
+      return *this;
+    }
+
+#undef GRADIENT_BINARY_OPERATOR
+
+  };
+};

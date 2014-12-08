@@ -8,40 +8,40 @@ boost_LDADD = \
 	$(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_FILESYSTEM_LIBS) \
 	$(BOOST_IOSTREAMS_LDFLAGS) $(BOOST_IOSTREAMS_LIBS) 
 
-LIBRNNP   = $(top_builddir)/rnnp/librnnp.la
+LIBTRANCE   = $(top_builddir)/trance/libtrance.la
 LIBUTILS = $(top_builddir)/utils/libutils.la
 LIBCODEC = $(top_builddir)/codec/libcodec.la
 
 bin_PROGRAMS = \
-	rnnp_grammar \
-	rnnp_graphviz \
-	rnnp_learn \
-	rnnp_learn_mpi \
-	rnnp_parse \
-	rnnp_oracle \
-	rnnp_treebank
+	trance_grammar \
+	trance_graphviz \
+	trance_learn \
+	trance_learn_mpi \
+	trance_parse \
+	trance_oracle \
+	trance_treebank
 
-rnnp_grammar_SOURCES = rnnp_grammar.cpp
-rnnp_grammar_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
+trance_grammar_SOURCES = trance_grammar.cpp
+trance_grammar_LDADD   = $(LIBTRANCE) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
-rnnp_graphviz_SOURCES = rnnp_graphviz.cpp
-rnnp_graphviz_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
+trance_graphviz_SOURCES = trance_graphviz.cpp
+trance_graphviz_LDADD   = $(LIBTRANCE) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
-rnnp_learn_SOURCES = rnnp_learn.cpp
-rnnp_learn_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
+trance_learn_SOURCES = trance_learn.cpp
+trance_learn_LDADD   = $(LIBTRANCE) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
-rnnp_parse_SOURCES = rnnp_parse.cpp
-rnnp_parse_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
+trance_parse_SOURCES = trance_parse.cpp
+trance_parse_LDADD   = $(LIBTRANCE) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
-rnnp_learn_mpi_SOURCES = rnnp_learn_mpi.cpp
-rnnp_learn_mpi_CPPFLAGS = $(MPI_CPPFLAGS) $(AM_CPPFLAGS)
-rnnp_learn_mpi_LDADD   = $(MPI_LDFLAGS) $(LIBRNNP) $(LIBUTILS) $(LIBCODEC) $(boost_LDADD) $(perftools_LDADD)
+trance_learn_mpi_SOURCES = trance_learn_mpi.cpp
+trance_learn_mpi_CPPFLAGS = $(MPI_CPPFLAGS) $(AM_CPPFLAGS)
+trance_learn_mpi_LDADD   = $(MPI_LDFLAGS) $(LIBTRANCE) $(LIBUTILS) $(LIBCODEC) $(boost_LDADD) $(perftools_LDADD)
 
-rnnp_oracle_SOURCES = rnnp_oracle.cpp
-rnnp_oracle_LDADD   = $(LIBRNNP) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
+trance_oracle_SOURCES = trance_oracle.cpp
+trance_oracle_LDADD   = $(LIBTRANCE) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
-rnnp_treebank_SOURCES = rnnp_treebank.cpp
-rnnp_treebank_LDADD   = $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
+trance_treebank_SOURCES = trance_treebank.cpp
+trance_treebank_LDADD   = $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
 
 noinst_DATA = .gitignore

@@ -13,7 +13,7 @@ lz4_codec.cpp \
 quicklz.c \
 quicklz_codec.cpp
 
-libcodec_la_LDFLAGS = -version-info $(RNNP_LTVERSION)
+libcodec_la_LDFLAGS = -version-info $(TRANCE_LTVERSION)
 
 libcodec_la_LIBADD = \
 	$(BOOST_IOSTREAMS_LDFLAGS) $(BOOST_IOSTREAMS_LIBS) \

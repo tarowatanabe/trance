@@ -11,7 +11,7 @@ libutils_la_SOURCES = \
 	malloc_stats.cpp \
 	tempfile.cpp
 
-libutils_la_LDFLAGS = -version-info $(RNNP_LTVERSION)
+libutils_la_LDFLAGS = -version-info $(TRANCE_LTVERSION)
 
 libutils_la_LIBADD = \
 	$(BOOST_THREAD_LDFLAGS) $(BOOST_THREAD_LIBS) \

@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([rnnp], [0.0.0], [taro.watanabe@nict.go.jp])
+AC_INIT([trance], [0.0.0], [taro.watanabe@nict.go.jp])
 
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR([config])
@@ -16,11 +16,11 @@ AM_INIT_AUTOMAKE([subdir-objects])
 # 5. If any interfaces have been added since the last public release, then increment age.
 # 6. If any interfaces have been removed or changed since the last public release, then set age to 0.
 
-RNNP_LTVERSION=0:0:0
-AC_SUBST(RNNP_LTVERSION)
+TRANCE_LTVERSION=0:0:0
+AC_SUBST(TRANCE_LTVERSION)
 
-RNNP_VERSION=0.0.0
-AC_SUBST(RNNP_VERSION)
+TRANCE_VERSION=0.0.0
+AC_SUBST(TRANCE_VERSION)
 
 AC_CONFIG_HEADERS(utils/config.h)
 
@@ -529,6 +529,6 @@ AC_CONFIG_FILES([Makefile
                  codec/Makefile
                  eigen/Makefile
                  progs/Makefile
-                 rnnp/Makefile
+                 trance/Makefile
                  utils/Makefile])
 AC_OUTPUT
