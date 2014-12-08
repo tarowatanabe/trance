@@ -3,19 +3,25 @@ Trance Parser
 =============
 
 Trance parser is an implementation of transition-based neural
-constituent parsing proposed by Taro Watanabe, a transition-based
+constituent parsing proposed by [1]_, a transition-based
 parser with neural networks to score all the derivation histories.
 
-Currently, we support following neural networks (For details, see the paper):
+Currently, we support following neural networks (For details, see [1]_):
 
-- Model1: no feedback from stacks or contexts (`tree` model in the
-  paper)
+- Model1: no feedback from stacks or contexts (`tree` model)
 - Model2: feedback from stacks for shift actions
 - Model3: Model2 + queue contexts
-- Model4: Model2 + feed back from stack for reduce/unary actions
-  (`+stack` model in the paper)
-- Model5: Model4 + queue contexts (`+queue` model in the paper)
+- Model4: Model2 + feed back from stack for reduce/unary actions (`+stack` model)
+- Model5: Model4 + queue contexts (`+queue` model)
 
+Various training objective:
+
+- {max,early,late}-violation with expected/Viterbi mistakes
+- expected evalb
+- structured hinge loss
+
+and online optimizer: SGD, AdaGrad, AdaDec and AdaDelta.
+  
 Compile
 -------
 
@@ -47,7 +53,7 @@ Model5 which performs the best in our settings.
 	  --signature {English,Chinese} \
 	  --precompute
 
-where, ``--unary`` specifies the number of consequtive unaries, and
+where ``--unary`` specifies the number of consequtive unaries and
 uses 3 for WSJ, and 4 for CTB. ``--signature`` is used to represent
 OOVs based on the word's signature and ``--precompute`` performs word
 representation precomputation for faster parsing.
@@ -124,11 +130,14 @@ have to use the same one. ``--unary`` option should be the same as the
 maximum unary size output by the ``trance_grammar`` with ``--debug``
 option.
 
-By default, we use the hidden size of 64 and embedding size of 64. You
-can precompute word embedding by word2vec or rnnlm, then use it as
-initial parameters for word representation by ``--word-embedding
-[embedding file]`` option. The format is as follows:
+By default, we use the hidden size of 64 and embedding size of 64, and
+the model parameters are initialized randomly (``--ramdomize``). You
+can precompute word embedding by `word2vec <https://code.google.com/p/word2vec/>`_
+or `rnnlm <http://rnnlm.org>`_, then use it as initial parameters for
+word representation by ``--word-embedding [embedding file]``
+option. The format is as follows:
 ::
+   
    word1 param1 param2 ... param[embedding size]
    word2 param1 param2 ... param[embedding size]
    word3 param1 param2 ... param[embedding size]
@@ -139,7 +148,11 @@ of eta=1e-2, gamma=0.9, epsilon=1, lambda=1e-5. The maximum number of
 iterations is set to 100 with mini-batch size of 4. In each iteration,
 we select the best model with respect to L1 norm (``--mix-select``)
 and performs averaging for model output (``--averaging``). For
-details, see ...
+details, see [1]_.
 
 
+References
+----------
 
+.. [1]   Taro Watanabe and Eiichiro Sumita. Transition-based Neural
+	 Constituent Parsing. In Proc. of HLT-NAACL 2014.

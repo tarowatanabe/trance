@@ -32,22 +32,22 @@ namespace trance
 	  weight_type Z_candidate;
 	  weight_type Z_oracle;
 
-	  double score_min = std::numeric_limits<double>::infinity();
+	  double score_max = - std::numeric_limits<double>::infinity();
 
 	  for (size_type o = 0; o != kbest_oracle_size; ++ o) {
-	    score_min = std::min(score_min, oracles.agenda_.back()[o].score());
+	    score_max = std::max(score_max, oracles.agenda_.back()[o].score());
 	    Z_oracle += semiring::traits<weight_type>::exp(oracles.agenda_.back()[o].score());
 	  }
 	  
 	  for (size_type c = 0; c != kbest_candidate_size; ++ c)
-	    if (candidates.agenda_.back()[c].score() > score_min)
+	    if (candidates.agenda_.back()[c].score() > score_max)
 	      Z_candidate += semiring::traits<weight_type>::exp(candidates.agenda_.back()[c].score());
 	  
 	  bool found = false;
 	  double loss = 0.0;
 	  
 	  for (size_type c = 0; c != kbest_candidate_size; ++ c)
-	    if (candidates.agenda_.back()[c].score() > score_min)
+	    if (candidates.agenda_.back()[c].score() > score_max)
 	      for (size_type o = 0; o != kbest_oracle_size; ++ o) {
 		state_type state_candidate = candidates.agenda_.back()[c];
 		state_type state_oracle    = oracles.agenda_.back()[o];
@@ -99,7 +99,7 @@ namespace trance
 	  if (! found) return 0.0;
 	  
 	  for (size_type c = 0; c != kbest_candidate_size; ++ c)
-	    if (candidates.agenda_.back()[c].score() > score_min)
+	    if (candidates.agenda_.back()[c].score() > score_max)
 	      states_[candidates.agenda_.back()[c].step()].insert(candidates.agenda_.back()[c]);
 	  
 	  for (size_type o = 0; o != kbest_oracle_size; ++ o)
