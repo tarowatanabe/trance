@@ -12,14 +12,20 @@ LIBTRANCE   = $(top_builddir)/trance/libtrance.la
 LIBUTILS = $(top_builddir)/utils/libutils.la
 LIBCODEC = $(top_builddir)/codec/libcodec.la
 
+if WITH_MPI
+bin_mpi = \
+	trance_learn_mpi
+endif WITH_MPI
+
 bin_PROGRAMS = \
 	trance_grammar \
 	trance_graphviz \
 	trance_learn \
-	trance_learn_mpi \
 	trance_parse \
 	trance_oracle \
-	trance_treebank
+	trance_treebank \
+	\
+	$(bin_mpi)
 
 trance_grammar_SOURCES = trance_grammar.cpp
 trance_grammar_LDADD   = $(LIBTRANCE) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
@@ -33,16 +39,17 @@ trance_learn_LDADD   = $(LIBTRANCE) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD
 trance_parse_SOURCES = trance_parse.cpp
 trance_parse_LDADD   = $(LIBTRANCE) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
-trance_learn_mpi_SOURCES = trance_learn_mpi.cpp
-trance_learn_mpi_CPPFLAGS = $(MPI_CPPFLAGS) $(AM_CPPFLAGS)
-trance_learn_mpi_LDADD   = $(MPI_LDFLAGS) $(LIBTRANCE) $(LIBUTILS) $(LIBCODEC) $(boost_LDADD) $(perftools_LDADD)
-
 trance_oracle_SOURCES = trance_oracle.cpp
 trance_oracle_LDADD   = $(LIBTRANCE) $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
 trance_treebank_SOURCES = trance_treebank.cpp
 trance_treebank_LDADD   = $(LIBUTILS) $(boost_LDADD) $(perftools_LDADD)
 
+if WITH_MPI
+trance_learn_mpi_SOURCES = trance_learn_mpi.cpp
+trance_learn_mpi_CPPFLAGS = $(MPI_CPPFLAGS) $(AM_CPPFLAGS)
+trance_learn_mpi_LDADD   = $(MPI_LDFLAGS) $(LIBTRANCE) $(LIBUTILS) $(LIBCODEC) $(boost_LDADD) $(perftools_LDADD)
+endif WITH_MPI
 
 noinst_DATA = .gitignore
 

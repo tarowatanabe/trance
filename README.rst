@@ -36,7 +36,8 @@ Parsing
 -------
 
 We provide 2 languages, English (WSJ) and Chinese (CTB), and two
-models each by varying the hidden dimension size, 32 and 64.
+models each by varying the hidden dimension size, 32 and 64. They are
+Model5 which performs the best in our settings.
 
 .. code:: bash
 
@@ -47,7 +48,7 @@ models each by varying the hidden dimension size, 32 and 64.
 	  --signature {English,Chinese} \
 	  --precompute
 
-where, ``--nary`` specify the number of consequtive unaries,
+where, ``--unary`` specify the number of consequtive unaries,
 ``--signature`` is used to represent OOVs based on the word's
 signature and ``--precompute`` performs word representation
 precomputation for faster parsing.
@@ -93,22 +94,23 @@ Second, learn a model:
 	  --debug
 
 Here, We use ``--input`` option to specify training data and use
-``--test`` for development data. The ``--output`` will output a model
-with the best evalb score under the development data. The parameter
-estimation is performed by AdaDec with max-violation considering
-expected mistakes (margin-all=true) with hyperparameters of eta=1e-2,
-gamma=0.9, epsilon=1, lambda=1e-5. The maximum number of iterations is
-set to 100 with mini-batch size of 4. In each iteration, we select the
-best model with respect to L1 norm (``--mix-select``) and performs
-averaging for model output (``--averaging``). For details, see ...
+``--test`` for development data. The ``--output`` will output a model,
+by default Mode5, with the best evalb score under the development
+data. The parameter estimation is performed by AdaDec with
+max-violation considering expected mistakes (margin-all=true) with
+hyperparameters of eta=1e-2, gamma=0.9, epsilon=1, lambda=1e-5. The
+maximum number of iterations is set to 100 with mini-batch size
+of 4. In each iteration, we select the best model with respect to L1
+norm (``--mix-select``) and performs averaging for model output
+(``--averaging``). For details, see ...
 
 You can precompute word embedding by word2vec or rnnlm, then use it as
 initial parameters for word representation by ``--word-embedding
 [embedding file]`` option. The format is as follows:
 ::
-   word1 param1 param2 ....
-   word2 param1 param2 ...
-   word3 param1 param2 ...
+   word1 param1 param2 ... param[embedding size]
+   word2 param1 param2 ... param[embedding size]
+   word3 param1 param2 ... param[embedding size]
 
 
 
