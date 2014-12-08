@@ -16,7 +16,6 @@ Currently, we support following neural networks (For details, see the paper):
   (`+stack` model in the paper)
 - Model5: Model4 + queue contexts (`+queue` model in the paper)
 
-  
 Compile
 -------
 
@@ -48,15 +47,37 @@ Model5 which performs the best in our settings.
 	  --signature {English,Chinese} \
 	  --precompute
 
-where, ``--unary`` specify the number of consequtive unaries,
-``--signature`` is used to represent OOVs based on the word's
-signature and ``--precompute`` performs word representation
-precomputation for faster parsing.
+where, ``--unary`` specifies the number of consequtive unaries, and
+uses 3 for WSJ, and 4 for CTB. ``--signature`` is used to represent
+OOVs based on the word's signature and ``--precompute`` performs word
+representation precomputation for faster parsing.
 
 Training
 --------
 
-First, we need to compute grammar from a treebank:
+Sample scripts are available in `samples/train-{wsj,ctb}.sh` for
+training WSJ and CTB, respectively, using some publicly available
+tools.
+
+In brief, first, we need to obtain treebank trees in a normalized
+form:
+
+.. code:: bash
+
+   cat [treebank files] | \
+   progs/trance_treebank \
+	  --output [output normalized treebank]
+	  --normalize \
+	  --remove-none \
+	  --remove-cycle
+
+Here, trees are normalized by adding ROOT label, removing `-NONE-`,
+removing X over X unaries and stripping off tags in each label. If you
+add ``--leaf`` flag, it will output only leaves, i.e. sentences. The
+``--pos`` option can replace each POS tag in trees specified by a
+POS-file consisting of a sequence of POSs for each word.
+
+Second, we need to compute grammar from a treebank:
 
 .. code:: bash
 
@@ -75,7 +96,7 @@ since it will output various information, most notable, the maximum
 number of unary size, which is used during learning and testing via
 ``--unary [maximum unary size]`` option.
 
-Second, learn a model:
+Third, learn a model:
 
 .. code:: bash
 
@@ -93,7 +114,7 @@ Second, learn a model:
 	  --averaging \
 	  --debug
 
-Here, We use ``--input`` option to specify training data and use
+Here, we use ``--input`` option to specify training data and use
 ``--test`` for development data. The ``--output`` will output a model
 with the best evalb score under the development data. By default, we
 will train Model5, but you can use different models by
@@ -113,7 +134,7 @@ initial parameters for word representation by ``--word-embedding
    word3 param1 param2 ... param[embedding size]
 
 The parameter estimation is performed by AdaDec with max-violation
-considering expected mistakes (margin-all=true) with hyperparameters
+considering expected mistakes (``margin-all=true``) with hyperparameters
 of eta=1e-2, gamma=0.9, epsilon=1, lambda=1e-5. The maximum number of
 iterations is set to 100 with mini-batch size of 4. In each iteration,
 we select the best model with respect to L1 norm (``--mix-select``)
