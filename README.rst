@@ -94,23 +94,31 @@ Second, learn a model:
 	  --debug
 
 Here, We use ``--input`` option to specify training data and use
-``--test`` for development data. The ``--output`` will output a model,
-by default Mode5, with the best evalb score under the development
-data. The parameter estimation is performed by AdaDec with
-max-violation considering expected mistakes (margin-all=true) with
-hyperparameters of eta=1e-2, gamma=0.9, epsilon=1, lambda=1e-5. The
-maximum number of iterations is set to 100 with mini-batch size
-of 4. In each iteration, we select the best model with respect to L1
-norm (``--mix-select``) and performs averaging for model output
-(``--averaging``). For details, see ...
+``--test`` for development data. The ``--output`` will output a model
+with the best evalb score under the development data. By default, we
+will train Model5, but you can use different models by
+``--model[1-5]`` options. The grammar file is learned by
+``trance_grammar`` and if you specified ``--signature`` option, you
+have to use the same one. ``--unary`` option should be the same as the
+maximum unary size output by the ``trance_grammar`` with ``--debug``
+option.
 
-You can precompute word embedding by word2vec or rnnlm, then use it as
+By default, we use the hidden size of 64 and embedding size of 64. You
+can precompute word embedding by word2vec or rnnlm, then use it as
 initial parameters for word representation by ``--word-embedding
 [embedding file]`` option. The format is as follows:
 ::
    word1 param1 param2 ... param[embedding size]
    word2 param1 param2 ... param[embedding size]
    word3 param1 param2 ... param[embedding size]
+
+The parameter estimation is performed by AdaDec with max-violation
+considering expected mistakes (margin-all=true) with hyperparameters
+of eta=1e-2, gamma=0.9, epsilon=1, lambda=1e-5. The maximum number of
+iterations is set to 100 with mini-batch size of 4. In each iteration,
+we select the best model with respect to L1 norm (``--mix-select``)
+and performs averaging for model output (``--averaging``). For
+details, see ...
 
 
 

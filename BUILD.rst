@@ -49,19 +49,19 @@ Requirements
   version, there were a couple of serious bugs which prevent us from
   running correctly.
 
-- MPI (Open MPI): http://www.open-mpi.org/
-
-  We strongly recommend open-mpi since it is regularly tested.
-  The MPI libraries are automatically detected by the `configure`
-  script by finding either `mpic++`, `mpicxx` or `mpiCC`. Thus, those
-  mpi specific compilers should be on the executable path.
-
 - ICU: http://site.icu-project.org/
    
   The `configure` script relies on `icu-config` installed by the ICU
   library. Thus, `icu-config` must be in the executable path.
 
 - Optional:
+
+  + MPI (Open MPI): http://www.open-mpi.org/
+    
+    We strongly recommend open-mpi since it is regularly tested.
+    The MPI libraries are automatically detected by the `configure`
+    script by finding either `mpic++`, `mpicxx` or `mpiCC`. Thus,
+    those mpi specific compilers should be on the executable path.
 
    + snappy: http://code.google.com/p/snappy/
 
