@@ -5,12 +5,33 @@
 trance=directory-for-trance-parser
 corpus=directory-for-pentreebank/parsed/mrg/wsj
 tagger=directory-for-stanford-tagger
+samples=${trance}/samples
+
+if test ! -e "$trance"; then
+  echo "no trance directory" >&2
+  exit -1
+fi
+
+if test ! -e "$corpus"; then
+  echo "no corpus directory" >&2
+  exit -1
+fi
+
+if test ! -e "$tagger"; then
+  echo "no tagger directory" >&2
+  exit -1
+fi
+
+if test ! -e "$samples"; then
+  echo "no samples directory" >&2
+  exit -1
+fi
 
 ## prepare POS: Here, we extract unescaped terminals, \/ into / and \* into * etc.
 cat ${corpus}/0[2-9]/* ${corpus}/1[0-9]/* ${corpus}/2[0-1]/* | \
 ${trance}/progs/trance_treebank --remove-none --remove-cycle --normalize --leaf --unescape | \
 java -mx4g -cp $tagger/stanford-postagger.jar edu.stanford.nlp.tagger.maxent.MaxentTagger -model $tagger/models/wsj-0-18-bidirectional-distsim.tagger -textFile /dev/stdin -tokenize false -outputFormat slashTags -tagSeparator _ | \
-./split-pos.py > WSJ-train.pos
+${samples}/split-pos.py > WSJ-train.pos
 
 ## prepare treebanks. The POSs of training data are replaced by those tagged by stanford POS tagger.
 cat ${corpus}/0[2-9]/* ${corpus}/1[0-9]/* ${corpus}/2[0-1]/* | \
@@ -36,7 +57,7 @@ ${trance}/progs/trance_learn \
 	 --input WSJ-train.treebank \
 	 --test  WSJ-22.treebank \
 	 --output WSJ-64 \
-	 --grammar WSJ-gramamr.gz \
+	 --grammar WSJ-grammar.gz \
 	 --signature English \
 	 --unary 3 \
 	 --model5 \

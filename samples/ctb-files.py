@@ -6,8 +6,13 @@ import os.path
 
 import re
 
+dir=sys.argv[1]
+
+if not os.path.exists(dir):
+    raise ValueError, "no directory?"
+
 groups=[]
-for arg in sys.argv[1:]:
+for arg in sys.argv[2:]:
     span = map(int, arg.split('-'))
     if len(span) != 2:
         raise ValueError, "invlaid arg: " + arg
@@ -18,7 +23,6 @@ if not groups:
     raise ValueError, "no spans"
 
 
-dir='orig/'
 pattern=re.compile(r"chtb_([0-9]*).*")
 
 
