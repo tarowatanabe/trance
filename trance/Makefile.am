@@ -138,6 +138,7 @@ optimize.hpp \
 option.hpp \
 oracle.hpp \
 parser.hpp \
+parser_oracle.hpp \
 rule.hpp \
 semiring.hpp \
 sentence.hpp \

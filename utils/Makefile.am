@@ -49,6 +49,7 @@ indexed_map.hpp \
 indexed_set.hpp \
 lockfree_list_queue.hpp \
 malloc_stats.hpp \
+mathop.hpp \
 memory.hpp \
 mpi.hpp \
 mpi_allocator.hpp \
@@ -62,6 +63,7 @@ piece.hpp \
 program_options.hpp \
 random_seed.hpp \
 repository.hpp \
+resource.hpp \
 rwticket.hpp \
 simple_vector.hpp \
 small_vector.hpp \

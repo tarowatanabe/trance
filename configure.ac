@@ -530,7 +530,9 @@ AC_CHECK_FUNCS([clock_gettime gethostname gettimeofday memmove memset pow select
 AC_CONFIG_FILES([Makefile
                  codec/Makefile
                  eigen/Makefile
+		 models/Makefile
                  progs/Makefile
+		 samples/Makefile
                  trance/Makefile
                  utils/Makefile])
 AC_OUTPUT
