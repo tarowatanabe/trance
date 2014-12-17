@@ -40,9 +40,11 @@ details, see `BUILD.rst`.
 Parsing
 -------
 
-We provide 2 languages, English (WSJ) and Chinese (CTB), and two
-models each by varying the hidden dimension size, 32 and 64. They are
-Model5 which performs the best in our settings.
+We provide models for 2 languages, English (WSJ) and Chinese (CTB),
+and two models each by varying the hidden dimension size, 32
+and 64. They are Model5 which performs the best in our settings.
+Following is an example to run our modes, using STDIN/STDOUT as our
+input/output:
 
 .. code:: bash
 
@@ -56,7 +58,12 @@ Model5 which performs the best in our settings.
 where ``--unary`` specifies the number of consequtive unaries and
 uses 3 for WSJ, and 4 for CTB. ``--signature`` is used to represent
 OOVs based on the word's signature and ``--precompute`` performs word
-representation precomputation for faster parsing.
+representation precomputation for faster parsing. Input sentences are
+assumed to be tokenized according to their standards: For English, it
+is recommended to use a tokenizer from the `Stanford Parser
+<http://nlp.stanford.edu/software/lex-parser.shtml>`_.
+For Chinese, the `Stanford Word Segmenter
+<http://nlp.stanford.edu/software/segmenter.shtml>`_ is a good choice.
 
 Training
 --------
@@ -149,7 +156,6 @@ iterations is set to 100 with mini-batch size of 4. In each iteration,
 we select the best model with respect to L1 norm (``--mix-select``)
 and performs averaging for model output (``--averaging``). For
 details, see [1]_.
-
 
 References
 ----------
