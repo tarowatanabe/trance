@@ -16,4 +16,5 @@ exec $trance/../progs/trance_parse \
      --grammar $trance/CTB-grammar.gz \
      --model $trance/CTB-64 \
      --signature Chinese \
+     --precompute \
      "$@"

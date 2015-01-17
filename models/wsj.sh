@@ -16,4 +16,5 @@ exec $trance/../progs/trance_parse \
      --grammar $trance/WSJ-grammar.gz \
      --model $trance/WSJ-64 \
      --signature English \
+     --precompute \
      "$@"
