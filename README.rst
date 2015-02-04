@@ -161,4 +161,4 @@ References
 ----------
 
 .. [1]   Taro Watanabe and Eiichiro Sumita. Transition-based Neural
-	 Constituent Parsing. In Proc. of HLT-NAACL 2014.
+	 Constituent Parsing. In Proc. of HLT-NAACL 2015.
