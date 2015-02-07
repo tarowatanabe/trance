@@ -1,10 +1,8 @@
 
 EXTRA_DIST = \
-CTB-32 \
-CTB-64 \
+CTB \
 CTB-grammar.gz \
-WSJ-32 \
-WSJ-64 \
+WSJ \
 WSJ-grammar.gz \
 ctb.sh \
 wsj.sh

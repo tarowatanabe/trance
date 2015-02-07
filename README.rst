@@ -40,17 +40,13 @@ details, see `BUILD.rst`.
 Parsing
 -------
 
-We provide models for 2 languages, English (WSJ) and Chinese (CTB),
-and two models each by varying the hidden dimension size, 32
-and 64. They are Model5 which performs the best in our settings.
-Following is an example to run our modes, using STDIN/STDOUT as our
-input/output:
+We provide models for 2 languages, English (WSJ) and Chinese (CTB). They are Model5 which performs the best in our settings. Following is an example to run our modes, using STDIN/STDOUT as our input/output:
 
 .. code:: bash
 
    progs/trance_parse \
 	  --grammar models/{WSJ,CTB}-grammar.gz \
-	  --model models/{WSJ,CTB}-{32,64} \
+	  --model models/{WSJ,CTB} \
 	  --unary {3,4} \
 	  --signature {English,Chinese} \
 	  --precompute
