@@ -156,9 +156,10 @@ The parameter estimation is performed by AdaDec with max-violation
 considering expected mistakes (``margin-all=true``) with hyperparameters
 of eta=1e-2, gamma=0.9, epsilon=1, lambda=1e-5. The maximum number of
 iterations is set to 100 with mini-batch size of 4, beam size of 32
-and kbest size of 128. In each iteration, we select the best model
-with respect to L1 norm (``--mix-select``) and performs averaging for
-model output (``--averaging``). For details, see [1]_.
+and kbest size of 128, i.e., the beam size in the final bin. In each
+iteration, we select the best model with respect to L1 norm
+(``--mix-select``) and performs averaging for model output
+(``--averaging``). For details, see [1]_.
 
 References
 ----------
