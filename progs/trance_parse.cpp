@@ -505,9 +505,19 @@ void parse(const grammar_type& grammar,
   typedef Mapper<Theta> mapper_type;
   typedef Reducer       reducer_type;
   
-  if (! model_file.empty())
+  if (! model_file.empty()) {
+    utils::resource start;
+    
     theta.read(model_file);
-  else {
+    
+    utils::resource end;
+    
+    if (debug)
+      std::cerr << "read model parameters:"
+		<< " cpu time: " << end.cpu_time() - start.cpu_time()
+		<< " user time: " << end.user_time() - start.user_time()
+		<< std::endl;
+  } else {
     if (randomize) {
       boost::mt19937 generator;
       generator.seed(utils::random_seed());
@@ -519,8 +529,19 @@ void parse(const grammar_type& grammar,
       theta.embedding(embedding_file);
   }
   
-  if (precompute)
+  if (precompute) {
+    utils::resource start;
+    
     theta.precompute();
+    
+    utils::resource end;
+    
+    if (debug)
+      std::cerr << "precomputation:"
+		<< " cpu time: " << end.cpu_time() - start.cpu_time()
+		<< " user time: " << end.user_time() - start.user_time()
+		<< std::endl;
+  }
   
   if (debug) {
     const size_t terminals = std::count(theta.vocab_terminal_.begin(), theta.vocab_terminal_.end(), true);
