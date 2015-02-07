@@ -49,18 +49,20 @@ as our input/output:
 
    progs/trance_parse \
 	  --grammar models/{WSJ,CTB}-grammar.gz \
-	  --model models/{WSJ,CTB} \
+	  --model models/{WSJ,CTB}-model \
 	  --unary {3,4} \
 	  --signature {English,Chinese} \
-	  --precompute
+	  --precompute \
+          --simple
 
 where ``--unary`` specifies the number of consequtive unaries and
 uses 3 for WSJ, and 4 for CTB. ``--signature`` is used to represent
 OOVs based on the word's signature and ``--precompute`` performs word
-representation precomputation for faster parsing. Input sentences are
-assumed to be tokenized according to their standards: For English, it
-is recommended to use a tokenizer from the `Stanford Parser
-<http://nlp.stanford.edu/software/lex-parser.shtml>`_.
+representation precomputation for faster parsing. The option
+``--simple`` specifies a Penn-treebank style output format.
+Input sentences are assumed to be tokenized according to their
+standards: For English, it is recommended to use a tokenizer from the
+`Stanford Parser <http://nlp.stanford.edu/software/lex-parser.shtml>`_.
 For Chinese, the `Stanford Word Segmenter
 <http://nlp.stanford.edu/software/segmenter.shtml>`_ is a good choice.
 
@@ -120,6 +122,8 @@ Third, learn a model:
 	  --unary   [maximum unary size] \
 	  --hidden [hidden dimension size] \
 	  --embedding [word embedding dimension size] \
+          --beam 32 \
+          --kbest 128 \
 	  --randomize \
 	  --learn all:opt=adadec,violation=max,margin-all=true,batch=4,iteration=100,eta=1e-2,gamma=0.9,epsilon=1,lambda=1e-5 \
 	  --mix-select \
@@ -151,10 +155,10 @@ option. The format is as follows:
 The parameter estimation is performed by AdaDec with max-violation
 considering expected mistakes (``margin-all=true``) with hyperparameters
 of eta=1e-2, gamma=0.9, epsilon=1, lambda=1e-5. The maximum number of
-iterations is set to 100 with mini-batch size of 4. In each iteration,
-we select the best model with respect to L1 norm (``--mix-select``)
-and performs averaging for model output (``--averaging``). For
-details, see [1]_.
+iterations is set to 100 with mini-batch size of 4, beam size of 32
+and kbest size of 128. In each iteration, we select the best model
+with respect to L1 norm (``--mix-select``) and performs averaging for
+model output (``--averaging``). For details, see [1]_.
 
 References
 ----------

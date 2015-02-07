@@ -14,7 +14,7 @@ trance=`abspath $dirrel`
 
 exec $trance/../progs/trance_parse \
      --grammar $trance/WSJ-grammar.gz \
-     --model $trance/WSJ \
+     --model $trance/WSJ-model \
      --signature English \
      --unary 3 \
      --precompute \

@@ -14,7 +14,7 @@ trance=`abspath $dirrel`
 
 exec $trance/../progs/trance_parse \
      --grammar $trance/CTB-grammar.gz \
-     --model $trance/CTB \
+     --model $trance/CTB-model \
      --signature Chinese \
      --unary 4 \
      --precompute \

@@ -56,13 +56,13 @@ ${trance}/progs/trance_grammar \
 ${trance}/progs/trance_learn \
 	 --input CTB-train.treebank \
 	 --test  CTB-dev.treebank \
-	 --output CTB-64 \
+	 --output CTB-model \
 	 --grammar CTB-grammar.gz \
 	 --signature Chinese \
 	 --unary 4 \
 	 --model5 \
 	 --hidden 64 \
-	 --embedding 512 \
+	 --embedding 1024 \
 	 --randomize \
 	 --kbest 100 \
 	 --beam 32 \

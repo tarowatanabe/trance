@@ -56,13 +56,13 @@ ${trance}/progs/trance_grammar \
 ${trance}/progs/trance_learn \
 	 --input WSJ-train.treebank \
 	 --test  WSJ-22.treebank \
-	 --output WSJ-64 \
+	 --output WSJ-model \
 	 --grammar WSJ-grammar.gz \
 	 --signature English \
 	 --unary 3 \
 	 --model5 \
 	 --hidden 64 \
-	 --embedding 128 \
+	 --embedding 1024 \
 	 --randomize \
 	 --kbest 100 \
 	 --beam 32 \
