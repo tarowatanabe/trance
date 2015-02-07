@@ -98,8 +98,8 @@ path_type embedding_file;
 int hidden_size = 64;
 int embedding_size = 64;
 
-int beam_size = 50;
-int kbest_size = 50;
+int beam_size = 32;
+int kbest_size = 128;
 int unary_size = 3;
 
 bool binarize_left = false;
