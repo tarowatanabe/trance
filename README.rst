@@ -40,7 +40,10 @@ details, see `BUILD.rst`.
 Parsing
 -------
 
-We provide models for 2 languages, English (WSJ) and Chinese (CTB). They are Model5 which performs the best in our settings. Following is an example to run our modes, using STDIN/STDOUT as our input/output:
+We provide models for 2 languages, English (WSJ) and Chinese
+(CTB). They are Model5 which performs the best in our
+settings. Following is an example to run our modes, using STDIN/STDOUT
+as our input/output:
 
 .. code:: bash
 
