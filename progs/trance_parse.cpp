@@ -148,8 +148,18 @@ int main(int argc, char** argv)
 	throw std::runtime_error("invalid model file");
       }
     }
+
+    utils::resource grammar_start;
     
     grammar_type grammar(grammar_file);
+
+    utils::resource grammar_end;
+
+    if (debug)
+      std::cerr << "read grammar:"
+		<< " cpu time: " << grammar_end.cpu_time() - grammar_start.cpu_time()
+		<< " user time: " << grammar_end.user_time() - grammar_start.user_time()
+		<< std::endl;
     
     if (debug)
       std::cerr << "binary: " << grammar.binary_size()
@@ -159,13 +169,24 @@ int main(int argc, char** argv)
 		<< " non-terminals: " << grammar.non_terminal_.size()
 		<< " POS: " << grammar.pos_.size()
 		<< std::endl;
-
+    
     signature_type::signature_ptr_type signature(signature_type::create(signature_name));
-
+    
+    utils::resource feats_start;
+    
     feature_set_type feats(feature_functions.begin(), feature_functions.end());
     
-    if (debug)
+    utils::resource feats_end;
+    
+    if (debug && ! feats.empty()) {
+      if (debug)
+	std::cerr << "read features:"
+		  << " cpu time: " << feats_end.cpu_time() - feats_start.cpu_time()
+		  << " user time: " << feats_end.user_time() - feats_start.user_time()
+		  << std::endl;
+      
       std::cerr << "# of features: " << feats.size() << std::endl;
+    }
 
     if (model_model1) {
       if (debug)
