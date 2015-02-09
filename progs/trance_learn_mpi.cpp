@@ -90,8 +90,6 @@ bool model_model2 = false;
 bool model_model3 = false;
 bool model_model4 = false;
 bool model_model5 = false;
-bool model_model6 = false;
-bool model_model7 = false;
 
 path_type model_file;
 path_type embedding_file;
@@ -175,14 +173,14 @@ int main(int argc, char** argv)
       mix_none_mode = true;
 
     if (model_file.empty()) {
-      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6 + model_model7 > 1)
+      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 > 1)
 	throw std::runtime_error("either one of --model{1,2,3,4,5}");
       
-      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6 + model_model7 == 0)
+      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 == 0)
 	model_model5 = true;
     } else {
-      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5 + model_model6 + model_model7)
-	throw std::runtime_error("model file is specified via --model, but with --model{1,2,3,4,5,6,7}?");
+      if (int(model_model1) + model_model2 + model_model3 + model_model4 + model_model5)
+	throw std::runtime_error("model file is specified via --model, but with --model{1,2,3,4,5}?");
       
       if (! boost::filesystem::exists(model_file))
 	throw std::runtime_error("no model file? " + model_file.string());
@@ -193,8 +191,6 @@ int main(int argc, char** argv)
       case trance::model::MODEL3: model_model3 = true; break;
       case trance::model::MODEL4: model_model4 = true; break;
       case trance::model::MODEL5: model_model5 = true; break;
-      case trance::model::MODEL6: model_model6 = true; break;
-      case trance::model::MODEL7: model_model7 = true; break;
       default:
 	throw std::runtime_error("invalid model file");
       }
@@ -275,20 +271,6 @@ int main(int argc, char** argv)
 	std::cerr << "model5" << std::endl;
       
       trance::model::Model5 theta(hidden_size, embedding_size, grammar);
-      
-      learn(optimizations, trees, tests, grammar, *signature, feats, theta, generator);
-    } else if (model_model6) {
-      if (mpi_rank == 0 && debug)
-	std::cerr << "model6" << std::endl;
-      
-      trance::model::Model6 theta(hidden_size, embedding_size, grammar);
-      
-      learn(optimizations, trees, tests, grammar, *signature, feats, theta, generator);
-    } else if (model_model7) {
-      if (mpi_rank == 0 && debug)
-	std::cerr << "model7" << std::endl;
-      
-      trance::model::Model7 theta(hidden_size, embedding_size, grammar);
       
       learn(optimizations, trees, tests, grammar, *signature, feats, theta, generator);
     } else
@@ -1737,8 +1719,6 @@ void options(int argc, char** argv)
     ("model3",    po::bool_switch(&model_model3), "parsing by model3")
     ("model4",    po::bool_switch(&model_model4), "parsing by model4")
     ("model5",    po::bool_switch(&model_model5), "parsing by model5 (default)")
-    ("model6",    po::bool_switch(&model_model6), "parsing by model6")
-    ("model7",    po::bool_switch(&model_model7), "parsing by model7")
 
     ("model",     po::value<path_type>(&model_file),                              "model file")
     ("hidden",    po::value<int>(&hidden_size)->default_value(hidden_size),       "hidden dimension")

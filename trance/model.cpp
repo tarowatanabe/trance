@@ -49,9 +49,6 @@ namespace trance
     case 3: return model::MODEL3;
     case 4: return model::MODEL4;
     case 5: return model::MODEL5;
-    case 6: return model::MODEL6;
-    case 7: return model::MODEL7;
-    case 8: return model::MODEL8;
     default: return model::NONE;
     }
   }

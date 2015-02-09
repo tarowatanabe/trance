@@ -17,9 +17,6 @@ namespace trance
       MODEL3 = 3,
       MODEL4 = 4,
       MODEL5 = 5,
-      MODEL6 = 6,
-      MODEL7 = 7,
-      MODEL8 = 8,
     } ModelType;
   };
 };
