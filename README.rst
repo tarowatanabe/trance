@@ -43,7 +43,7 @@ Parsing
 We provide models for 2 languages, English (WSJ) and Chinese
 (CTB). They are Model5 which performs the best in our
 settings. Following is an example to run our modes, using STDIN/STDOUT
-as our input/output:
+as our input/output (assuming utf-8 encoding of input/output):
 
 .. code:: bash
 
