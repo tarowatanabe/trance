@@ -3,10 +3,10 @@ Trance Parser
 =============
 
 Trance parser is an implementation of transition-based neural
-constituent parsing proposed by [1]_, a transition-based
-parser with neural networks to score all the derivation histories.
+constituent parsing proposed, a transition-based parser with neural
+networks to score all the derivation histories.
 
-Currently, we support following neural networks (For details, see [1]_):
+Currently, we support following neural networks:
 
 - Model1: no feedback from stacks or contexts (`tree` model)
 - Model2: feedback from stacks for shift actions
@@ -159,10 +159,4 @@ iterations is set to 100 with mini-batch size of 4, beam size of 32
 and kbest size of 128, i.e., the beam size in the final bin. In each
 iteration, we select the best model with respect to L1 norm
 (``--mix-select``) and performs averaging for model output
-(``--averaging``). For details, see [1]_.
-
-References
-----------
-
-.. [1]   Taro Watanabe and Eiichiro Sumita. Transition-based Neural
-	 Constituent Parsing. In Proc. of HLT-NAACL 2015.
+(``--averaging``).
