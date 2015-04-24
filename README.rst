@@ -3,16 +3,16 @@ Trance Parser
 =============
 
 Trance parser is an implementation of transition-based neural
-constituent parsing proposed, a transition-based parser with neural
+constituent parsing [1]_, a transition-based parser with neural
 networks to score all the derivation histories.
 
 Currently, we support following neural networks:
 
-- Model1: no feedback from stacks or contexts (`tree` model)
+- Model1: no feedback from stacks or contexts (`tree` model [1]_)
 - Model2: feedback from stacks for shift actions
 - Model3: Model2 + queue contexts
-- Model4: Model2 + feed back from stack for reduce/unary actions (`+stack` model)
-- Model5: Model4 + queue contexts (`+queue` model)
+- Model4: Model2 + feed back from stack for reduce/unary actions (`+stack` model [1]_)
+- Model5: Model4 + queue contexts (`+queue` model [1]_)
 
 Various training objective:
 
@@ -69,9 +69,8 @@ For Chinese, the `Stanford Word Segmenter
 Training
 --------
 
-Sample scripts are available in `samples/train-{wsj,ctb}.sh` for
-training WSJ and CTB, respectively, using some publicly available
-tools.
+Sample scripts are available in `samples/train-{wsj,ctb}.sh` for training
+WSJ and CTB, respectively, using publicly available tools for preprocessing.
 
 In brief, first, we need to obtain treebank trees in a normalized
 form:
@@ -140,7 +139,7 @@ have to use the same one. ``--unary`` option should be the same as the
 maximum unary size output by the ``trance_grammar`` with ``--debug``
 option.
 
-By default, we use the hidden size of 64 and embedding size of 64, and
+By default, we use the hidden size of 64 and embedding size of 1024, and
 the model parameters are initialized randomly (``--ramdomize``). You
 can precompute word embedding by `word2vec <https://code.google.com/p/word2vec/>`_
 or `rnnlm <http://rnnlm.org>`_, then use it as initial parameters for
@@ -160,3 +159,9 @@ and kbest size of 128, i.e., the beam size in the final bin. In each
 iteration, we select the best model with respect to L1 norm
 (``--mix-select``) and performs averaging for model output
 (``--averaging``).
+
+References
+----------
+
+.. [1]   Taro Watanabe and Eiichiro Sumita. Transition-based Neural Constituent Parsing.
+	 In Proc. of ACL 2015 (to appear).

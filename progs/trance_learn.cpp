@@ -86,7 +86,7 @@ bool model_model5 = false;
 path_type model_file;
 path_type embedding_file;
 int hidden_size = 64;
-int embedding_size = 64;
+int embedding_size = 1024;
 
 int beam_size = 32;
 int kbest_size = 128;
