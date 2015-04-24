@@ -158,7 +158,7 @@ iterations is set to 100 with mini-batch size of 4, beam size of 32
 and kbest size of 128, i.e., the beam size in the final bin. In each
 iteration, we select the best model with respect to L1 norm
 (``--mix-select``) and performs averaging for model output
-(``--averaging``).
+(``--averaging``). This is a recommended setting employed in [1]_.
 
 References
 ----------
