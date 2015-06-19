@@ -265,12 +265,12 @@ MPI_CPPFLAGS=""
 MPI_LDFLAGS=""
 if test "x$MPI_CXX_COMPILER" != "xno"; then
   AC_MSG_CHECKING(mpi cppflags)
-  MPI_CPPFLAGS=`$MPI_CXX_COMPILER -showme | $AWK '{for(i=1;i<=NF;i++){if($i~/^-I/ || $i~/^-D/){printf "%s ", $i;}}}'`
+  MPI_CPPFLAGS=`$MPI_CXX_COMPILER -show | $AWK '{for(i=1;i<=NF;i++){if($i~/^-I/ || $i~/^-D/){printf "%s ", $i;}}}'`
   AC_MSG_RESULT($MPI_CPPFLAGS)
   AC_SUBST(MPI_CPPFLAGS)
 
   AC_MSG_CHECKING(mpi ldflags)
-  MPI_LDFLAGS=`$MPI_CXX_COMPILER -showme | $AWK '{for(i=1;i<=NF;i++){if($i~/^-L/ || $i~/^-l/ || $i~/^-Wl/){printf "%s ", $i;}}}'`
+  MPI_LDFLAGS=`$MPI_CXX_COMPILER -show | $AWK '{for(i=1;i<=NF;i++){if($i~/^-L/ || $i~/^-l/ || $i~/^-Wl/){printf "%s ", $i;}}}'`
   AC_MSG_RESULT($MPI_LDFLAGS)
   AC_SUBST(MPI_LDFLAGS)
 fi
