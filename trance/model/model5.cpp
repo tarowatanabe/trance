@@ -181,7 +181,7 @@ namespace trance
 
       Model::read_category(rep.path("Wc.txt.gz"), rep.path("Wc.bin"),  Wc_,  1, hidden_ * 3);
       Model::read_category(rep.path("Bc.txt.gz"), rep.path("Bc.bin"),  Bc_,  1, 3);
-      Model::write_weights(rep.path("Wfe.txt.gz"), Wfe_);
+      Model::read_weights(rep.path("Wfe.txt.gz"), Wfe_);
 
       Model::read_category(rep.path("Wsh.txt.gz"), rep.path("Wsh.bin"), Wsh_, hidden_, hidden_ + embedding_ + hidden_);
       Model::read_category(rep.path("Bsh.txt.gz"), rep.path("Bsh.bin"), Bsh_, hidden_, 1);
