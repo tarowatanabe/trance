@@ -2,7 +2,9 @@
 //  Copyright(C) 2014 Taro Watanabe <taro.watanabe@nict.go.jp>
 //
 
+#define BOOST_DISABLE_ASSERTS
 #define BOOST_SPIRIT_THREADSAFE
+#define PHOENIX_THREADSAFE
 
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/karma.hpp>
@@ -25,13 +27,13 @@ namespace trance
     struct treebank_type
     {
       typedef std::vector<treebank_type, std::allocator<treebank_type> > antecedent_type;
-      
+
       std::string     label_;
       antecedent_type antecedent_;
 
       treebank_type() {}
       treebank_type(const std::string& label) : label_(label) {}
-      
+
       void clear()
       {
 	label_.clear();
@@ -47,7 +49,7 @@ namespace trance
 	else {
 	  tree.label_ = '[' + label_ + ']'; // non-terminal
 	  tree.antecedent_ = trance::Tree::antecedent_type(antecedent_.size());
-	  
+
 	  for (size_t i = 0; i != tree.antecedent_.size(); ++ i)
 	    antecedent_[i].transform(tree.antecedent_[i]);
 	}
@@ -74,7 +76,7 @@ namespace trance
       {
 	namespace qi = boost::spirit::qi;
 	namespace standard = boost::spirit::standard;
-	
+
 	label %= qi::lexeme[+(standard::char_ - standard::space - '(' - ')')];
 	treebank %= qi::hold['(' >> label >> +treebank >> ')'] | label;
 	root %= (qi::hold['(' >> label >> +treebank >> ')']
@@ -82,12 +84,12 @@ namespace trance
 		 | qi::hold[qi::lit('(') >> qi::attr("") >> qi::lit('(') >> qi::lit(')') >> qi::lit(')')]
 		 | qi::attr(""));
       }
-      
+
       boost::spirit::qi::rule<Iterator, std::string(),   boost::spirit::standard::space_type> label;
       boost::spirit::qi::rule<Iterator, treebank_type(), boost::spirit::standard::space_type> treebank;
       boost::spirit::qi::rule<Iterator, treebank_type(), boost::spirit::standard::space_type> root;
     };
-    
+
   };
 
   template <typename Iterator>
@@ -95,19 +97,19 @@ namespace trance
   {
     namespace qi = boost::spirit::qi;
     namespace standard = boost::spirit::standard;
-    
+
     impl::treebank_grammar<Iterator> parser;
     impl::treebank_type              parsed;
-    
+
     tree.clear();
-    
+
     if (qi::phrase_parse(iter, end, parser, standard::space, parsed)) {
       parsed.transform(tree);
       return true;
     } else
       return false;
   }
-  
+
   template <typename Iterator>
   bool tree_generator(Iterator iter, const Tree& tree)
   {
@@ -121,11 +123,11 @@ namespace trance
     else {
       if (! karma::generate(iter, '(' << standard::string << ' ', tree.label_.strip()))
 	return false;
-      
+
       for (Tree::const_iterator aiter = tree.begin(); aiter != tree.end(); ++ aiter)
 	if (! tree_generator(iter, *aiter))
 	  return false;
-      
+
       return karma::generate(iter, ')');
     }
   }
@@ -134,18 +136,18 @@ namespace trance
   {
     utils::piece::const_iterator iter(x.begin());
     utils::piece::const_iterator end(x.end());
-    
+
     const bool result = assign(iter, end);
-    
+
     if (! result || iter != end)
       throw std::runtime_error("tree parsing failed:" + std::string(x.begin(), std::min(x.begin() + 64, x.end())));
   }
-  
+
   bool Tree::assign(std::string::const_iterator& iter, std::string::const_iterator end)
   {
     return tree_parser(iter, end, *this);
   }
-  
+
   bool Tree::assign(utils::piece::const_iterator& iter, utils::piece::const_iterator end)
   {
     return tree_parser(iter, end, *this);
@@ -154,27 +156,27 @@ namespace trance
   std::string Tree::string() const
   {
     std::string out;
-    
+
     tree_generator(std::back_inserter(out), *this);
 
     return out;
   }
-  
+
   std::ostream& operator<<(std::ostream& os, const Tree& tree)
   {
     tree_generator(std::ostream_iterator<char>(os), tree);
     return os;
   }
-  
+
   std::istream& operator>>(std::istream& is, Tree& tree)
   {
     std::string line;
-    
+
     if (utils::getline(is, line))
       tree.assign(line);
     else
       tree.clear();
-    
+
     return is;
   }
 

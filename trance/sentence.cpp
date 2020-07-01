@@ -2,6 +2,7 @@
 //  Copyright(C) 2014 Taro Watanabe <taro.watanabe@nict.go.jp>
 //
 
+#define BOOST_DISABLE_ASSERTS
 #define BOOST_SPIRIT_THREADSAFE
 #define PHOENIX_THREADSAFE
 
@@ -22,40 +23,40 @@ namespace trance
   bool Sentence::assign(std::string::const_iterator& iter, std::string::const_iterator end)
   {
     typedef std::string::const_iterator iter_type;
-    
+
     namespace qi = boost::spirit::qi;
     namespace standard = boost::spirit::standard;
-    
+
     clear();
-    
+
     qi::rule<iter_type, std::string(), standard::space_type> word = qi::lexeme[+(standard::char_ - standard::space) - ("|||" >> (standard::space | qi::eoi))];
-    
-    
+
+
     return qi::phrase_parse(iter, end, *(word), standard::space, sent_);
   }
 
   bool Sentence::assign(utils::piece::const_iterator& iter, utils::piece::const_iterator end)
   {
     typedef utils::piece::const_iterator iter_type;
-    
+
     namespace qi = boost::spirit::qi;
     namespace standard = boost::spirit::standard;
-    
+
     clear();
-    
+
     qi::rule<iter_type, std::string(), standard::space_type> word = qi::lexeme[+(standard::char_ - standard::space) - ("|||" >> (standard::space | qi::eoi))];
-    
-    
+
+
     return qi::phrase_parse(iter, end, *(word), standard::space, sent_);
   }
-  
+
   void Sentence::assign(const utils::piece& x)
   {
     utils::piece::const_iterator iter(x.begin());
     utils::piece::const_iterator end(x.end());
-    
+
     const bool result = assign(iter, end);
-    
+
     if (! result || iter != end)
       throw std::runtime_error("sentence parsing failed");
   }
@@ -63,26 +64,26 @@ namespace trance
   std::ostream& operator<<(std::ostream& os, const Sentence& x)
   {
     typedef std::ostream_iterator<char> iterator_type;
-    
+
     namespace karma = boost::spirit::karma;
     namespace standard = boost::spirit::standard;
 
     iterator_type iter(os);
-    
+
     if (! karma::generate(iter, -(standard::string % ' '), x.sent_))
       throw std::runtime_error("sentence generation failed...?");
-    
+
     return os;
   }
 
   std::istream& operator>>(std::istream& is, Sentence& x)
   {
     std::string line;
-    
+
     x.clear();
     if (utils::getline(is, line))
       x.assign(line);
-    
+
     return is;
   }
 };

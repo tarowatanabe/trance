@@ -2,6 +2,7 @@
 //  Copyright(C) 2014 Taro Watanabe <taro.watanabe@nict.go.jp>
 //
 
+#define BOOST_DISABLE_ASSERTS
 #define BOOST_SPIRIT_THREADSAFE
 #define PHOENIX_THREADSAFE
 
@@ -27,10 +28,10 @@ namespace trance
   {
     namespace qi = boost::spirit::qi;
     namespace standard = boost::spirit::standard;
-    
+
     utils::piece::const_iterator iter(x.begin());
     utils::piece::const_iterator end(x.end());
-    
+
     const bool result = qi::phrase_parse(iter, end,
 					 qi::lexeme[qi::int_ >> ".." >> qi::int_],
 					 standard::space, *this);
@@ -49,21 +50,21 @@ namespace trance
 
     return is;
   }
-  
+
   std::ostream& operator<<(std::ostream& os, const Span& x)
   {
     typedef std::ostream_iterator<char> iterator_type;
-    
+
     namespace karma = boost::spirit::karma;
     namespace standard = boost::spirit::standard;
-    
+
     iterator_type iter(os);
-    
+
     karma::int_generator<Span::index_type> int_;
 
     if (! karma::generate(iter, int_ << ".." << int_, x.first_, x.last_))
       throw std::runtime_error("span generation failed...?");
-    
+
     return os;
   }
 }

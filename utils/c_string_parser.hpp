@@ -7,6 +7,10 @@
 
 #include <string>
 
+#define BOOST_DISABLE_ASSERTS
+#define BOOST_SPIRIT_THREADSAFE
+#define PHOENIX_THREADSAFE
+
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix_core.hpp>
 #include <boost/spirit/include/phoenix_container.hpp>
@@ -19,7 +23,7 @@ namespace utils
   struct c_string_parser : boost::spirit::qi::grammar<Iterator, std::string()>
   {
     typedef uint32_t uchar_type;
-    
+
     struct push_raw_func
     {
 #if BOOST_PHOENIX_VERSION >= 0x3000
@@ -30,13 +34,13 @@ namespace utils
       struct result {
 	typedef void type;
       };
-      
+
       void operator()(std::string& result, const uchar_type c) const
       {
 	result += c;
       }
     };
-    
+
     struct push_escaped_func
     {
 #if BOOST_PHOENIX_VERSION >= 0x3000
@@ -47,7 +51,7 @@ namespace utils
        struct result {
 	 typedef void type;
        };
-      
+
       void operator()(std::string& result, const uchar_type c) const
       {
 	switch (c) {
@@ -66,25 +70,25 @@ namespace utils
 	}
       }
     };
-    
+
     c_string_parser() : c_string_parser::base_type(string)
     {
       namespace qi = boost::spirit::qi;
       namespace standard = boost::spirit::standard;
-      
+
       escaped = '\\' >> (('x' >> hex2) [push_raw(qi::_r1, qi::_1)]
 			 | standard::char_("abfnrtv0\\\"'?") [push_escaped(qi::_r1, qi::_1)]
 			 | oct [push_raw(qi::_r1, qi::_1)]);
-      
+
       string = '\"' >> *(escaped(qi::_val) | (~standard::char_('\"'))[qi::_val += qi::_1]) >> '\"';
     }
 
     boost::phoenix::function<push_raw_func> const     push_raw;
     boost::phoenix::function<push_escaped_func> const push_escaped;
-    
+
     boost::spirit::qi::uint_parser<uchar_type, 8, 3, 3>  oct;
     boost::spirit::qi::uint_parser<uchar_type, 16, 2, 2> hex2;
-    
+
     boost::spirit::qi::rule<Iterator, void(std::string&)> escaped;
     boost::spirit::qi::rule<Iterator, std::string()>      string;
   };

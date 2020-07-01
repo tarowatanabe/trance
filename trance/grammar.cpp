@@ -1,4 +1,6 @@
+#define BOOST_DISABLE_ASSERTS
 #define BOOST_SPIRIT_THREADSAFE
+#define PHOENIX_THREADSAFE
 
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/karma.hpp>
@@ -20,7 +22,7 @@ namespace trance
     namespace standard = boost::spirit::standard;
 
     typedef boost::spirit::istream_iterator iterator_type;
-    
+
     typedef utils::compact_set<symbol_type,
 			       utils::unassigned<symbol_type>, utils::unassigned<symbol_type>,
 			       boost::hash<symbol_type>, std::equal_to<symbol_type>,
@@ -31,19 +33,19 @@ namespace trance
     symbol_unique_type terminal;
     symbol_unique_type non_terminal;
     symbol_unique_type pos;
-    
+
     std::string line;
     rule_type rule;
-    
+
     utils::compress_istream is(path, 1024 * 1024);
     is.unsetf(std::ios::skipws);
-          
+
     iterator_type iter(is);
     iterator_type iter_end;
-    
+
     while (iter != iter_end) {
       line.clear();
-      
+
       if (! qi::parse(iter, iter_end,
 		      *(standard::char_ - qi::eol - ("|||" >> (standard::space | qi::eoi)))
 		      >> -qi::omit["|||" >> *(standard::char_ - qi::eol - qi::eoi)]
@@ -51,15 +53,15 @@ namespace trance
 		      line))
 	if (iter != iter_end)
 	  throw std::runtime_error("parsing failed... " + std::string(iter, iter_end));
-      
+
       if (line.empty()) continue;
-      
+
       rule.assign(line);
 
       if (rule.goal()) {
 	if (! goal_.empty() && ! sentence_.empty())
 	  throw std::runtime_error("we do not support multiple goals/sentences");
-	
+
 	if (goal_.empty())
 	  goal_ = rule.lhs_;
 	else if (sentence_.empty()) {
@@ -82,12 +84,12 @@ namespace trance
       } else
 	throw std::runtime_error("invlaid rule: " + rule.string());
     }
-    
+
     if (goal_ == symbol_type())
       throw std::runtime_error("no goal?");
     if (sentence_ == symbol_type())
       throw std::runtime_error("no sentencde label?");
-    
+
     if (terminal.empty())
       throw std::runtime_error("no terminals?");
     if (non_terminal.empty())
@@ -97,41 +99,41 @@ namespace trance
 
     if (terminal.find(symbol_type::UNK) == terminal.end())
       throw std::runtime_error("no fallback preterminal?");
-    
+
     // assign label set
 
     non_terminal.insert(goal_);
     non_terminal.insert(sentence_);
     non_terminal.insert(sentence_binarized_);
-    
+
     terminal_.insert(terminal_.end(), terminal.begin(), terminal.end());
     non_terminal_.insert(non_terminal_.end(), non_terminal.begin(), non_terminal.end());
     pos_.insert(pos_.end(), pos.begin(), pos.end());
-    
+
     // check duplicates!
     typedef utils::unordered_set<rule_type,
 				 boost::hash<rule_type>, std::equal_to<rule_type>,
 				 std::allocator<rule_type> >::type rule_unique_type;
 
     rule_unique_type uniques;
-    
+
     // binary rules
     rule_set_binary_type::iterator biter_end = binary_.end();
     for (rule_set_binary_type::iterator biter = binary_.begin(); biter != biter_end; ++ biter) {
       uniques.clear();
       uniques.insert(biter->second.begin(), biter->second.end());
-      
+
       biter->second.clear();
       biter->second.insert(biter->second.end(), uniques.begin(), uniques.end());
       rule_set_type(biter->second).swap(biter->second);
     }
-    
+
     // unary rules
     rule_set_unary_type::iterator uiter_end = unary_.end();
     for (rule_set_unary_type::iterator uiter = unary_.begin(); uiter != uiter_end; ++ uiter) {
       uniques.clear();
       uniques.insert(uiter->second.begin(), uiter->second.end());
-      
+
       uiter->second.clear();
       uiter->second.insert(uiter->second.end(), uniques.begin(), uniques.end());
       rule_set_type(uiter->second).swap(uiter->second);
@@ -142,7 +144,7 @@ namespace trance
     for (rule_set_preterminal_type::iterator piter = preterminal_.begin(); piter != piter_end; ++ piter) {
       uniques.clear();
       uniques.insert(piter->second.begin(), piter->second.end());
-      
+
       piter->second.clear();
       piter->second.insert(piter->second.end(), uniques.begin(), uniques.end());
       rule_set_type(piter->second).swap(piter->second);
@@ -156,7 +158,7 @@ namespace trance
     // goal
     os << rule_type(goal_) << '\n';
     os << rule_type(sentence_) << '\n';
-    
+
     // binary rules
     rule_set_binary_type::const_iterator biter_end = binary_.end();
     for (rule_set_binary_type::const_iterator biter = binary_.begin(); biter != biter_end; ++ biter) {
@@ -171,32 +173,32 @@ namespace trance
       rule_set_type::const_iterator riter_end = uiter->second.end();
       for (rule_set_type::const_iterator riter = uiter->second.begin(); riter != riter_end; ++ riter)
 	os << *riter << '\n';
-    } 
-    
+    }
+
     // preterminal rules
     rule_set_preterminal_type::const_iterator piter_end = preterminal_.end();
     for (rule_set_preterminal_type::const_iterator piter = preterminal_.begin(); piter != piter_end; ++ piter) {
       rule_set_type::const_iterator riter_end = piter->second.end();
       for (rule_set_type::const_iterator riter = piter->second.begin(); riter != riter_end; ++ riter)
 	os << *riter << '\n';
-    } 
-  }  
+    }
+  }
 
   Grammar::size_type Grammar::binary_size() const
   {
     size_type size = 0;
-    
+
     rule_set_binary_type::const_iterator biter_end = binary_.end();
     for (rule_set_binary_type::const_iterator biter = binary_.begin(); biter != biter_end; ++ biter)
       size += biter->second.size();
-    
+
     return size;
   }
 
   Grammar::size_type Grammar::unary_size() const
   {
     size_type size = 0;
-    
+
     rule_set_unary_type::const_iterator uiter_end = unary_.end();
     for (rule_set_unary_type::const_iterator uiter = unary_.begin(); uiter != uiter_end; ++ uiter)
       size += uiter->second.size();
@@ -207,12 +209,12 @@ namespace trance
   Grammar::size_type Grammar::preterminal_size() const
   {
     size_type size = 0;
-    
+
     rule_set_preterminal_type::const_iterator piter_end = preterminal_.end();
     for (rule_set_preterminal_type::const_iterator piter = preterminal_.begin(); piter != piter_end; ++ piter)
       size += piter->second.size();
 
     return size;
   }
-  
+
 };

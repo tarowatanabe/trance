@@ -7,6 +7,10 @@
 
 #include <string>
 
+#define BOOST_DISABLE_ASSERTS
+#define BOOST_SPIRIT_THREADSAFE
+#define PHOENIX_THREADSAFE
+
 #include <boost/spirit/include/karma.hpp>
 
 namespace utils
@@ -15,7 +19,7 @@ namespace utils
   struct c_string_generator : boost::spirit::karma::grammar<Iterator, std::string()>
   {
     typedef uint32_t uchar_type;
-    
+
     c_string_generator() : c_string_generator::base_type(string)
     {
       namespace karma = boost::spirit::karma;
@@ -35,7 +39,7 @@ namespace utils
 		     | standard::char_)
 		<< '\"');
     }
-    
+
     boost::spirit::karma::rule<Iterator, std::string()> string;
   };
 };
