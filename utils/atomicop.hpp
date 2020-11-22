@@ -10,6 +10,10 @@
 
 #include <utils/config.hpp>
 
+#if defined(HAVE_ATOMIC)
+#include <atomic>
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -25,7 +29,9 @@ namespace utils
     inline
     void memory_barrier()
     {
-#if defined(_WIN32)
+#if defined(HAVE_ATOMIC)
+      std::atomic_thread_fence(std::memory_order_seq_cst);
+#elif defined(_WIN32)
       ::MemoryBarrier();
 #elif defined(__APPLE__)
       OSMemoryBarrier();

@@ -439,7 +439,7 @@ AC_MSG_RESULT([no])
 AC_CHECK_HEADERS([fcntl.h malloc.h stdint.h stdlib.h string.h sys/time.h unistd.h])
 
 # hasn_{map,set}
-AC_CHECK_HEADERS([unordered_map unordered_set tr1/unordered_map tr1/unordered_set ext/hash_map ext/hash_set hash_map hash_set])
+AC_CHECK_HEADERS([unordered_map unordered_set tr1/unordered_map tr1/unordered_set ext/hash_map ext/hash_set hash_map hash_set atomic])
 
 # cmath, tr1/cmath
 AC_CHECK_HEADERS([cmath tr1/cmath])
