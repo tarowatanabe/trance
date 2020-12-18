@@ -174,13 +174,13 @@ struct terminal_parser : boost::spirit::qi::grammar<Iterator, std::string()>
     namespace standard = boost::spirit::standard;
 
     escape_char.add
-      //("-LRB-", '(')
-      //("-RRB-", ')')
-      //("-LSB-", '[')
-      //("-RSB-", ']')
-      //("-LCB-", '{')
-      //("-RCB-", '}')
-      //("-PLUS-", '+') // added for ATB
+      ("-LRB-", '(')
+      ("-RRB-", ')')
+      ("-LSB-", '[')
+      ("-RSB-", ']')
+      ("-LCB-", '{')
+      ("-RCB-", '}')
+      ("-PLUS-", '+') // added for ATB
       ("\\/", '/')
       ("\\*", '*');
 
